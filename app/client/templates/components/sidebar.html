@@ -1,0 +1,225 @@
+<div
+  class="sidebar bg-white fixed lg:sticky top-0 lg:top-8 left-0 w-full max-w-xs h-screen lg:h-auto p-6 overflow-y-auto lg:overflow-visible shadow-md lg:shadow-none z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out"
+  data-mobile-menu
+>
+  <div class="sidebar-category mb-4 pb-4 border-b border-cultured">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-onyx text-lg uppercase font-semibold tracking-wide">
+        Collections
+      </h2>
+      <button
+        class="text-eerie-black text-xl font-semibold"
+        data-mobile-menu-close-btn
+      >
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <ul class="space-y-1">
+      {% for collection in collections %}
+      <li class="border-b border-cultured">
+        <button
+          class="w-full flex justify-between items-center py-2"
+          data-accordion-btn
+        >
+          <div class="flex items-center gap-2.5">
+            <img
+              src="{{ collection.image_url }}"
+              alt="{{ collection.name }}"
+              width="30"
+              height="30"
+              class="p-1 rounded"
+            />
+            <p class="text-sonic-silver text-base font-medium capitalize">
+              {{ collection.name }}
+            </p>
+          </div>
+          <div>
+            <ion-icon
+              name="add-outline"
+              class="add-icon text-sonic-silver"
+            ></ion-icon>
+            <ion-icon
+              name="remove-outline"
+              class="remove-icon text-sonic-silver"
+            ></ion-icon>
+          </div>
+        </button>
+
+        <ul class="pl-2.5 border-t border-cultured" data-accordion>
+          {% for category in categories %} {% if category.collection_id ==
+          collection.id %}
+          <li class="py-1">
+            <a
+              href="/category/{{ category.id }}"
+              class="flex justify-between items-center text-sonic-silver text-sm hover:text-eerie-black"
+            >
+              <p class="capitalize">{{ category.name }}</p>
+              <data
+                value="{{ category.product_count }}"
+                class="text-xs"
+                title="Available Stock"
+                >{{ category.product_count }}</data
+              >
+            </a>
+          </li>
+          {% endif %} {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Best Sellers Section can be added here -->
+  <div class="mb-8">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Best Sellers</h3>
+
+    <div class="w-full">
+      <div class="space-y-4">
+        <!-- Product 1 -->
+        <div
+          class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
+        >
+          <a href="#" class="flex-shrink-0">
+            <img
+              src="./assets/images/products/1.jpg"
+              alt="baby fabric shoes"
+              class="w-[75px] h-[75px] object-cover rounded-md"
+            />
+          </a>
+
+          <div class="flex-1">
+            <a href="#" class="block mb-1">
+              <h4
+                class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
+              >
+                baby fabric shoes
+              </h4>
+            </a>
+
+            <div class="flex text-yellow-500 mb-1">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <del class="text-gray-500 text-sm">$5.00</del>
+              <p class="text-sm font-semibold text-gray-900">$4.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 2 -->
+        <div
+          class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
+        >
+          <a href="#" class="flex-shrink-0">
+            <img
+              src="./assets/images/products/2.jpg"
+              alt="men's hoodies t-shirt"
+              class="w-[75px] h-[75px] object-cover rounded-md"
+            />
+          </a>
+
+          <div class="flex-1">
+            <a href="#" class="block mb-1">
+              <h4
+                class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
+              >
+                men's hoodies t-shirt
+              </h4>
+            </a>
+
+            <div class="flex text-yellow-500 mb-1">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star-half-outline"></ion-icon>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <del class="text-gray-500 text-sm">$17.00</del>
+              <p class="text-sm font-semibold text-gray-900">$7.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 3 -->
+        <div
+          class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
+        >
+          <a href="#" class="flex-shrink-0">
+            <img
+              src="./assets/images/products/3.jpg"
+              alt="girls t-shirt"
+              class="w-[75px] h-[75px] object-cover rounded-md"
+            />
+          </a>
+
+          <div class="flex-1">
+            <a href="#" class="block mb-1">
+              <h4
+                class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
+              >
+                girls t-shirt
+              </h4>
+            </a>
+
+            <div class="flex text-yellow-500 mb-1">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star-half-outline"></ion-icon>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <del class="text-gray-500 text-sm">$5.00</del>
+              <p class="text-sm font-semibold text-gray-900">$3.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 4 -->
+        <div
+          class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
+        >
+          <a href="#" class="flex-shrink-0">
+            <img
+              src="./assets/images/products/4.jpg"
+              alt="woolen hat for men"
+              class="w-[75px] h-[75px] object-cover rounded-md"
+            />
+          </a>
+
+          <div class="flex-1">
+            <a href="#" class="block mb-1">
+              <h4
+                class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
+              >
+                woolen hat for men
+              </h4>
+            </a>
+
+            <div class="flex text-yellow-500 mb-1">
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+              <ion-icon name="star"></ion-icon>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <del class="text-gray-500 text-sm">$15.00</del>
+              <p class="text-sm font-semibold text-gray-900">$12.00</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

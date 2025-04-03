@@ -1,0 +1,141 @@
+{% extends "base.html" %} {% block title %}My Orders{% endblock %} {% block
+content %}
+<div class="max-w-6xl mx-auto p-4">
+  <h1 class="text-2xl font-bold mb-4">My Orders</h1>
+
+  <div class="mb-6 flex justify-between items-center">
+    <a href="/" class="text-blue-600 hover:text-blue-800">← Back to Home</a>
+
+    <div class="flex space-x-2">
+      <a
+        href="/my-orders"
+        class="px-3 py-1 rounded-md text-sm {% if not current_status %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
+      >
+        All
+      </a>
+      <a
+        href="/orders/filter?status=pending"
+        class="px-3 py-1 rounded-md text-sm {% if current_status == 'pending' %}bg-yellow-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
+      >
+        Pending
+      </a>
+      <a
+        href="/orders/filter?status=processing"
+        class="px-3 py-1 rounded-md text-sm {% if current_status == 'processing' %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
+      >
+        Processing
+      </a>
+      <a
+        href="/orders/filter?status=delivered"
+        class="px-3 py-1 rounded-md text-sm {% if current_status == 'delivered' %}bg-green-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
+      >
+        Delivered
+      </a>
+      <a
+        href="/orders/filter?status=cancelled"
+        class="px-3 py-1 rounded-md text-sm {% if current_status == 'cancelled' %}bg-red-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
+      >
+        Cancelled
+      </a>
+    </div>
+  </div>
+
+  {% if orders %}
+  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th
+              scope="col"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order #
+            </th>
+            <th
+              scope="col"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Date
+            </th>
+            <th
+              scope="col"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Total
+            </th>
+            <th
+              scope="col"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Status
+            </th>
+            <th
+              scope="col"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for order in orders %}
+          <tr>
+            <td
+              class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+            >
+              {{ order.order_no }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              ${{ "%.2f"|format(order.total_amount) }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800 {% elif order.status == 'processing' %}bg-blue-100 text-blue-800 {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800 {% elif order.status == 'delivered' %}bg-green-100 text-green-800 {% elif order.status == 'cancelled' %}bg-red-100 text-red-800 {% endif %}"
+              >
+                {{ order.status }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <a
+                href="/order/{{ order.id }}"
+                class="text-blue-600 hover:text-blue-900 mr-4"
+                >View Details</a
+              >
+              {% if order.status == 'pending' %}
+              <form
+                action="/cancel-order/{{ order.id }}"
+                method="POST"
+                class="inline"
+              >
+                <button type="submit" class="text-red-600 hover:text-red-900">
+                  Cancel
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="bg-white shadow rounded-lg p-6 text-center">
+    <p class="text-gray-500 mb-4">
+      {% if current_status %} You don't have any {{ current_status }} orders. {%
+      else %} You don't have any orders yet. {% endif %}
+    </p>
+    <a
+      href="/"
+      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    >
+      Start Shopping
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

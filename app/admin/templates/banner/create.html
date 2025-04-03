@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Banner{% endblock %}
+
+{% block extra_css %}
+<style>
+  .required-field::after {
+    content: "*";
+    color: #ef4444;
+    margin-left: 4px;
+  }
+
+  .image-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  .preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .preview-item {
+    position: relative;
+  }
+
+  .remove-image {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .hidden {
+    display: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+  <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Add New Banner</h1>
+    <p class="text-gray-600">Create a new banner for your website</p>
+    </div>
+
+    {% if message %}
+  <div class="p-4 mb-6 text-sm {% if message_type == 'success' %}text-green-800 bg-green-50{% else %}text-red-800 bg-red-50{% endif %} rounded-lg" role="alert">
+        {{ message }}
+    </div>
+    {% endif %}
+
+  <form action="/admin/banner" method="post" enctype="multipart/form-data" class="space-y-6" id="bannerForm">
+    <!-- Basic Information -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Basic Information</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+          <label for="title" class="block mb-2 text-sm font-medium text-gray-900 required-field">Title</label>
+                    <input type="text" name="title" id="title" required 
+                        value="{{ form_data.title if form_data else '' }}"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                
+                <div>
+          <label for="subtitle" class="block mb-2 text-sm font-medium text-gray-900">Subtitle</label>
+                    <input type="text" name="subtitle" id="subtitle" 
+                        value="{{ form_data.subtitle if form_data else '' }}"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+        </div>
+      </div>
+
+      <div class="mt-4" id="descriptionSection">
+        <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Description</label>
+        <textarea name="description" id="description" rows="4" 
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">{{ form_data.description if form_data else '' }}</textarea>
+                </div>
+            </div>
+
+    <!-- Banner Image -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Banner Image</h2>
+
+      <div class="mb-4">
+        <label for="image" class="block mb-2 text-sm font-medium text-gray-900 required-field">Upload Image</label>
+        <input type="file" name="image" id="image" accept="image/*" required
+          class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+        <p class="mt-1 text-sm text-gray-500">Recommended size: 1200x450 pixels. Max 5MB.</p>
+      </div>
+
+      <div id="imagePreviewContainer" class="preview-container"></div>
+    </div>
+
+    <!-- Link and Position -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Link and Position</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+          <label for="link" class="block mb-2 text-sm font-medium text-gray-900">Link URL</label>
+          <input type="url" name="link" id="link" 
+            value="{{ form_data.link if form_data else '' }}"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+          <p class="mt-1 text-sm text-gray-500">Where should this banner link to when clicked?</p>
+            </div>
+
+            <div>
+          <label for="position" class="block mb-2 text-sm font-medium text-gray-900 required-field">Position</label>
+          <select name="position" id="position" class="form-select" required>
+            <option value="home_top">Home Top</option>
+            <option value="category_page">Category Page</option>
+            <option value="brand_page">Brand Page</option>
+            <option value="collection_page">Collection Page</option>
+          </select>
+        </div>
+                    </div>
+                </div>
+
+    <!-- Priority and Schedule -->
+    <div class="mb-8" id="priorityScheduleSection">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Priority and Schedule</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="priority" class="block mb-2 text-sm font-medium text-gray-900">Priority</label>
+          <input type="number" name="priority" id="priority" min="0" value="0"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+          <p class="mt-1 text-sm text-gray-500">Higher number means higher priority. Default is 0.</p>
+            </div>
+
+            <div>
+          <label for="start_date" class="block mb-2 text-sm font-medium text-gray-900">Start Date</label>
+          <input type="datetime-local" name="start_date" id="start_date"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+          <p class="mt-1 text-sm text-gray-500">When should this banner start displaying?</p>
+            </div>
+
+                <div>
+          <label for="end_date" class="block mb-2 text-sm font-medium text-gray-900">End Date</label>
+          <input type="datetime-local" name="end_date" id="end_date"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+          <p class="mt-1 text-sm text-gray-500">When should this banner stop displaying?</p>
+        </div>
+      </div>
+                </div>
+                
+    <!-- Status -->
+    <div class="mb-8" id="statusSection">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Banner Status</h2>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" name="is_active" id="is_active" value="true"
+                            {% if not form_data or form_data.is_active %}checked{% endif %}
+          class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+        <label for="is_active" class="ml-2 text-sm font-medium text-gray-900">
+          Active
+        </label>
+        <span class="ml-2 text-xs text-gray-500">
+          (Active banners will be displayed on the website)
+        </span>
+                </div>
+            </div>
+
+    <!-- Submit Button -->
+            <div class="flex justify-end">
+      <a href="/admin/banner" 
+        class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                    Cancel
+                </a>
+      <button type="submit" 
+        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                    Create Banner
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const positionSelect = document.getElementById("position");
+    const priorityScheduleSection = document.getElementById("priorityScheduleSection");
+    const statusSection = document.getElementById("statusSection");
+    const descriptionSection = document.getElementById("descriptionSection");
+    const isActiveCheckbox = document.getElementById("is_active");
+    const priorityInput = document.getElementById("priority");
+    const startDateInput = document.getElementById("start_date");
+    const endDateInput = document.getElementById("end_date");
+    const descriptionInput = document.getElementById("description");
+
+    // Function to check if there's an active banner for home_bottom
+    async function checkActiveHomeBottomBanner() {
+      try {
+        const response = await fetch('/api/banners/check-home-bottom');
+        const data = await response.json();
+        return data.hasActiveBanner;
+      } catch (error) {
+        console.error('Error checking active banner:', error);
+        return false;
+      }
+    }
+
+    // Function to handle position change
+    async function handlePositionChange() {
+      const position = positionSelect.value;
+      
+      // Reset form fields
+      priorityInput.value = "0";
+      startDateInput.value = "";
+      endDateInput.value = "";
+      isActiveCheckbox.checked = true;
+      descriptionInput.value = "";
+
+      switch(position) {
+        case "home_top":
+          // Show all sections
+          priorityScheduleSection.classList.remove("hidden");
+          statusSection.classList.remove("hidden");
+          descriptionSection.classList.remove("hidden");
+          break;
+
+        case "home_bottom":
+          // Hide priority, schedule, status, and description
+          priorityScheduleSection.classList.add("hidden");
+          statusSection.classList.add("hidden");
+          descriptionSection.classList.add("hidden");
+          
+          // Check if there's an active banner and set status accordingly
+          const hasActiveBanner = await checkActiveHomeBottomBanner();
+          isActiveCheckbox.checked = !hasActiveBanner;
+          break;
+
+        case "category_page":
+        case "brand_page":
+        case "collection_page":
+          // Hide priority and schedule, show status and description
+          priorityScheduleSection.classList.add("hidden");
+          statusSection.classList.remove("hidden");
+          descriptionSection.classList.remove("hidden");
+          break;
+      }
+    }
+
+    // Add event listener for position change
+    positionSelect.addEventListener("change", handlePositionChange);
+
+    // Initial setup
+    handlePositionChange();
+
+    // Image preview functionality
+    const imageInput = document.getElementById("image");
+    const previewContainer = document.getElementById("imagePreviewContainer");
+
+    imageInput.addEventListener("change", function () {
+      previewContainer.innerHTML = "";
+
+      if (this.files && this.files[0]) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const previewItem = document.createElement("div");
+          previewItem.className = "preview-item";
+
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.className = "image-preview";
+
+          const removeBtn = document.createElement("div");
+          removeBtn.className = "remove-image";
+          removeBtn.innerHTML = "×";
+
+          removeBtn.addEventListener("click", function () {
+            previewItem.remove();
+            imageInput.value = "";
+          });
+
+          previewItem.appendChild(img);
+          previewItem.appendChild(removeBtn);
+          previewContainer.appendChild(previewItem);
+        };
+
+        reader.readAsDataURL(this.files[0]);
+      }
+    });
+
+    // Date validation
+    function validateDates() {
+      const startDate = new Date(startDateInput.value);
+      const endDate = new Date(endDateInput.value);
+      
+      if (startDate && endDate && endDate < startDate) {
+        endDateInput.setCustomValidity("End date must be after start date");
+      } else {
+        endDateInput.setCustomValidity("");
+      }
+    }
+
+    startDateInput.addEventListener("change", validateDates);
+    endDateInput.addEventListener("change", validateDates);
+
+    // Form submission
+    document.getElementById("bannerForm").addEventListener("submit", function(e) {
+      const position = positionSelect.value;
+      
+      // For home_bottom, ensure only one active banner and clear description
+      if (position === "home_bottom") {
+        isActiveCheckbox.checked = true;
+        descriptionInput.value = "";
+      }
+      
+      // For category, brand, and collection pages, remove priority and schedule
+      if (["category_page", "brand_page", "collection_page"].includes(position)) {
+        priorityInput.value = "0";
+        startDateInput.value = "";
+        endDateInput.value = "";
+      }
+    });
+  });
+</script>
+{% endblock %}
+

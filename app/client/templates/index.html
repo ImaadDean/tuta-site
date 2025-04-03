@@ -1,0 +1,276 @@
+{% extends "base.html" %} {% block title %}E-Commerce Store{% endblock %} {%
+block content %}
+<div class="w-full max-w-7xl mx-auto">
+  {% include "components/banner.html" %}
+  <!-- Add this after the banner section and before the products section -->
+  <div class="mb-8">
+    <div class="container mx-auto px-4">
+      <div class="flex items-center gap-2.5 overflow-auto has-scrollbar">
+        {% for category in categories %}
+        <div
+          class="min-w-full md:min-w-[calc(50%-15px)] lg:min-w-[calc(33.33%-20px)] xl:min-w-[calc(25%-22.5px)] flex rounded-md snap-start border border-cultured overflow-hidden"
+        >
+          <!-- Image section that spans full height -->
+          <div
+            class="w-1/3 bg-cover bg-center"
+            style="background-image: url('{{ category.icon_url }}');"
+          ></div>
+
+          <!-- Content section -->
+          <div class="w-3/4 p-4">
+            <div class="flex justify-between items-center mb-2.5">
+              <h3 class="text-eerie-black text-xs font-semibold uppercase">
+                {{ category.name }}
+              </h3>
+              <p class="text-sonic-silver text-[11px]">
+                ({{ category.product_count }})
+              </p>
+            </div>
+
+            <a
+              href="/category/{{ category.id }}"
+              class="text-salmon-pink text-xs font-medium capitalize"
+              >Show all</a
+            >
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% include "components/main.html" %}
+
+  <style>
+    /* Add this to your existing styles */
+    .has-scrollbar {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .has-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .snap-start {
+      scroll-snap-align: start;
+    }
+  </style>
+
+  <h2 class="text-2xl font-semibold text-gray-900 mb-6">Our Products</h2>
+  <div
+    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-6 mx-auto"
+  >
+    {% for product in products %}
+    <div
+      class="w-full overflow-hidden bg-white rounded-lg shadow-lg transition-transform duration-200 hover:-translate-y-1 border border-gray-200"
+      x-data="{ 
+        currentImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+        defaultImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+        alternateImage: '{{ product.image_urls[1] if product.image_urls|length > 1 else product.image_urls[0] if product.image_urls else '' }}'
+      }"
+    >
+      <!-- Product content (header + image) wrapped in link -->
+      <a href="/product/{{ product.id }}" class="block group">
+        <!-- Header section -->
+        <div class="px-4 py-2 bg-gray-50 border-b">
+          <h1
+            class="text-xl font-bold text-gray-900 uppercase group-hover:text-blue-600"
+          >
+            {{ product.name }}
+          </h1>
+          <p class="mt-1 text-sm text-gray-600 line-clamp-2">
+            {{ product.short_description or product.long_description }}
+          </p>
+        </div>
+
+        <!-- Image section -->
+        <div
+          class="w-full h-64 sm:h-72 overflow-hidden bg-white"
+          @mouseenter="currentImage = alternateImage"
+          @mouseleave="currentImage = defaultImage"
+        >
+          {% if product.image_urls and product.image_urls|length > 0 %}
+          <img
+            :src="currentImage"
+            alt="{{ product.name }}"
+            class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+          />
+          {% else %}
+          <div
+            class="w-full h-full bg-gray-100 flex items-center justify-center"
+          >
+            <svg
+              class="w-12 h-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          {% endif %}
+        </div>
+      </a>
+
+      <!-- Footer section (outside of link) -->
+      <div
+        class="flex items-center justify-between px-4 py-3 bg-gray-50 border-t"
+      >
+        <h1 class="text-lg font-bold text-gray-900">Ugx {{ product.price }}</h1>
+        {% if product.stock > 0 %}
+        <button
+          @click="addToCart({ 
+            id: '{{ product.id }}', 
+            name: '{{ product.name }}', 
+            price: {{ product.price }},
+            image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+            stock: {{ product.stock }}
+          })"
+          class="px-4 py-2 text-xs font-semibold text-white uppercase transition-colors duration-300 transform bg-blue-600 rounded hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          Add to cart
+        </button>
+        {% else %}
+        <span
+          class="px-4 py-2 text-xs font-semibold text-gray-700 uppercase bg-gray-200 rounded"
+        >
+          Out of Stock
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Add this section after categories and before regular products -->
+  {% if featured_products %}
+  <div class="mb-12">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-semibold text-gray-900">Featured Products</h2>
+      <a
+        href="/featured"
+        class="text-blue-600 hover:text-blue-700 text-sm font-medium"
+      >
+        View All
+      </a>
+    </div>
+
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-6 mx-auto"
+    >
+      {% for product in featured_products %}
+      <div
+        class="w-full overflow-hidden bg-white rounded-lg shadow-lg transition-transform duration-200 hover:-translate-y-1 border border-gray-200"
+        x-data="{ 
+        currentImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+        defaultImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+        alternateImage: '{{ product.image_urls[1] if product.image_urls|length > 1 else product.image_urls[0] if product.image_urls else '' }}'
+      }"
+      >
+        <!-- Product content (header + image) wrapped in link -->
+        <a href="/product/{{ product.id }}" class="block group">
+          <!-- Header section -->
+          <div class="px-4 py-2 bg-gray-50 border-b">
+            <div class="flex items-center justify-between mb-2">
+              <h1
+                class="text-xl font-bold text-gray-900 uppercase group-hover:text-blue-600"
+              >
+                {{ product.name }}
+              </h1>
+              <span
+                class="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full"
+              >
+                Featured
+              </span>
+            </div>
+            <p class="mt-1 text-sm text-gray-600 line-clamp-2">
+              {{ product.short_description or product.long_description }}
+            </p>
+          </div>
+
+          <!-- Image section -->
+          <div
+            class="w-full h-64 sm:h-72 overflow-hidden bg-white"
+            @mouseenter="currentImage = alternateImage"
+            @mouseleave="currentImage = defaultImage"
+          >
+            {% if product.image_urls and product.image_urls|length > 0 %}
+            <img
+              :src="currentImage"
+              alt="{{ product.name }}"
+              class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+            />
+            {% else %}
+            <div
+              class="w-full h-full bg-gray-100 flex items-center justify-center"
+            >
+              <svg
+                class="w-12 h-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            {% endif %}
+          </div>
+        </a>
+
+        <!-- Footer section (outside of link) -->
+        <div
+          class="flex items-center justify-between px-4 py-3 bg-gray-50 border-t"
+        >
+          <h1 class="text-lg font-bold text-gray-900">
+            Ugx {{ product.price }}
+          </h1>
+          {% if product.stock > 0 %}
+          <button
+            @click="addToCart({ 
+            id: '{{ product.id }}', 
+            name: '{{ product.name }}', 
+            price: {{ product.price }},
+            image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+            stock: {{ product.stock }}
+          })"
+            class="px-4 py-2 text-xs font-semibold text-white uppercase transition-colors duration-300 transform bg-blue-600 rounded hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Add to cart
+          </button>
+          {% else %}
+          <span
+            class="px-4 py-2 text-xs font-semibold text-gray-700 uppercase bg-gray-200 rounded"
+          >
+            Out of Stock
+          </span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+{% endblock %}

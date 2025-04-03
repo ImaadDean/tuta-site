@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variant Test Page</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.5;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      color: #333;
+    }
+    
+    h1 {
+      border-bottom: 1px solid #eaeaea;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .section {
+      border: 1px solid #eaeaea;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background-color: #4338ca;
+    }
+    
+    input, select {
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      width: 100%;
+      font-size: 14px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    
+    pre {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      overflow: auto;
+      max-height: 400px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      border: 1px solid #eaeaea;
+    }
+    
+    .error {
+      color: #ef4444;
+      padding: 10px;
+      background-color: #fee2e2;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    
+    .success {
+      color: #10b981;
+      padding: 10px;
+      background-color: #d1fae5;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Variant Test Page</h1>
+  
+  <div class="container">
+    <div class="section">
+      <h2>Product List</h2>
+      <button id="load-products">Load Products</button>
+      <div id="products-container">
+        <p>Click the button to load products</p>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>Variant Test</h2>
+      <div class="form-group">
+        <label for="product-id">Product ID</label>
+        <input type="text" id="product-id" placeholder="Enter product ID">
+      </div>
+      
+      <button id="load-variants">Load Variants</button>
+      <button id="debug-product">Debug Product</button>
+      <button id="debug-variants">Debug Variants</button>
+      
+      <div id="variant-select-container" style="margin-top: 20px;">
+        <label for="variant-select">Variants</label>
+        <select id="variant-select">
+          <option value="">Select a variant</option>
+        </select>
+      </div>
+      
+      <div class="form-group" style="margin-top: 20px;">
+        <label for="old-price">Old Price</label>
+        <input type="number" id="old-price" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label for="discount-price">Discount Price</label>
+        <input type="number" id="discount-price" placeholder="Enter discount price">
+      </div>
+      
+      <button id="apply-discount">Apply Discount</button>
+      
+      <div id="response-container" style="margin-top: 20px;">
+        <h3>Response:</h3>
+        <pre id="response-output">No response yet</pre>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Element references
+      const loadProductsBtn = document.getElementById('load-products');
+      const productsContainer = document.getElementById('products-container');
+      const productIdInput = document.getElementById('product-id');
+      const loadVariantsBtn = document.getElementById('load-variants');
+      const debugProductBtn = document.getElementById('debug-product');
+      const debugVariantsBtn = document.getElementById('debug-variants');
+      const variantSelect = document.getElementById('variant-select');
+      const oldPriceInput = document.getElementById('old-price');
+      const discountPriceInput = document.getElementById('discount-price');
+      const applyDiscountBtn = document.getElementById('apply-discount');
+      const responseOutput = document.getElementById('response-output');
+      
+      // Load products
+      loadProductsBtn.addEventListener('click', async function() {
+        try {
+          productsContainer.innerHTML = '<p>Loading products...</p>';
+          
+          const response = await fetch('/api/admin/products');
+          if (!response.ok) {
+            throw new Error(`Failed to load products: ${response.status}`);
+          }
+          
+          const products = await response.json();
+          console.log('Products loaded:', products);
+          
+          // Create product list
+          let html = '<ul style="list-style: none; padding: 0;">';
+          products.forEach(product => {
+            html += `
+              <li style="margin-bottom: 10px; padding: 10px; border: 1px solid #eaeaea; border-radius: 5px;">
+                <div><strong>${product.name}</strong> (ID: ${product.id})</div>
+                <div>Price: UGX ${product.price || 0}</div>
+                <div>
+                  <button class="select-product" data-id="${product.id}" data-name="${product.name}">
+                    Select Product
+                  </button>
+                </div>
+              </li>
+            `;
+          });
+          html += '</ul>';
+          
+          productsContainer.innerHTML = html;
+          
+          // Add event listeners to select buttons
+          document.querySelectorAll('.select-product').forEach(button => {
+            button.addEventListener('click', function() {
+              const id = this.dataset.id;
+              const name = this.dataset.name;
+              
+              productIdInput.value = id;
+              console.log(`Selected product: ${name} (${id})`);
+              
+              // Clear previous data
+              variantSelect.innerHTML = '<option value="">Select a variant</option>';
+              oldPriceInput.value = '';
+              discountPriceInput.value = '';
+              responseOutput.textContent = 'No response yet';
+            });
+          });
+          
+        } catch (error) {
+          console.error('Error loading products:', error);
+          productsContainer.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        }
+      });
+      
+      // Load variants
+      loadVariantsBtn.addEventListener('click', async function() {
+        const productId = productIdInput.value;
+        if (!productId) {
+          alert('Please select a product first');
+          return;
+        }
+        
+        try {
+          // Clear previous data
+          variantSelect.innerHTML = '<option value="">Select a variant</option>';
+          oldPriceInput.value = '';
+          responseOutput.textContent = 'Loading variants...';
+          
+          const response = await fetch(`/admin/products/${productId}/variants`);
+          if (!response.ok) {
+            throw new Error(`Failed to load variants: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('Variants data:', data);
+          
+          // Process the variants (handling both flat array and object structures)
+          if (Array.isArray(data)) {
+            // Flat array response
+            const groupedVariants = {};
+            
+            // Group variants by type
+            data.forEach(variant => {
+              if (!groupedVariants[variant.type]) {
+                groupedVariants[variant.type] = [];
+              }
+              groupedVariants[variant.type].push(variant);
+            });
+            
+            // Add options for each variant type
+            for (const type in groupedVariants) {
+              const optgroup = document.createElement('optgroup');
+              optgroup.label = type;
+              
+              groupedVariants[type].forEach(variant => {
+                const option = document.createElement('option');
+                option.value = variant.id;
+                option.textContent = `${variant.value} - UGX ${variant.price || 0}`;
+                option.dataset.price = variant.price || 0;
+                optgroup.appendChild(option);
+              });
+              
+              variantSelect.appendChild(optgroup);
+            }
+          } else {
+            // Object with types as keys
+            for (const type in data) {
+              const variants = data[type];
+              
+              if (Array.isArray(variants) && variants.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = type;
+                
+                variants.forEach(variant => {
+                  const option = document.createElement('option');
+                  option.value = variant.id;
+                  option.textContent = `${variant.value} - UGX ${variant.price || 0}`;
+                  option.dataset.price = variant.price || 0;
+                  optgroup.appendChild(option);
+                });
+                
+                variantSelect.appendChild(optgroup);
+              }
+            }
+          }
+          
+          responseOutput.textContent = JSON.stringify(data, null, 2);
+          
+          // Add event listener to variant select
+          variantSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price) {
+              oldPriceInput.value = selectedOption.dataset.price;
+            } else {
+              oldPriceInput.value = '';
+            }
+          });
+          
+        } catch (error) {
+          console.error('Error loading variants:', error);
+          responseOutput.textContent = `Error: ${error.message}`;
+        }
+      });
+      
+      // Debug product
+      debugProductBtn.addEventListener('click', async function() {
+        const productId = productIdInput.value;
+        if (!productId) {
+          alert('Please select a product first');
+          return;
+        }
+        
+        try {
+          responseOutput.textContent = 'Loading debug info...';
+          
+          const response = await fetch(`/api/admin/debug/product/${productId}`);
+          if (!response.ok) {
+            throw new Error(`Failed to load debug info: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('Debug product data:', data);
+          
+          responseOutput.textContent = JSON.stringify(data, null, 2);
+          
+        } catch (error) {
+          console.error('Error loading debug info:', error);
+          responseOutput.textContent = `Error: ${error.message}`;
+        }
+      });
+      
+      // Debug variants
+      debugVariantsBtn.addEventListener('click', async function() {
+        const productId = productIdInput.value;
+        if (!productId) {
+          alert('Please select a product first');
+          return;
+        }
+        
+        try {
+          responseOutput.textContent = 'Loading debug variants...';
+          
+          const response = await fetch(`/api/admin/debug/product/${productId}/variants`);
+          if (!response.ok) {
+            throw new Error(`Failed to load debug variants: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('Debug variants data:', data);
+          
+          responseOutput.textContent = JSON.stringify(data, null, 2);
+          
+        } catch (error) {
+          console.error('Error loading debug variants:', error);
+          responseOutput.textContent = `Error: ${error.message}`;
+        }
+      });
+      
+      // Apply discount
+      applyDiscountBtn.addEventListener('click', async function() {
+        const productId = productIdInput.value;
+        const variantId = variantSelect.value;
+        const oldPrice = oldPriceInput.value;
+        const discountPrice = discountPriceInput.value;
+        
+        if (!productId) {
+          alert('Please select a product first');
+          return;
+        }
+        
+        if (!variantId) {
+          alert('Please select a variant');
+          return;
+        }
+        
+        if (!oldPrice) {
+          alert('No price available for the selected variant');
+          return;
+        }
+        
+        if (!discountPrice) {
+          alert('Please enter a discount price');
+          return;
+        }
+        
+        if (parseFloat(discountPrice) >= parseFloat(oldPrice)) {
+          alert('Discount price must be lower than the original price');
+          return;
+        }
+        
+        try {
+          responseOutput.textContent = 'Applying discount...';
+          
+          const formData = new FormData();
+          formData.append('old_price', oldPrice);
+          formData.append('discount_price', discountPrice);
+          
+          const response = await fetch(`/admin/products/${productId}/variants/${variantId}/discount`, {
+            method: 'POST',
+            body: formData
+          });
+          
+          let responseData;
+          
+          try {
+            responseData = await response.json();
+          } catch (e) {
+            const text = await response.text();
+            responseData = { text };
+          }
+          
+          console.log('Discount response:', responseData);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to apply discount: ${response.status} - ${JSON.stringify(responseData)}`);
+          }
+          
+          responseOutput.textContent = JSON.stringify(responseData, null, 2);
+          alert('Discount applied successfully!');
+          
+        } catch (error) {
+          console.error('Error applying discount:', error);
+          responseOutput.textContent = `Error: ${error.message}`;
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

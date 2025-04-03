@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Collection{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Edit Collection</h1>
+        <a href="/admin/collection" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md">
+            Back to Collections
+        </a>
+    </div>
+
+    {% if message %}
+    <div class="mb-4 p-4 rounded-md {% if message_type == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden p-6">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Collection Name</label>
+                <input type="text" name="name" id="name" required 
+                    value="{{ collection.name }}"
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea name="description" id="description" rows="3" 
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary">{{ collection.description or '' }}</textarea>
+            </div>
+
+            <div>
+                <label for="image" class="block text-sm font-medium text-gray-700">Collection Image</label>
+                <div class="mt-1 flex items-center">
+                    <span class="inline-block h-12 w-12 rounded-md overflow-hidden bg-gray-100">
+                        {% if collection.image_url %}
+                        <img src="{{ collection.image_url }}" alt="{{ collection.name }}" class="h-full w-full object-cover">
+                        {% else %}
+                        <svg class="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        {% endif %}
+                    </span>
+                    <input type="file" name="image" id="image" accept="image/*"
+                        class="ml-5 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                </div>
+                <p class="mt-1 text-sm text-gray-500">Leave empty to keep current image. Upload a square image for best results. Max 5MB.</p>
+            </div>
+
+            <div>
+                <label for="banner_id" class="block text-sm font-medium text-gray-700">Associated Banner (Optional)</label>
+                <select name="banner_id" id="banner_id"
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary">
+                    <option value="">None</option>
+                    {% for banner in banners %}
+                    <option value="{{ banner.id }}" {% if collection.banner_id == banner.id %}selected{% endif %}>
+                        {{ banner.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-sm text-gray-500">Select a banner to associate with this collection</p>
+            </div>
+
+            <div class="flex items-start">
+                <div class="flex items-center h-5">
+                    <input type="checkbox" name="is_active" id="is_active" value="true"
+                        {% if collection.is_active %}checked{% endif %}
+                        class="focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded">
+                </div>
+                <div class="ml-3 text-sm">
+                    <label for="is_active" class="font-medium text-gray-700">Active</label>
+                    <p class="text-gray-500">Make this collection visible on the site</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <a href="/admin/collection" class="bg-gray-100 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 mr-3">
+                    Cancel
+                </a>
+                <button type="submit" class=" bg-blue-600  py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                    Update Collection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Preview uploaded image
+    document.getElementById('image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.querySelector('.inline-block');
+                preview.innerHTML = `<img src="${e.target.result}" class="h-full w-full object-cover" />`;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

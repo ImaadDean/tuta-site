@@ -1,0 +1,158 @@
+<!-- Horizontal scrolling layout for all screen sizes -->
+<div class="mb-8 overflow-x-auto pb-2">
+  <div class="flex space-x-4" style="min-width: max-content">
+    <!-- Pending Orders Card -->
+    <div
+      class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500 hover:shadow-lg transition-shadow duration-300"
+      style="min-width: 280px; flex: 0 0 auto"
+    >
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-orange-100 mr-4">
+          <svg
+            class="w-6 h-6 text-orange-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Pending Orders</p>
+          <p class="text-2xl font-semibold text-gray-800">
+            {{ pending_orders|default(0) }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href="/admin/orders?status=pending"
+          class="text-sm text-orange-600 hover:text-orange-800 font-medium"
+          >View pending orders →</a
+        >
+      </div>
+    </div>
+
+    <!-- Daily Sales Card -->
+    <div
+      class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow duration-300"
+      style="min-width: 280px; flex: 0 0 auto"
+    >
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-green-100 mr-4">
+          <svg
+            class="w-6 h-6 text-green-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-500">Today's Sales</p>
+          <p class="text-2xl font-semibold text-gray-800 truncate">
+            Ugx {{ daily_sales|default('0') }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href="/admin/orders"
+          class="text-sm text-green-600 hover:text-green-800 font-medium"
+          >View all sales →</a
+        >
+      </div>
+    </div>
+
+    <!-- Products Card -->
+    <div
+      class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow duration-300"
+      style="min-width: 280px; flex: 0 0 auto"
+    >
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-blue-100 mr-4">
+          <svg
+            class="w-6 h-6 text-blue-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Products</p>
+          <p class="text-2xl font-semibold text-gray-800">
+            {{ products|length }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href="/admin/products"
+          class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >View all products →</a
+        >
+      </div>
+    </div>
+
+    <!-- Users Card -->
+    <div
+      class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow duration-300"
+      style="min-width: 280px; flex: 0 0 auto"
+    >
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-purple-100 mr-4">
+          <svg
+            class="w-6 h-6 text-purple-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Users</p>
+          <p class="text-2xl font-semibold text-gray-800">
+            {{ total_users|default(0) }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href="/admin/users"
+          class="text-sm text-purple-600 hover:text-purple-800 font-medium"
+          >View all users →</a
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional: Visual indicator for scrolling -->
+</div>

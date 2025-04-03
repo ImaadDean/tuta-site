@@ -1,0 +1,231 @@
+{% extends "base.html" %} 
+{% block title %}{{ product.name }} - Product Details{% endblock %} 
+{% block content %}
+<div class="max-w-6xl mx-auto ">
+
+  <!-- Product Header -->
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-gray-900">{{ product.name }}</h1>
+    <div class="flex space-x-3">
+      <a href="/admin/products/{{ product.id }}/edit" 
+         class="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        Edit Product
+      </a>
+      <button onclick="if(confirm('Are you sure you want to delete this product?')) window.location.href='/admin/products/{{ product.id }}/delete';" 
+              class="bg-red-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Left Column - Product Images -->
+    <div class="md:col-span-1">
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="p-4">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Product Images</h2>
+          {% if product.image_urls and product.image_urls|length > 0 %}
+            <!-- Main Image -->
+            <div class="mb-4">
+              <img id="mainImage" src="{{ product.image_urls[0] }}" alt="{{ product.name }}" 
+                  class="w-full h-64 object-cover rounded-md shadow-sm" />
+            </div>
+            <!-- Thumbnails -->
+            <div class="grid grid-cols-4 gap-2">
+              {% for image_url in product.image_urls %}
+              <img src="{{ image_url }}" 
+                   alt="{{ product.name }} - Image {{ loop.index }}" 
+                   class="h-16 w-full object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                   onclick="document.getElementById('mainImage').src = this.src" />
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="h-64 w-full bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
+              No Images Available
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Stock Status Card -->
+      <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
+        <div class="px-4 py-5 sm:p-6">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Inventory Status</h2>
+          <div class="flex items-center mb-2">
+            <div class="w-2 h-2 rounded-full mr-2 {% if product.stock > 10 %}bg-green-500{% elif product.stock > 0 %}bg-yellow-500{% else %}bg-red-500{% endif %}"></div>
+            <span class="text-sm font-medium {% if product.stock > 10 %}text-green-800{% elif product.stock > 0 %}text-yellow-800{% else %}text-red-800{% endif %}">
+              {% if product.stock > 10 %}In Stock{% elif product.stock > 0 %}Low Stock{% else %}Out of Stock{% endif %}
+            </span>
+          </div>
+          <div class="mt-4">
+            <div class="flex justify-between mb-1">
+              <span class="text-sm font-medium text-gray-700">Current Stock</span>
+              <span class="text-sm font-medium text-gray-700">{{ product.stock }}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+              {% set stock_percentage = (product.stock / 100) * 100 if product.stock <= 100 else 100 %}
+              <div class="h-2.5 rounded-full {% if product.stock > 10 %}bg-green-600{% elif product.stock > 0 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ stock_percentage }}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column - Product Details -->
+    <div class="md:col-span-2">
+      <!-- Basic Product Information -->
+      <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+          <h2 class="text-lg font-medium text-gray-900">Product Information</h2>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Product Name</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ product.name }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Price</dt>
+              <dd class="mt-1 text-sm text-gray-900 font-semibold">UGX {{ product.price }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Stock Quantity</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ product.stock }} units</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">View Count</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ product.view_count }} <span class="text-gray-500 text-xs">(page views)</span></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Sales Count</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ product.sales_count }} <span class="text-gray-500 text-xs">(units sold)</span></dd>
+            </div>
+            {% if product.category_ids %}
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Categories</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                {% for category in categories %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-1">
+                    {{ category.name }}
+                  </span>
+                {% endfor %}
+              </dd>
+            </div>
+            {% endif %}
+            {% if product.brand_id %}
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Brand</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ brand.name if brand else "No Brand" }}</dd>
+            </div>
+            {% endif %}
+            {% if product.is_perfume and product.scent_id %}
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Scent</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ scent.name if scent else "No Scent" }}</dd>
+            </div>
+            {% endif %}
+            {% if product.tags %}
+            <div class="sm:col-span-2">
+              <dt class="text-sm font-medium text-gray-500">Tags</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <div class="flex flex-wrap gap-2">
+                  {% for tag in product.tags %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ tag }}
+                  </span>
+                  {% endfor %}
+                </div>
+              </dd>
+            </div>
+            {% endif %}
+            <div class="sm:col-span-2">
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                  {% if product.status == 'published' %}bg-green-100 text-green-800
+                  {% elif product.status == 'draft' %}bg-gray-100 text-gray-800
+                  {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                  {{ product.status|capitalize }}
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      
+      <!-- Product Variants -->
+      {% if product.variants %}
+      <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+          <h2 class="text-lg font-medium text-gray-900">Product Variants</h2>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+          {% for variant_type, values in product.variants.items() %}
+          <div class="mb-6 last:mb-0">
+            <h3 class="text-sm font-medium text-gray-900 mb-3">{{ variant_type|title }}</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {% for variant in values %}
+              <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{{ variant.value }}</p>
+                  </div>
+                  <p class="text-sm font-semibold text-gray-900">UGX {{ variant.price }}</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Product Description -->
+      <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+          <h2 class="text-lg font-medium text-gray-900">Product Description</h2>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+          {% if product.short_description %}
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-gray-500 mb-2">Short Description</h3>
+              <p class="text-sm text-gray-900">{{ product.short_description }}</p>
+            </div>
+          {% endif %}
+          <div>
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Full Description</h3>
+            <div class="prose prose-sm text-gray-900 max-w-none">
+              {{ product.long_description|safe }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Analytics Section -->
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+          <h2 class="text-lg font-medium text-gray-900">Product Analytics</h2>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+          <div class="grid grid-cols-2 gap-6">
+            <div class="bg-green-50 rounded-lg p-4">
+              <h3 class="text-sm font-medium text-green-800 mb-2">Views</h3>
+              <p class="text-2xl font-bold text-green-600">{{ product.view_count }}</p>
+              <p class="text-xs text-green-700 mt-1">Total product page views</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+              <h3 class="text-sm font-medium text-blue-800 mb-2">Conversion</h3>
+              <p class="text-2xl font-bold text-blue-600">
+                {{ ((product.sales_count / product.view_count) * 100)|round(1) if product.view_count and product.sales_count else 0 }}%
+              </p>
+              <p class="text-xs text-blue-700 mt-1">View to purchase rate</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

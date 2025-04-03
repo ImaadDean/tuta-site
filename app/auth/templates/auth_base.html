@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}P&M Store{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}P&M Store authentication portal{% endblock %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#4F46E5",
+              "primary-light": "#6366F1",
+              "primary-dark": "#4338CA",
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.4s ease-out',
+              'fade-up': 'fadeUp 0.5s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' }
+              },
+              fadeUp: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' }
+              }
+            }
+          },
+        },
+      };
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9fafb;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .auth-container {
+        background-image: linear-gradient(to right, rgba(79, 70, 229, 0.05), rgba(99, 102, 241, 0.1));
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      }
+      
+      .auth-input {
+        transition: all 0.2s ease-in-out;
+      }
+      
+      .auth-input:focus {
+        border-color: #4F46E5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+      }
+      
+      .auth-btn {
+        background-image: linear-gradient(to right, #4F46E5, #6366F1);
+        transition: all 0.2s ease-in-out;
+      }
+      
+      .auth-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <div class="flex min-h-screen flex-col justify-center">
+      <div class="py-4 text-center mb-2">
+        <a href="/" class="inline-flex items-center">
+          <span class="text-xl font-bold text-gray-900">P&M Store</span>
+        </a>
+      </div>
+
+      <main class="flex-grow py-2">
+        {% block content %}{% endblock %}
+      </main>
+
+      <div class="py-4 text-center text-sm text-gray-500">
+        <a href="/" class="text-indigo-600 hover:text-indigo-500">Return to Home</a>
+      </div>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html> 

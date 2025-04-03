@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Scent{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Edit Scent</h1>
+        <a href="/admin/scent" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            Back to List
+        </a>
+    </div>
+
+    {% if request.session.get("message") %}
+    <div class="rounded-md p-4 mb-6 {% if request.session.get('message_type') == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
+        {{ request.session.get("message") }}
+    </div>
+    {% endif %}
+
+    <form action="/admin/scent/{{ scent.id }}/edit" method="post" enctype="multipart/form-data" class="space-y-6 bg-white shadow rounded-lg p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Scent Name *</label>
+                <input type="text" name="name" id="name" required 
+                    value="{{ scent.name }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label for="banner_id" class="block text-sm font-medium text-gray-700 mb-1">Banner</label>
+                <select name="banner_id" id="banner_id" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">None</option>
+                    {% for banner in banners %}
+                    <option value="{{ banner.id }}" {% if banner.id == scent.banner_id %}selected{% endif %}>
+                        {{ banner.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="md:col-span-2">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description" id="description" rows="4" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">{{ scent.description or "" }}</textarea>
+            </div>
+
+            <div>
+                <label for="image" class="block text-sm font-medium text-gray-700 mb-1">Scent Image</label>
+                {% if scent.image_url %}
+                <div class="mb-2">
+                    <img src="{{ scent.image_url }}" alt="{{ scent.name }}" class="max-w-xs rounded-lg shadow-sm">
+                </div>
+                {% endif %}
+                <input type="file" name="image" id="image" accept="image/*"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <p class="mt-1 text-sm text-gray-500">Leave empty to keep the current image</p>
+                <div id="image-preview" class="mt-2 hidden">
+                    <img src="" alt="Preview" class="max-w-xs rounded-lg shadow-sm">
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center">
+                    <input type="checkbox" name="is_active" id="is_active" {% if scent.is_active %}checked{% endif %}
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="is_active" class="ml-2 block text-sm text-gray-700">
+                        Active
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4">
+            <a href="/admin/scent" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Cancel
+            </a>
+            <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Update Scent
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Preview image before upload
+    document.getElementById('image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('image-preview');
+                const img = preview.querySelector('img');
+                img.src = e.target.result;
+                preview.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %} 

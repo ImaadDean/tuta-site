@@ -1,0 +1,652 @@
+{% extends "base.html" %} {% block title %}Add New Product{% endblock %} {%
+block extra_css %}
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+/>
+<style>
+  .required-field::after {
+    content: "*";
+    color: #ef4444;
+    margin-left: 4px;
+  }
+
+  .image-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  .preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .preview-item {
+    position: relative;
+  }
+
+  .remove-image {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .tag-item {
+    background-color: #e5e7eb;
+    border-radius: 16px;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  .tag-remove {
+    margin-left: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Add New Product</h1>
+    <p class="text-gray-600">Create a new product in your inventory</p>
+  </div>
+
+  {% if error %}
+  <div class="p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
+    <span class="font-medium">Error!</span> {{ error }}
+  </div>
+  {% endif %}
+
+  <form
+    action="/admin/products/new"
+    method="POST"
+    enctype="multipart/form-data"
+    id="productForm"
+  >
+    <!-- Basic Information -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Basic Information
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label
+            for="name"
+            class="block mb-2 text-sm font-medium text-gray-900 required-field"
+            >Product Name</label
+          >
+          <input
+            type="text"
+            id="name"
+            name="name"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
+
+        <div>
+          <label
+            for="brand_id"
+            class="block mb-2 text-sm font-medium text-gray-900"
+            >Brand</label
+          >
+          <select
+            id="brand_id"
+            name="brand_id"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          >
+            <option value="">Select a brand (optional)</option>
+            {% for brand in brands %}
+            <option value="{{ brand.id }}">{{ brand.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label
+          for="collection_id"
+          class="block mb-2 text-sm font-medium text-gray-900"
+          >Collection</label
+        >
+        <select
+          id="collection_id"
+          name="collection_id"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        >
+          <option value="">Select a collection (optional)</option>
+          {% for collection in collections %}
+          <option value="{{ collection.id }}">{{ collection.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mt-4">
+        <label
+          for="short_description"
+          class="block mb-2 text-sm font-medium text-gray-900"
+          >Short Description</label
+        >
+        <input
+          type="text"
+          id="short_description"
+          name="short_description"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        />
+        <p class="mt-1 text-sm text-gray-500">
+          Brief description for product listings (optional)
+        </p>
+      </div>
+
+      <div class="mt-4">
+        <label
+          for="long_description"
+          class="block mb-2 text-sm font-medium text-gray-900 required-field"
+          >Full Description</label
+        >
+        <textarea
+          id="long_description"
+          name="long_description"
+          rows="4"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          required
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Perfume Information -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Perfume Information
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center">
+          <input
+            type="checkbox"
+            id="is_perfume"
+            name="is_perfume"
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <label for="is_perfume" class="ml-2 text-sm font-medium text-gray-900">
+            This is a Perfume Product
+          </label>
+        </div>
+
+        <div id="scentSelection" class="hidden">
+          <label
+            for="scent_id"
+            class="block mb-2 text-sm font-medium text-gray-900"
+            >Scent</label
+          >
+          <select
+            id="scent_id"
+            name="scent_id"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          >
+            <option value="">Select a scent (optional)</option>
+            {% for scent in scents %}
+            <option value="{{ scent.id }}">{{ scent.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Pricing
+      </h2>
+
+      <div>
+        <p class="text-sm text-gray-600 mb-4">
+          The product price will be automatically set to the highest variant
+          price. Add variants below.
+        </p>
+        <input type="hidden" id="price" name="price" value="0" />
+      </div>
+
+      <div class="mb-4">
+        <label for="price" class="block text-sm font-medium text-gray-700">Price (in cents)</label>
+        <input type="number" name="price" id="price" required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+      </div>
+
+      <div class="mb-4">
+        <label for="stock" class="block text-sm font-medium text-gray-700">Stock</label>
+        <input
+          type="number"
+          id="stock_quantity"
+          name="stock_quantity"
+          min="0"
+          step="1"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          value="0"
+          required
+        />
+      </div>
+    </div>
+
+    <!-- Inventory -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Inventory
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label
+            for="stock_quantity"
+            class="block mb-2 text-sm font-medium text-gray-900 required-field"
+            >Items in Stock</label
+          >
+          <input
+            type="number"
+            id="stock_quantity"
+            name="stock_quantity"
+            min="0"
+            step="1"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            value="0"
+            required
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Images -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Product Images
+      </h2>
+
+      <div class="mb-4">
+        <label
+          class="block mb-2 text-sm font-medium text-gray-900 required-field"
+          >Upload Images</label
+        >
+        <input
+          type="file"
+          id="images"
+          name="images"
+          accept="image/*"
+          multiple
+          class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+          required
+        />
+        <p class="mt-1 text-sm text-gray-500">
+          Upload up to 10 images (JPG, PNG, GIF, WEBP). Max 5MB each.
+        </p>
+      </div>
+
+      <div id="imagePreviewContainer" class="preview-container"></div>
+    </div>
+
+    <!-- Categories -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Categories & Tags
+      </h2>
+
+      <div class="mb-4">
+        <label class="block mb-2 text-sm font-medium text-gray-900"
+          >Categories</label
+        >
+        <select
+          id="category_ids"
+          name="category_ids"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        >
+          <option value="">Select a category</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label
+          for="tags_input"
+          class="block mb-2 text-sm font-medium text-gray-900"
+          >Tags</label
+        >
+        <div class="flex items-center">
+          <input
+            type="text"
+            id="tagInput"
+            placeholder="Enter a tag"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          />
+          <button
+            type="button"
+            id="addTagBtn"
+            class="ml-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+          >
+            Add Tag
+          </button>
+        </div>
+        <div id="tagContainer" class="tag-container mt-2"></div>
+        <input type="hidden" id="tags" name="tags" />
+      </div>
+    </div>
+
+    <!-- Variants -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Product Variants
+      </h2>
+
+      <div id="variantsContainer">
+        <!-- Variant rows will be added here -->
+      </div>
+
+      <button
+        type="button"
+        id="addVariantBtn"
+        class="mt-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+      >
+        Add Variant
+      </button>
+    </div>
+
+    <!-- Status -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
+        Product Status
+      </h2>
+
+      <div>
+        <label for="status" class="block mb-2 text-sm font-medium text-gray-900"
+          >Status</label
+        >
+        <select
+          id="status"
+          name="status"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        >
+          <option value="published" selected>Published</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+
+      <div class="mt-4 flex flex-col gap-4">
+        <h3 class="text-sm font-medium text-gray-900">Product Flags</h3>
+        
+        <div class="flex items-center">
+          <input
+            type="checkbox"
+            id="featured"
+            name="featured"
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <label for="featured" class="ml-2 text-sm font-medium text-gray-900">
+            Featured Product
+          </label>
+          <span class="ml-2 text-xs text-gray-500">
+            (Featured products appear in special sections on the homepage and category pages)
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="flex justify-end">
+      <a
+        href="/admin/products"
+        class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
+        >Cancel</a
+      >
+      <button
+        type="submit"
+        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+      >
+        Create Product
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Perfume checkbox functionality
+    const isPerfumeCheckbox = document.getElementById("is_perfume");
+    const scentSelection = document.getElementById("scentSelection");
+    const scentSelect = document.getElementById("scent_id");
+
+    isPerfumeCheckbox.addEventListener("change", function() {
+      if (this.checked) {
+        scentSelection.classList.remove("hidden");
+        scentSelect.required = true;
+      } else {
+        scentSelection.classList.add("hidden");
+        scentSelect.required = false;
+      }
+    });
+
+    // Tags functionality
+    const tagInput = document.getElementById("tagInput");
+    const addTagBtn = document.getElementById("addTagBtn");
+    const tagContainer = document.getElementById("tagContainer");
+    const tagsHiddenInput = document.getElementById("tags");
+    const tags = [];
+
+    function updateTagsInput() {
+      tagsHiddenInput.value = tags.join(",");
+    }
+
+    function addTag(tagText) {
+      if (!tagText || tags.includes(tagText)) return;
+
+      tags.push(tagText);
+      updateTagsInput();
+
+      const tagElement = document.createElement("div");
+      tagElement.className = "tag-item";
+      tagElement.innerHTML = `
+            ${tagText}
+            <span class="tag-remove" data-tag="${tagText}">×</span>
+          `;
+
+      tagContainer.appendChild(tagElement);
+
+      // Add event listener to remove button
+      const removeBtn = tagElement.querySelector(".tag-remove");
+      removeBtn.addEventListener("click", function () {
+        const tagToRemove = this.getAttribute("data-tag");
+        const index = tags.indexOf(tagToRemove);
+        if (index !== -1) {
+          tags.splice(index, 1);
+          updateTagsInput();
+          tagElement.remove();
+        }
+      });
+    }
+
+    addTagBtn.addEventListener("click", function () {
+      const tagText = tagInput.value.trim();
+      if (tagText) {
+        addTag(tagText);
+        tagInput.value = "";
+        tagInput.focus();
+      }
+    });
+
+    tagInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const tagText = tagInput.value.trim();
+        if (tagText) {
+          addTag(tagText);
+          tagInput.value = "";
+        }
+      }
+    });
+
+    // Image preview functionality
+    const imageInput = document.getElementById("images");
+    const previewContainer = document.getElementById("imagePreviewContainer");
+
+    imageInput.addEventListener("change", function () {
+      previewContainer.innerHTML = "";
+
+      if (this.files) {
+        const maxFiles = 10;
+        const files = Array.from(this.files).slice(0, maxFiles);
+
+        files.forEach((file, index) => {
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            const previewItem = document.createElement("div");
+            previewItem.className = "preview-item";
+
+            const img = document.createElement("img");
+            img.src = e.target.result;
+            img.className = "image-preview";
+
+            const removeBtn = document.createElement("div");
+            removeBtn.className = "remove-image";
+            removeBtn.innerHTML = "×";
+            removeBtn.dataset.index = index;
+
+            removeBtn.addEventListener("click", function () {
+              previewItem.remove();
+              // Note: This doesn't actually remove the file from the input
+              // In a real implementation, you'd need to create a new FileList
+            });
+
+            previewItem.appendChild(img);
+            previewItem.appendChild(removeBtn);
+            previewContainer.appendChild(previewItem);
+          };
+
+          reader.readAsDataURL(file);
+        });
+      }
+    });
+
+    // Variants functionality
+    const variantsContainer = document.getElementById("variantsContainer");
+    const addVariantBtn = document.getElementById("addVariantBtn");
+    let variantCount = 0;
+
+    function updateProductPrice() {
+      // Find the highest variant price
+      let highestPrice = 0;
+      const variantPriceInputs = document.querySelectorAll(
+        'input[name="variant_prices"]'
+      );
+
+      variantPriceInputs.forEach((input) => {
+        const price = parseFloat(input.value) || 0;
+        if (price > highestPrice) {
+          highestPrice = price;
+        }
+      });
+
+      // Update the hidden price input
+      document.getElementById("price").value = highestPrice;
+    }
+
+    addVariantBtn.addEventListener("click", function () {
+      const variantRow = document.createElement("div");
+      variantRow.className =
+        "variant-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 border border-gray-200 rounded-lg relative";
+      variantRow.dataset.index = variantCount;
+
+      variantRow.innerHTML = `
+              <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Variant Type</label>
+                <input type="text" name="variant_types" placeholder="e.g. Size, Color" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+              </div>
+              <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Variant Value</label>
+                <input type="text" name="variant_values" placeholder="e.g. Small, Red" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+              </div>
+              <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Price</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <span class="text-gray-500">$</span>
+                  </div>
+                  <input type="number" name="variant_prices" step="0.01" min="0" placeholder="0.00" class="variant-price bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 p-2.5" required>
+                </div>
+              </div>
+              <button type="button" class="remove-variant text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 text-center absolute top-2 right-2">Remove</button>
+            `;
+
+      const removeBtn = variantRow.querySelector(".remove-variant");
+      removeBtn.addEventListener("click", function () {
+        variantRow.remove();
+        updateProductPrice();
+      });
+
+      const priceInput = variantRow.querySelector(".variant-price");
+      priceInput.addEventListener("input", updateProductPrice);
+
+      variantsContainer.appendChild(variantRow);
+      variantCount++;
+    });
+
+    // Form validation
+    const productForm = document.getElementById("productForm");
+
+    productForm.addEventListener("submit", function (e) {
+      // Update product price from variants before submission
+      updateProductPrice();
+
+      // Check if at least one variant is added
+      const variantRows = document.querySelectorAll(".variant-row");
+      if (variantRows.length === 0) {
+        e.preventDefault();
+        alert("Please add at least one product variant");
+        return false;
+      }
+
+      // Check if at least one image is selected
+      if (imageInput.files.length === 0) {
+        e.preventDefault();
+        alert("Please select at least one product image");
+        return false;
+      }
+
+      // Check if scent is selected for perfume products
+      if (isPerfumeCheckbox.checked && !scentSelect.value) {
+        e.preventDefault();
+        alert("Please select a scent for perfume products");
+        return false;
+      }
+
+      return true;
+    });
+  });
+</script>
+{% endblock %}

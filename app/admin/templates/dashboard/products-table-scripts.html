@@ -1,0 +1,1212 @@
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Utility function to parse MongoDB numeric values
+    function parseMongoNumber(value) {
+      if (!value) return 0;
+      
+      if (typeof value === 'object') {
+        // Handle MongoDB numeric format
+        if (value.$numberInt) return parseInt(value.$numberInt);
+        if (value.$numberDouble) return parseFloat(value.$numberDouble);
+        if (value.$numberLong) return parseInt(value.$numberLong);
+      }
+      
+      // Regular number or string number
+      return typeof value === 'string' ? parseFloat(value) : value;
+    }
+    
+    // Function to safely get variant price, handling MongoDB format
+    function getVariantPrice(variant) {
+      if (!variant) return 0;
+      return parseMongoNumber(variant.price);
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById("product-search");
+    const tableRows = document.querySelectorAll("tbody tr");
+
+    searchInput.addEventListener("keyup", function () {
+      const searchTerm = searchInput.value.toLowerCase();
+
+      tableRows.forEach((row) => {
+        if (row.dataset.productId) {
+          // Skip the "no products found" row
+          const productName = row
+            .querySelector("td:first-child")
+            .textContent.toLowerCase();
+          const productDescription = row
+            .querySelector("td:nth-child(2)")
+            .textContent.toLowerCase();
+
+          if (
+            productName.includes(searchTerm) ||
+            productDescription.includes(searchTerm)
+          ) {
+            row.style.display = "";
+          } else {
+            row.style.display = "none";
+          }
+        }
+      });
+    });
+
+    // Filter dropdown toggle
+    const filterButton = document.getElementById("filter-dropdown-button");
+    const filterDropdown = document.getElementById("filter-dropdown");
+
+    if (filterButton && filterDropdown) {
+      filterButton.addEventListener("click", function () {
+        filterDropdown.classList.toggle("hidden");
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener("click", function (event) {
+        if (
+          !filterButton.contains(event.target) &&
+          !filterDropdown.contains(event.target)
+        ) {
+          filterDropdown.classList.add("hidden");
+        }
+      });
+    }
+
+    // Sorting functionality
+    const sortableHeaders = document.querySelectorAll("[data-sort]");
+
+    sortableHeaders.forEach((header) => {
+      header.addEventListener("click", function () {
+        const sortBy = this.dataset.sort;
+        const rows = Array.from(
+          document.querySelectorAll("tbody tr[data-product-id]")
+        );
+
+        // Toggle sort direction
+        const currentDirection = this.dataset.direction || "asc";
+        const newDirection = currentDirection === "asc" ? "desc" : "asc";
+        this.dataset.direction = newDirection;
+
+        // Update all headers to show current sort direction
+        sortableHeaders.forEach((h) => {
+          h.dataset.direction = h === header ? newDirection : "";
+        });
+
+        // Sort the rows
+        rows.sort((a, b) => {
+          let valueA, valueB;
+
+          if (sortBy === "name") {
+            valueA = a.querySelector("td:first-child").textContent.trim();
+            valueB = b.querySelector("td:first-child").textContent.trim();
+          } else if (sortBy === "price") {
+            valueA = parseFloat(
+              a.querySelector("td:nth-child(3)").textContent.replace("$", "")
+            );
+            valueB = parseFloat(
+              b.querySelector("td:nth-child(3)").textContent.replace("$", "")
+            );
+          } else if (sortBy === "stock") {
+            const stockA = a.querySelector("td:nth-child(4) span").textContent;
+            const stockB = b.querySelector("td:nth-child(4) span").textContent;
+            valueA = parseInt(stockA) || 0;
+            valueB = parseInt(stockB) || 0;
+          } else if (sortBy === "views") {
+            valueA = parseInt(a.querySelector("td:nth-child(5)").textContent.trim()) || 0;
+            valueB = parseInt(b.querySelector("td:nth-child(5)").textContent.trim()) || 0;
+          }
+
+          if (newDirection === "asc") {
+            return valueA > valueB ? 1 : -1;
+          } else {
+            return valueA < valueB ? 1 : -1;
+          }
+        });
+
+        // Reorder the rows in the DOM
+        const tbody = document.querySelector("tbody");
+        rows.forEach((row) => tbody.appendChild(row));
+      });
+    });
+
+    // Actions dropdown functionality
+    const dropdownButtons = document.querySelectorAll(
+      "button[id^='actions-menu-button-']"
+    );
+
+    dropdownButtons.forEach((button) => {
+      button.addEventListener("click", function (e) {
+        e.stopPropagation();
+
+        // Find the dropdown menu associated with this button
+        const dropdown = this.closest(".relative").querySelector(
+          ".actions-dropdown-menu"
+        );
+
+        // Close all other dropdowns first with animation
+        document.querySelectorAll(".actions-dropdown-menu").forEach((menu) => {
+          if (menu !== dropdown && !menu.classList.contains("hidden")) {
+            // Add leaving animation
+            menu.classList.add("leaving");
+            setTimeout(() => {
+              menu.classList.add("hidden");
+              menu.classList.remove("leaving", "entered");
+            }, 75);
+          }
+        });
+
+        // Toggle current dropdown with animation
+        if (dropdown.classList.contains("hidden")) {
+          // Show dropdown with animation
+          dropdown.classList.remove("hidden");
+          dropdown.classList.add("entering");
+
+          // Position the dropdown above the button and outside the table if needed
+          const buttonRect = this.getBoundingClientRect();
+          const dropdownRect = dropdown.getBoundingClientRect();
+
+          // Position above the button
+          dropdown.style.position = "fixed";
+          dropdown.style.top = buttonRect.top - dropdownRect.height - 5 + "px";
+          dropdown.style.left =
+            buttonRect.left - dropdownRect.width + buttonRect.width + "px";
+
+          // Ensure it's not off-screen to the left
+          if (parseFloat(dropdown.style.left) < 10) {
+            dropdown.style.left = "10px";
+          }
+
+          // Ensure it's not off-screen to the right
+          const rightEdge =
+            parseFloat(dropdown.style.left) + dropdownRect.width;
+          if (rightEdge > window.innerWidth - 10) {
+            dropdown.style.left =
+              window.innerWidth - dropdownRect.width - 10 + "px";
+          }
+
+          // If there's not enough space above, position it below
+          if (buttonRect.top < dropdownRect.height + 10) {
+            dropdown.style.top = buttonRect.bottom + 5 + "px";
+          }
+
+          // After a small delay, complete the animation
+          setTimeout(() => {
+            dropdown.classList.remove("entering");
+            dropdown.classList.add("entered");
+          }, 10);
+        } else {
+          // Hide dropdown with animation
+          dropdown.classList.add("leaving");
+          setTimeout(() => {
+            dropdown.classList.add("hidden");
+            dropdown.classList.remove("leaving", "entered");
+          }, 75);
+        }
+      });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener("click", function (e) {
+      const dropdowns = document.querySelectorAll(".actions-dropdown-menu");
+      dropdowns.forEach((dropdown) => {
+        if (
+          !dropdown.classList.contains("hidden") &&
+          !e.target.closest("button[id^='actions-menu-button-']")
+        ) {
+          dropdown.classList.add("leaving");
+          setTimeout(() => {
+            dropdown.classList.add("hidden");
+            dropdown.classList.remove("leaving", "entered");
+          }, 75);
+        }
+      });
+    });
+
+    // Helper function to update stock display in the table
+    function updateStockDisplay(productId, currentStock) {
+      const productRow = document.querySelector(
+        `tr[data-product-id="${productId}"]`
+      );
+      if (productRow) {
+        const stockCell = productRow.querySelector("td:nth-child(4)");
+        if (stockCell) {
+          let stockBadge;
+          if (currentStock > 10) {
+            stockBadge = `
+              <span class="status-badge bg-green-100 text-green-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                ${currentStock} in stock
+              </span>
+            `;
+          } else if (currentStock > 0) {
+            stockBadge = `
+              <span class="status-badge bg-yellow-100 text-yellow-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                ${currentStock} low stock
+              </span>
+            `;
+          } else {
+            stockBadge = `
+              <span class="status-badge bg-red-100 text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Out of stock
+              </span>
+            `;
+          }
+          stockCell.innerHTML = stockBadge;
+        }
+
+        // Update the data attributes for ALL stock-related buttons
+        const restockButton = productRow.querySelector(".restock-product");
+        const reduceStockButton = productRow.querySelector(".reduce-stock");
+        const outOfStockButton = productRow.querySelector(".mark-out-of-stock");
+
+        if (restockButton) {
+          restockButton.dataset.productStock = currentStock;
+        }
+        if (reduceStockButton) {
+          reduceStockButton.dataset.productStock = currentStock;
+        }
+        if (outOfStockButton) {
+          outOfStockButton.dataset.productStock = currentStock;
+        }
+      }
+    }
+
+    // Helper function to show loading state on a button
+    function setButtonLoading(button, isLoading, originalText = "Submit") {
+      const form = button.closest("form");
+      const modal = button.closest(".fixed.inset-0");
+      const cancelButton = form
+        ? form.querySelector('button[type="button"]')
+        : null;
+      const backdrop = modal
+        ? modal.querySelector(".fixed.inset-0.bg-gray-500")
+        : null;
+
+      if (isLoading) {
+        // Disable the submit button
+        button.disabled = true;
+        button.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Processing...
+        `;
+
+        // Disable the cancel button if it exists
+        if (cancelButton) {
+          cancelButton.disabled = true;
+          cancelButton.classList.add("opacity-50", "cursor-not-allowed");
+        }
+
+        // Disable backdrop click by adding a class
+        if (backdrop) {
+          backdrop.classList.add("pointer-events-none");
+        }
+      } else {
+        // Re-enable the submit button
+        button.disabled = false;
+        button.innerHTML = originalText;
+
+        // Re-enable the cancel button if it exists
+        if (cancelButton) {
+          cancelButton.disabled = false;
+          cancelButton.classList.remove("opacity-50", "cursor-not-allowed");
+        }
+
+        // Re-enable backdrop click
+        if (backdrop) {
+          backdrop.classList.remove("pointer-events-none");
+        }
+      }
+    }
+
+    // Restock product functionality
+    const restockModal = document.getElementById("restock-modal");
+    const restockBackdrop = document.getElementById("restock-backdrop");
+    const restockForm = document.getElementById("restock-form");
+    const restockProductId = document.getElementById("restock-product-id");
+    const restockProductName = document.getElementById("restock-product-name");
+    const restockQuantity = document.getElementById("restock-quantity");
+    const restockCancel = document.getElementById("restock-cancel");
+    const currentStockDisplay = document.getElementById(
+      "current-stock-display"
+    );
+
+    // Open restock modal
+    const restockButtons = document.querySelectorAll(".restock-product");
+    restockButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const productId = this.dataset.productId;
+        const productName = this.dataset.productName;
+        const currentStock = this.dataset.productStock || "0";
+
+        restockProductId.value = productId;
+        restockProductName.textContent = `Restock: ${productName}`;
+        currentStockDisplay.textContent = currentStock;
+        restockQuantity.value = "";
+
+        restockModal.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+      });
+    });
+
+    // Close restock modal
+    function closeRestockModal() {
+      restockModal.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    restockCancel.addEventListener("click", closeRestockModal);
+    restockBackdrop.addEventListener("click", closeRestockModal);
+
+    // Handle restock form submission
+    restockForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const productId = restockProductId.value;
+      const quantity = parseInt(restockQuantity.value, 10);
+
+      if (!productId || isNaN(quantity) || quantity <= 0) {
+        alert("Please enter a valid quantity");
+        return;
+      }
+
+      try {
+        // Add loading state to the submit button
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        setButtonLoading(submitButton, true);
+
+        const response = await fetch(`/admin/products/${productId}/restock`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ quantity }),
+        });
+
+        // Reset button state
+        setButtonLoading(submitButton, false, originalButtonText);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Failed to restock product");
+        }
+
+        const data = await response.json();
+
+        // Get the product name from the modal title
+        const productName = restockProductName.textContent.replace(
+          "Restock: ",
+          ""
+        );
+
+        // Update the stock display in the table
+        updateStockDisplay(productId, data.current_stock);
+
+        // Show success message with product name
+        alert(
+          `Successfully restocked ${quantity} items of "${productName}". New stock: ${data.current_stock}`
+        );
+
+        // Close the modal
+        closeRestockModal();
+      } catch (error) {
+        // Reset button if there's an error
+        const submitButton = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitButton, false, "Restock");
+        alert(error.message || "An error occurred while restocking");
+      }
+    });
+
+    // Reduce Stock functionality
+    const reduceStockModal = document.getElementById("reduce-stock-modal");
+    const reduceStockBackdrop = document.getElementById(
+      "reduce-stock-backdrop"
+    );
+    const reduceStockForm = document.getElementById("reduce-stock-form");
+    const reduceStockProductId = document.getElementById(
+      "reduce-stock-product-id"
+    );
+    const reduceStockProductName = document.getElementById(
+      "reduce-stock-product-name"
+    );
+    const reduceStockQuantity = document.getElementById(
+      "reduce-stock-quantity"
+    );
+    const reduceStockCancel = document.getElementById("reduce-stock-cancel");
+    const reduceCurrentStockDisplay = document.getElementById(
+      "reduce-current-stock-display"
+    );
+
+    // Open reduce stock modal
+    const reduceStockButtons = document.querySelectorAll(".reduce-stock");
+    reduceStockButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const productId = this.dataset.productId;
+        const productName = this.dataset.productName;
+        const currentStock = this.dataset.productStock || "0";
+
+        reduceStockProductId.value = productId;
+        reduceStockProductName.textContent = `Reduce Stock: ${productName}`;
+        reduceCurrentStockDisplay.textContent = currentStock;
+        reduceStockQuantity.value = "";
+
+        // Set max value to current stock
+        reduceStockQuantity.max = currentStock;
+
+        reduceStockModal.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+      });
+    });
+
+    // Close reduce stock modal
+    function closeReduceStockModal() {
+      reduceStockModal.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    reduceStockCancel.addEventListener("click", closeReduceStockModal);
+    reduceStockBackdrop.addEventListener("click", closeReduceStockModal);
+
+    // Handle reduce stock form submission
+    reduceStockForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const productId = reduceStockProductId.value;
+      const quantity = parseInt(reduceStockQuantity.value, 10);
+      const currentStock = parseInt(reduceCurrentStockDisplay.textContent, 10);
+
+      if (!productId || isNaN(quantity) || quantity <= 0) {
+        alert("Please enter a valid quantity");
+        return;
+      }
+
+      if (quantity > currentStock) {
+        alert("Cannot reduce by more than the current stock");
+        return;
+      }
+
+      try {
+        // Add loading state to the submit button
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        setButtonLoading(submitButton, true);
+
+        // Calculate new stock level
+        const newStock = currentStock - quantity;
+
+        const response = await fetch(
+          `/admin/products/${productId}/update-stock`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              stock: newStock,
+              in_stock: newStock > 0,
+            }),
+          }
+        );
+
+        // Reset button state
+        setButtonLoading(submitButton, false, originalButtonText);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Failed to reduce stock");
+        }
+
+        const data = await response.json();
+
+        // Get the product name from the modal title
+        const productName = reduceStockProductName.textContent.replace(
+          "Reduce Stock: ",
+          ""
+        );
+
+        // Update the stock display in the table
+        updateStockDisplay(productId, data.current_stock);
+
+        // Show success message with product name
+        alert(
+          `Successfully reduced ${quantity} items from "${productName}". New stock: ${data.current_stock}`
+        );
+
+        // Close the modal
+        closeReduceStockModal();
+      } catch (error) {
+        // Reset button if there's an error
+        const submitButton = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitButton, false, "Reduce Stock");
+        alert(error.message || "An error occurred while reducing stock");
+      }
+    });
+
+    // Add this before the existing "Mark product as out of stock functionality" section
+    // Out of Stock modal functionality
+    const outOfStockModal = document.getElementById("out-of-stock-modal");
+    const outOfStockBackdrop = document.getElementById("out-of-stock-backdrop");
+    const outOfStockForm = document.getElementById("out-of-stock-form");
+    const outOfStockProductId = document.getElementById(
+      "out-of-stock-product-id"
+    );
+    const outOfStockProductName = document.getElementById(
+      "out-of-stock-product-name"
+    );
+    const outOfStockCancel = document.getElementById("out-of-stock-cancel");
+    const outOfStockCurrentDisplay = document.getElementById(
+      "out-of-stock-current-display"
+    );
+
+    // Open out of stock modal
+    const outOfStockButtons = document.querySelectorAll(".mark-out-of-stock");
+    outOfStockButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const productId = this.dataset.productId;
+        const productName = this.dataset.productName;
+        const currentStock = this.dataset.productStock || "0";
+
+        outOfStockProductId.value = productId;
+        outOfStockProductName.textContent = `Mark as Out of Stock: ${productName}`;
+        outOfStockCurrentDisplay.textContent = currentStock;
+
+        outOfStockModal.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+      });
+    });
+
+    // Close out of stock modal
+    function closeOutOfStockModal() {
+      outOfStockModal.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    outOfStockCancel.addEventListener("click", closeOutOfStockModal);
+    outOfStockBackdrop.addEventListener("click", closeOutOfStockModal);
+
+    // Handle out of stock form submission
+    outOfStockForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const productId = outOfStockProductId.value;
+      const productName = outOfStockProductName.textContent.replace(
+        "Mark as Out of Stock: ",
+        ""
+      );
+
+      try {
+        // Add loading state to the submit button
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        setButtonLoading(submitButton, true);
+
+        // Call the API to update stock
+        const response = await fetch(
+          `/admin/products/${productId}/update-stock`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              stock: 0,
+              in_stock: false,
+            }),
+          }
+        );
+
+        // Reset button state
+        setButtonLoading(submitButton, false, originalButtonText);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Failed to update stock status");
+        }
+
+        // Update the stock display in the table
+        updateStockDisplay(productId, 0);
+
+        // Show success message
+        alert(`"${productName}" has been marked as out of stock.`);
+
+        // Close the modal
+        closeOutOfStockModal();
+      } catch (error) {
+        // Reset button if there's an error
+        const submitButton = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitButton, false, "Mark as Out of Stock");
+        alert(error.message || "An error occurred while updating stock status");
+      }
+    });
+
+    // Replace the existing "Mark product as out of stock functionality" section with this:
+    // Update mark-out-of-stock buttons to use the modal instead of direct API call
+    const markOutOfStockButtons =
+      document.querySelectorAll(".mark-out-of-stock");
+    markOutOfStockButtons.forEach((button) => {
+      // The click event is now handled by the modal open functionality above
+    });
+
+    // Discount Modal functionality
+    const discountModal = document.getElementById("discount-modal");
+    const discountBackdrop = document.getElementById("discount-backdrop");
+    const discountForm = document.getElementById("discount-form");
+    const discountProductId = document.getElementById("discount-product-id");
+    const discountProductName = document.getElementById("discount-product-name");
+    const discountOldPrice = document.getElementById("discount-old-price");
+    const discountVariantId = document.getElementById("discount-variant");
+    const discountVariantSelect = document.getElementById("discount-variant");
+    const currentPriceDisplay = document.getElementById("current-price-display");
+    const discountCancel = document.getElementById("discount-cancel");
+
+    // Function to load variants for a product
+    function loadVariants(productId) {
+      const variantsContainer = document.getElementById('variants-container');
+      const variantSelect = document.getElementById('variant-select');
+      
+      // Show loading state
+      variantsContainer.innerHTML = '<div class="py-3 text-center text-gray-500"><svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading variants...</div>';
+      
+      // First try to get variants from the API
+      fetch(`/admin/products/${productId}/variants`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to load variants: ${response.status} ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Variants response:', data);
+          
+          // Clear loading state
+          variantsContainer.innerHTML = '';
+          
+          if (data.success && data.variants) {
+            // Process the variants
+            let hasVariants = false;
+            variantSelect.innerHTML = '<option value="">Select a variant</option>';
+            
+            for (const [type, variants] of Object.entries(data.variants)) {
+              if (variants && variants.length > 0) {
+                hasVariants = true;
+                // Add type header to the variants container
+                variantsContainer.innerHTML += `<div class="font-medium text-gray-700 mt-2 mb-1">${type}:</div>`;
+                
+                // Add variants to the select dropdown and the container
+                let variantsList = '';
+                variants.forEach(variant => {
+                  if (variant.id && variant.value) {
+                    variantsList += `
+                      <div class="flex items-center justify-between p-2 border rounded mb-1">
+                        <span>${variant.value}</span>
+                        <span class="font-medium">${variant.price}</span>
+                      </div>
+                    `;
+                    
+                    variantSelect.innerHTML += `
+                      <option value="${variant.id}" 
+                        data-price="${variant.price}" 
+                        data-type="${type}" 
+                        data-value="${variant.value}">
+                        ${type}: ${variant.value} - ${variant.price}
+                      </option>
+                    `;
+                  }
+                });
+                
+                variantsContainer.innerHTML += variantsList;
+              }
+            }
+            
+            if (!hasVariants) {
+              variantsContainer.innerHTML = '<div class="text-gray-500 py-2">No variants available for this product</div>';
+              document.getElementById('variant-selection').classList.add('hidden');
+            } else {
+              document.getElementById('variant-selection').classList.remove('hidden');
+            }
+          } else {
+            // No variants found or error occurred
+            variantsContainer.innerHTML = '<div class="text-gray-500 py-2">No variants available for this product</div>';
+            document.getElementById('variant-selection').classList.add('hidden');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading variants:', error);
+          variantsContainer.innerHTML = `
+            <div class="text-red-500 py-2">
+              Error loading variants: ${error.message}
+              <div class="mt-2 text-sm text-gray-500">Please try refreshing the page or contact support if the issue persists.</div>
+            </div>
+          `;
+        });
+    }
+
+    // Open discount modal
+    const discountButtons = document.querySelectorAll(".set-discount");
+    discountButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const productId = this.dataset.productId;
+        const productName = this.dataset.productName;
+        const currentPrice = this.dataset.productPrice || '0';
+
+        // Set product information in the modal
+        discountProductId.value = productId;
+        discountProductName.textContent = `Set Discount: ${productName}`;
+        
+        // Load variants for the product
+        loadVariants(productId);
+        
+        // Reset form fields
+        discountForm.reset();
+        
+        // Show the modal
+        discountModal.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+        
+        console.log("Discount modal opened for product:", productId, productName);
+      });
+    });
+
+    // Close discount modal
+    function closeDiscountModal() {
+      discountModal.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden");
+      // Reset form
+      discountForm.reset();
+    }
+
+    discountCancel.addEventListener("click", closeDiscountModal);
+    discountBackdrop.addEventListener("click", closeDiscountModal);
+
+    // Handle discount form submission
+    discountForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const productId = document.getElementById('discount-product-id').value;
+      const variantId = document.getElementById('variant-select').value;
+      const oldPrice = document.getElementById('old-price').value;
+      const newPrice = document.getElementById('new-price').value;
+      
+      console.log('Submitting discount:', {
+        productId,
+        variantId,
+        oldPrice,
+        newPrice
+      });
+      
+      // Validate input values
+      if (variantId) {
+        // This is a variant discount
+        if (!newPrice) {
+          toastr.error('Please enter a new discounted price');
+          return;
+        }
+        
+        if (parseFloat(newPrice) >= parseFloat(oldPrice)) {
+          toastr.error('New price must be lower than the current price');
+          return;
+        }
+        
+        // Set button to loading state
+        const submitBtn = document.getElementById('apply-discount-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Applying...';
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('old_price', oldPrice);
+        formData.append('discount_price', newPrice);
+        
+        // Determine the correct URL based on whether this is a main product or variant
+        const apiUrl = `/admin/products/${productId}/variants/${variantId}/discount`;
+        
+        console.log(`Submitting discount to: ${apiUrl}`, { oldPrice, newPrice });
+        
+        // Send the request
+        fetch(apiUrl, {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Discount response:', data);
+          
+          if (data.success) {
+            // Show success message
+            toastr.success(data.message || 'Discount applied successfully');
+            
+            // Close the modal and reset form
+            document.getElementById('discount-modal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            
+            // Reload products table to reflect updated prices
+            loadProductsTable();
+          } else {
+            // Show error message
+            toastr.error(data.detail || 'Failed to apply discount');
+          }
+        })
+        .catch(error => {
+          console.error('Error applying discount:', error);
+          toastr.error('Error applying discount: ' + error.message);
+        })
+        .finally(() => {
+          // Reset button state
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Apply Discount';
+        });
+      } else {
+        toastr.error('Please select a variant');
+      }
+    });
+
+    // Function to load the products table
+    async function loadProductsTable() {
+      const tableBody = document.getElementById("products-table-body");
+      
+      if (!tableBody) {
+        console.error("Products table body element not found");
+        return;
+      }
+      
+      try {
+        // Show loading state
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading products...</td></tr>';
+        
+        // Fetch products from the API
+        const response = await fetch('/api/admin/products');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch products: ${response.status}`);
+        }
+        
+        const products = await response.json();
+        console.log(`Loaded ${products.length} products`);
+        
+        // Clear the table
+        tableBody.innerHTML = '';
+        
+        if (products.length === 0) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6" class="text-center py-8">
+                <div class="flex flex-col items-center">
+                  <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                  </svg>
+                  <p class="text-lg font-medium text-gray-900 mb-1">No products found</p>
+                  <p class="text-gray-500 mb-4">Get started by creating a new product</p>
+                  <a href="/admin/products/new" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-200">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 010-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    Add New Product
+                  </a>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        // Add each product to the table
+        products.forEach(product => {
+          // Create table row for the product
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50 transition-colors';
+          row.dataset.productId = product.id;
+          
+          // Handle variants data
+          if (product.variants) {
+            console.log(`Product ${product.id} has variants:`, product.variants);
+            try {
+              // Some variants might be already serialized, others might need conversion
+              const serializedVariants = {};
+              
+              for (const type in product.variants) {
+                serializedVariants[type] = product.variants[type].map(variant => {
+                  // Ensure variant has all necessary properties
+                  return {
+                    id: variant.id || `${type}-${variant.value}`,
+                    value: variant.value || 'Unknown',
+                    price: variant.price || 0,
+                    type: type
+                  };
+                });
+              }
+              
+              // Store the variants data in the dataset
+              row.dataset.variants = JSON.stringify(serializedVariants);
+              console.log(`Set variants data on row for product ${product.id}`);
+            } catch (e) {
+              console.error(`Error serializing variants for product ${product.id}:`, e);
+            }
+          } else {
+            console.log(`Product ${product.id} has no variants`);
+          }
+          
+          // Format the stock status
+          let stockStatus = '';
+          if (product.stock > 10) {
+            stockStatus = `
+              <span class="status-badge bg-green-100 text-green-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                ${product.stock} in stock
+              </span>
+            `;
+          } else if (product.stock > 0) {
+            stockStatus = `
+              <span class="status-badge bg-yellow-100 text-yellow-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                ${product.stock} low stock
+              </span>
+            `;
+          } else {
+            stockStatus = `
+              <span class="status-badge bg-red-100 text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Out of stock
+              </span>
+            `;
+          }
+          
+          // Get product image
+          let productImage = '';
+          if (product.image_urls && product.image_urls.length > 0) {
+            productImage = `<img src="${product.image_urls[0]}" alt="${product.name}" class="h-10 w-10 rounded-md object-cover">`;
+          } else {
+            productImage = `<svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>`;
+          }
+          
+          // Set the row HTML
+          row.innerHTML = `
+            <td class="px-6 py-4 text-sm font-medium text-gray-900">
+              <div class="flex items-center">
+                <div class="h-10 w-10 flex-shrink-0 mr-3 bg-gray-100 rounded-md flex items-center justify-center">
+                  ${productImage}
+                </div>
+                <div>
+                  ${product.name}
+                  ${product.featured ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">Featured</span>' : ''}
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-500">
+              <div class="tooltip">
+                <div class="truncate-description" title="${product.short_description || ''}">
+                  ${product.short_description || 'No description'}
+                </div>
+                <span class="tooltip-text">${product.short_description || 'No description'}</span>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-900">
+              <span class="font-medium">UGX ${product.price || 0}</span>
+            </td>
+            <td class="px-6 py-4 text-sm">
+              ${stockStatus}
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-500">
+              <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                ${product.view_count || 0}
+              </div>
+            </td>
+            <td class="px-6 py-4 text-sm font-medium">
+              <div class="flex items-center space-x-2">
+                <a href="/admin/products/${product.id}/edit" class="text-blue-600 hover:text-blue-900">Edit</a>
+                <button class="text-purple-600 hover:text-purple-900 set-discount" 
+                  data-product-id="${product.id}" 
+                  data-product-name="${product.name}" 
+                  data-product-price="${product.price}">
+                  Discount
+                </button>
+                <button class="text-red-600 hover:text-red-900 out-of-stock" 
+                  data-product-id="${product.id}" 
+                  data-product-name="${product.name}" 
+                  ${product.in_stock ? '' : 'style="display:none;"'}>
+                  Out of Stock
+                </button>
+              </div>
+            </td>
+          `;
+          
+          tableBody.appendChild(row);
+        });
+        
+        // Dispatch an event to indicate that the table has been loaded
+        document.dispatchEvent(new CustomEvent('productsTableLoaded'));
+        
+      } catch (error) {
+        console.error('Error loading products table:', error);
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-600">Error: ${error.message}</td></tr>`;
+      }
+    }
+
+    // Function to attach event listeners
+    function attachEventListeners() {
+      // Attach event listeners to the discount buttons
+      const discountButtons = document.querySelectorAll(".set-discount");
+      discountButtons.forEach((button) => {
+        button.addEventListener("click", function () {
+          const productId = this.dataset.productId;
+          const productName = this.dataset.productName;
+          
+          console.log("Opening discount modal for product:", productId, productName);
+          
+          // Set the product ID and name in the modal
+          discountProductId.value = productId;
+          discountProductName.textContent = `Set Discount: ${productName}`;
+          
+          // Load variants for the product
+          loadVariants(productId);
+          
+          // Reset form fields
+          discountForm.reset();
+          
+          // Show the modal
+          discountModal.classList.remove("hidden");
+          document.body.classList.add("overflow-hidden");
+          
+          console.log("Discount modal opened for product:", productId, productName);
+        });
+      });
+      
+      // Attach event listeners to the edit buttons
+      const editButtons = document.querySelectorAll(".edit-product");
+      editButtons.forEach((button) => {
+        button.addEventListener("click", function () {
+          const productId = this.dataset.productId;
+          window.location.href = `/admin/products/${productId}/edit`;
+        });
+      });
+      
+      // Attach event listeners to the out-of-stock buttons
+      const outOfStockButtons = document.querySelectorAll(".mark-out-of-stock");
+      outOfStockButtons.forEach((button) => {
+        button.addEventListener("click", function () {
+          const productId = this.dataset.productId;
+          
+          // Set the product ID in the modal
+          outOfStockProductId.value = productId;
+          
+          // Show the modal
+          outOfStockModal.classList.remove("hidden");
+          document.body.classList.add("overflow-hidden");
+        });
+      });
+    }
+
+    // Load the products table when the page loads
+    document.addEventListener("DOMContentLoaded", function() {
+      console.log("DOM loaded, initializing products table");
+      loadProductsTable();
+      
+      // Initialize toastr notification settings
+      toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: "toast-top-right",
+        timeOut: 5000
+      };
+      
+      // Set up the discount modal close button
+      const discountModal = document.getElementById('discount-modal');
+      const discountCancel = document.getElementById('discount-cancel');
+      const discountBackdrop = document.getElementById('discount-backdrop');
+      
+      if (discountCancel) {
+        discountCancel.addEventListener('click', function() {
+          discountModal.classList.add('hidden');
+          document.body.classList.remove('overflow-hidden');
+        });
+      }
+      
+      if (discountBackdrop) {
+        discountBackdrop.addEventListener('click', function() {
+          discountModal.classList.add('hidden');
+          document.body.classList.remove('overflow-hidden');
+        });
+      }
+      
+      // This custom event will fire when products are loaded
+      document.addEventListener('productsTableLoaded', function() {
+        console.log('Products table loaded, setting up action buttons');
+        const discountButtons = document.querySelectorAll('.set-discount');
+        
+        discountButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const productName = this.dataset.productName;
+            const productPrice = this.dataset.productPrice;
+            
+            console.log('Opening discount modal for product:', productId, productName, productPrice);
+            
+            // Set values in the modal
+            document.getElementById('discount-product-id').value = productId;
+            document.getElementById('discount-product-name').textContent = `Set Discount for ${productName}`;
+            
+            // Load variants for this product
+            loadVariants(productId);
+            
+            // Show the modal
+            discountModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+          });
+        });
+      });
+    });
+
+    // Add event handler for the variant selection to update the price display
+    if (document.getElementById('variant-select')) {
+      document.getElementById('variant-select').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+          const price = selectedOption.getAttribute('data-price') || '0';
+          document.getElementById('current-price-display').textContent = price;
+          document.getElementById('old-price').value = price;
+          console.log(`Selected variant with price: ${price}`);
+        } else {
+          document.getElementById('current-price-display').textContent = '0';
+          document.getElementById('old-price').value = '';
+          console.log('No variant selected');
+        }
+      });
+    }
+
+    // Add event handler for the discount cancel button
+    if (document.getElementById('discount-cancel')) {
+      document.getElementById('discount-cancel').addEventListener('click', function() {
+        // Close the modal
+        document.getElementById('discount-modal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      });
+    }
+
+    // Initialize the variant selection element to be hidden initially
+    document.addEventListener('DOMContentLoaded', function() {
+      const variantSelection = document.getElementById('variant-selection');
+      if (variantSelection) {
+        variantSelection.classList.add('hidden');
+      }
+    });
+  });
+</script>

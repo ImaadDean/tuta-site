@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+
+{% block title %}Order Details - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Notification Element -->
+    <div id="notification" class="hidden"></div>
+
+    <!-- Back Button -->
+    <div>
+        <a href="/admin/orders"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:text-indigo-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Orders
+        </a>
+    </div>
+
+    <!-- Order Header -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg leading-6 font-medium text-gray-900">
+                        Order Details
+                    </h2>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                        Order No #{{ order.order_no }} <span class="text-gray-400">
+                    </p>
+                </div>
+                
+                {% if order.status != 'cancelled' %}
+                <div>
+                    <form action="/admin/orders/{{ order.id }}/cancel" method="post" class="inline-block">
+                        <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                            onclick="return confirm('Are you sure you want to cancel this order? This action cannot be undone.')">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Cancel Order
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Order Status Update -->
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+            <div class="flex items-center space-x-4">
+                <select id="status-select"
+                    class=" border border-blue-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 focus:ring-blue-500 ">
+                    {% for status in statuses %}
+                    <option value="{{ status.name }}" {% if order.status == status.value %}selected{% endif %}>
+                        {{ status.name.title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <!-- Loading Indicator -->
+                <div id="status-indicator" class="hidden">
+                    <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+            </div>
+            <!-- Current Status Badge -->
+            <div class="mt-2">
+                <span id="status-badge" class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if order.status == 'pending' %}
+                        bg-yellow-100 text-yellow-800
+                    {% elif order.status == 'processing' %}
+                        bg-blue-100 text-blue-800
+                    {% elif order.status == 'delivering' %}
+                        bg-purple-100 text-purple-800
+                    {% elif order.status == 'delivered' %}
+                        bg-green-100 text-green-800
+                    {% elif order.status == 'cancelled' %}
+                        bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ order.status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Information -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Customer Information
+            </h3>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Name</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {% if order.user %}
+                            {{ order.user.username }}
+                        {% elif order.guest_data and order.guest_data.name %}
+                            {{ order.guest_data.name }} (Guest)
+                        {% else %}
+                            {{ order.address.name }} (Guest)
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Email</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {% if order.user %}
+                            {{ order.user.email }}
+                        {% else %}
+                            {{ order.guest_email }} (Guest)
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Phone</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {% if order.user and order.user.phone %}
+                            <a href="tel:{{ order.user.phone }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ order.user.phone }}
+                            </a>
+                        {% elif order.guest_data and order.guest_data.phone %}
+                            <a href="tel:{{ order.guest_data.phone }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ order.guest_data.phone }}
+                            </a> (Guest)
+                        {% else %}
+                            Not provided
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Delivery Address</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ order.address.address }}<br>
+                        {{ order.address.city }}<br>
+                        {{ order.address.country }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Status - UPDATED UI -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Payment Status</h3>
+        </div>
+        <div class="px-4 py-5 sm:px-6">
+            <div class="space-y-5">
+                <!-- Payment Status Selection and Amount -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="payment-status-select" class="block text-sm font-medium text-gray-700 mb-1">
+                            Payment Status
+                        </label>
+                        <select id="payment-status-select"
+                            class=" border border-blue-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 focus:ring-blue-500 ">
+                            {% for status in ['PENDING', 'PARTIAL_PAID', 'FULLY_PAID', 'REFUNDED'] %}
+                            <option value="{{ status }}" {% if order.payment_status == status.lower() %}selected{% endif %}>
+                                {{ status.title().replace('_', ' ') }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Update payment amount if partial payment - UPDATED UI -->
+                    <div id="payment-amount-container" class="{% if order.payment_status != 'partial_paid' %}hidden{% endif %}">
+                        <label for="amount-paid" class="block text-sm font-medium text-gray-700 mb-1">Amount Paid (UGX)</label>
+                        <input type="number" name="amount-paid" id="amount-paid" 
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                               placeholder="0" min="1" max="{{ order.total_amount - 1 }}" value="{{ order.amount_paid }}">
+                    </div>
+                </div>
+
+                <!-- Payment Percentage - UPDATED UI -->
+                <div id="payment-percentage" class="mt-4 {% if order.payment_status != 'partial_paid' %}hidden{% endif %}">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-700">Payment Progress:</span>
+                        <span id="percentage-display" class="text-sm font-medium text-indigo-600">
+                            {{ (order.amount_paid / order.total_amount * 100) | int }}% 
+                        </span>
+                    </div>
+                    <div class="mt-1 text-sm text-gray-500 flex justify-between">
+                        <span>UGX <span id="amount-paid-display">{{ order.amount_paid }}</span> paid</span>
+                        <span>UGX {{ order.total_amount - order.amount_paid }} remaining</span>
+                    </div>
+                </div>
+
+                <!-- Update Button -->
+                <div class="flex justify-end mt-4">
+                    <div class="flex items-center space-x-3">
+                        <div id="payment-status-indicator" class="hidden">
+                            <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <button id="update-payment-status" type="button" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Update Payment Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Items -->
+<!-- Order Items with Responsive Table -->
+<div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Order Items
+        </h3>
+        <div class="mt-4 overflow-x-auto">
+            <!-- For larger screens - regular table -->
+            <div class="hidden md:block">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Product
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quantity
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Price
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Subtotal
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in order.order_items %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ item.product.name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {{ item.quantity }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                UGX {{ item.product.price }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                                UGX {{ item.quantity * item.product.price }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-50">
+                            <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
+                                Total:
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-base font-bold text-indigo-600">
+                                UGX {{ order.total_amount }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- For mobile screens - card-based layout -->
+            <div class="md:hidden space-y-4">
+                {% for item in order.order_items %}
+                <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="text-sm font-medium text-gray-900">{{ item.product.name }}</h4>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            {{ item.quantity }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Price:</span>
+                        <span class="text-gray-700">UGX {{ item.product.price }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm font-medium mt-1">
+                        <span class="text-gray-500">Subtotal:</span>
+                        <span class="text-gray-900">UGX {{ item.quantity * item.product.price }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Total for mobile -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-900">Total:</span>
+                        <span class="text-base font-bold text-indigo-600">UGX {{ order.total_amount }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('status-select');
+    const statusIndicator = document.getElementById('status-indicator');
+    const notification = document.getElementById('notification');
+    const paymentSelect = document.getElementById('payment-status-select');
+    const paymentIndicator = document.getElementById('payment-status-indicator');
+    const amountPaidInput = document.getElementById('amount-paid');
+    const paymentAmountContainer = document.getElementById('payment-amount-container');
+    const updatePaymentStatusBtn = document.getElementById('update-payment-status');
+    const paymentPercentage = document.getElementById('payment-percentage');
+    const amountPaidDisplay = document.getElementById('amount-paid-display');
+    const percentageDisplay = document.getElementById('percentage-display');
+    const totalAmount = parseInt('{{ order.total_amount }}');
+
+    function showNotification(message, type) {
+        notification.textContent = message;
+        notification.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 transform transition-all duration-300 visible ${
+            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        }`;
+        
+        // Make it visible
+        notification.classList.add('visible');
+        
+        // Set timeout to hide it
+        setTimeout(() => {
+            notification.classList.remove('visible');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 300);
+        }, 3000);
+    }
+
+    statusSelect.addEventListener('change', async function(e) {
+        const newStatus = e.target.value;
+        const orderId = '{{ order.id }}';
+        
+        // Show loading state
+        statusSelect.disabled = true;
+        statusIndicator.style.display = 'inline-flex';
+
+        try {
+            const response = await fetch(`/admin/orders/${orderId}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=${newStatus}`
+            });
+
+            if (response.ok) {
+                showNotification('Status updated successfully', 'success');
+                
+                // Update the status badge color
+                const statusBadge = document.getElementById('status-badge');
+                statusBadge.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    newStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    newStatus === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                    newStatus === 'DELIVERING' ? 'bg-purple-100 text-purple-800' :
+                    newStatus === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                }`;
+                statusBadge.textContent = newStatus.toLowerCase();
+            } else {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update status');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification(error.message, 'error');
+            // Revert select to previous value
+            statusSelect.value = '{{ order.status }}';
+        } finally {
+            statusSelect.disabled = false;
+            statusIndicator.style.display = 'none';
+        }
+    });
+    
+    // Show/hide amount paid input based on payment status selection
+    paymentSelect.addEventListener('change', function(e) {
+        const newStatus = e.target.value;
+        if (newStatus === 'PARTIAL_PAID') {
+            paymentAmountContainer.classList.remove('hidden');
+            paymentPercentage.classList.remove('hidden');
+            updatePercentage();
+        } else {
+            paymentAmountContainer.classList.add('hidden');
+            paymentPercentage.classList.add('hidden');
+        }
+    });
+
+    // Update percentage when amount changes
+    amountPaidInput.addEventListener('input', updatePercentage);
+
+    function updatePercentage() {
+        const amountPaid = parseInt(amountPaidInput.value) || 0;
+        const percentage = Math.round((amountPaid / totalAmount) * 100);
+        percentageDisplay.textContent = `${percentage}%`;
+        amountPaidDisplay.textContent = amountPaid;
+    }
+
+    // Update payment status button click handler
+    updatePaymentStatusBtn.addEventListener('click', async function() {
+        const newStatus = paymentSelect.value;
+        const orderId = '{{ order.id }}';
+        
+        // Show loading state
+        updatePaymentStatusBtn.disabled = true;
+        paymentIndicator.classList.remove('hidden');
+
+        try {
+            // For partial payment, we need to include the amount
+            let formData = `payment_status=${newStatus}`;
+            if (newStatus === 'PARTIAL_PAID') {
+                const amount = parseInt(amountPaidInput.value);
+                if (!amount || isNaN(amount) || amount <= 0) {
+                    throw new Error('Please enter a valid amount');
+                }
+                formData += `&amount_paid=${amount}`;
+            }
+            
+            const response = await fetch(`/admin/orders/${orderId}/update-payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update payment status');
+            }
+            
+            const data = await response.json();
+            showNotification('Payment status updated successfully', 'success');
+            
+            // Update payment status badge
+            const paymentBadge = document.getElementById('payment-status-badge');
+            if (paymentBadge) {
+                paymentBadge.className = `px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    newStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    newStatus === 'PARTIAL_PAID' ? 'bg-blue-100 text-blue-800' :
+                    newStatus === 'FULLY_PAID' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                }`;
+                paymentBadge.textContent = newStatus.replace('_', ' ');
+            }
+            
+            // Update payment percentage if amount_paid was provided
+            if (data.amount_paid !== undefined) {
+                const percentage = Math.round((data.amount_paid / totalAmount) * 100);
+                
+                // Update percentage display
+                percentageDisplay.textContent = `${percentage}%`;
+                amountPaidDisplay.textContent = data.amount_paid;
+                
+                // Show/hide percentage based on status
+                if (newStatus === 'PARTIAL_PAID') {
+                    paymentPercentage.classList.remove('hidden');
+                    paymentAmountContainer.classList.remove('hidden');
+                } else {
+                    paymentAmountContainer.classList.add('hidden');
+                    paymentPercentage.classList.add('hidden');
+                }
+            }
+
+            // If order status was automatically updated
+            if (data.order_status) {
+                document.getElementById('status-select').value = data.order_status.toUpperCase();
+                const statusBadge = document.getElementById('status-badge');
+                statusBadge.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    data.order_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    data.order_status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                    data.order_status === 'delivering' ? 'bg-purple-100 text-purple-800' :
+                    data.order_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                    data.order_status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                }`;
+                statusBadge.textContent = data.order_status;
+            }
+
+            // Reload the page after successful update to ensure all data is synced
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification(error.message, 'error');
+        } finally {
+            updatePaymentStatusBtn.disabled = false;
+            paymentIndicator.classList.add('hidden');
+        }
+    });
+
+    // Initialize percentage display
+    const amountPaid = parseInt('{{ order.amount_paid }}');
+    const percentage = Math.round((amountPaid / totalAmount) * 100);
+    if (percentageDisplay) {
+        percentageDisplay.textContent = `${percentage}%`;
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Status badge transitions */
+    #status-badge, #payment-status-badge {
+        transition: all 0.3s ease;
+    }
+    
+    /* Notification animation */
+    @keyframes slideIn {
+        0% { transform: translateY(20px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    #notification.visible {
+        animation: slideIn 0.3s ease-out forwards;
+    }
+    
+    /* Table row hover effect */
+    tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    /* Card hover effects */
+    .hover-card {
+        transition: all 0.2s ease;
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,137 @@
+<style>
+  .truncate-description {
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 768px) {
+    .responsive-table {
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+    }
+  }
+
+  /* Dropdown menu transitions */
+  .actions-dropdown-menu {
+    transition-property: opacity, transform;
+    transition-duration: 150ms;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .actions-dropdown-menu.entering {
+    transition-timing-function: ease-out;
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  .actions-dropdown-menu.entered {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  .actions-dropdown-menu.leaving {
+    transition-timing-function: ease-in;
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  /* Hover effect for table rows */
+  tbody tr {
+    transition: background-color 0.2s ease;
+  }
+
+  /* Sticky header */
+  @media (min-width: 768px) {
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: #f3f4f6;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  /* Improved status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    line-height: 1;
+  }
+
+  .status-badge svg {
+    margin-right: 0.25rem;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* Tooltip styles */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+
+  .tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #374151;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  .tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* Restock modal styles */
+  #restock-modal {
+    transition: opacity 0.3s ease;
+  }
+
+  #restock-backdrop {
+    transition: opacity 0.3s ease;
+  }
+
+  #restock-modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #restock-modal:not(.hidden) {
+    opacity: 1;
+  }
+
+  /* Form input styles */
+  input[type="number"] {
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 1px #6366f1;
+  }
+</style>

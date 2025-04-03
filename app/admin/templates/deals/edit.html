@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Deal of the Day{% endblock %}
+
+{% block content %}
+<div class="py-6">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-semibold text-gray-900">Edit Deal of the Day</h1>
+      <a href="/admin/deals" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+        Back to List
+      </a>
+    </div>
+  </div>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+    <div class="py-4">
+      {% if error %}
+      <div class="rounded-md bg-red-50 p-4 mb-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">{{ error }}</h3>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="bg-white shadow-md sm:rounded-lg overflow-hidden">
+        <form action="/admin/deals/edit/{{ deal.id }}" method="POST" class="p-6 space-y-6">
+          <div>
+            <label for="product_id" class="block text-sm font-medium text-gray-700">Select Product</label>
+            <select
+              id="product_id"
+              name="product_id"
+              required
+              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              {% for product in products %}
+              <option value="{{ product.id }}" {% if product.id == deal.product_id %}selected{% endif %}>
+                {{ product.name }} - UGX {{ '{:,}'.format(product.price) }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div>
+            <label for="discount_percentage" class="block text-sm font-medium text-gray-700">Discount Percentage (%)</label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="number"
+                name="discount_percentage"
+                id="discount_percentage"
+                min="1"
+                max="99"
+                value="{{ deal.discount_percentage }}"
+                required
+                class="block w-full pr-12 sm:text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="10"
+              />
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">%</span>
+              </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">Enter a value between 1 and 99</p>
+          </div>
+          
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+            <div class="mt-1">
+              <textarea
+                id="description"
+                name="description"
+                rows="3"
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="Special promotion for the holidays!"
+              >{{ deal.description or "" }}</textarea>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">Brief description of the promotion</p>
+          </div>
+          
+          <div>
+            <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date/Time</label>
+            <div class="mt-1">
+              <input
+                type="datetime-local"
+                name="start_date"
+                id="start_date"
+                value="{{ start_date }}"
+                required
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <p class="mt-2 text-sm text-gray-500">When the deal will begin</p>
+          </div>
+          
+          <div>
+            <label for="end_date" class="block text-sm font-medium text-gray-700">End Date/Time</label>
+            <div class="mt-1">
+              <input
+                type="datetime-local"
+                name="end_date"
+                id="end_date"
+                value="{{ end_date }}"
+                required
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <p class="mt-2 text-sm text-gray-500">When the deal will expire</p>
+          </div>
+          
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input
+                id="is_active"
+                name="is_active"
+                type="checkbox"
+                {% if deal.is_active %}checked{% endif %}
+                class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+              />
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="is_active" class="font-medium text-gray-700">Active</label>
+              <p class="text-gray-500">Enable this deal</p>
+            </div>
+          </div>
+          
+          <div class="flex justify-end pt-4">
+            <a href="/admin/deals" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2">Cancel</a>
+            <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Update Deal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

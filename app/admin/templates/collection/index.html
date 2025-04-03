@@ -1,0 +1,147 @@
+{% extends "base.html" %} {% block title %}Collections{% endblock %} {% block
+content %}
+<div class="container mx-auto px-4 py-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Collections</h1>
+    <a
+      href="/admin/collection/create"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+    >
+      Add New Collection
+    </a>
+  </div>
+
+  {% if request.session.get('message') %}
+  <div
+    class="mb-4 p-4 rounded-md {% if request.session.get('message_type') == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}"
+  >
+    {{ request.session.get('message') }}
+  </div>
+  {% endif %}
+
+  <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th
+            scope="col"
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Image
+          </th>
+          <th
+            scope="col"
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Name
+          </th>
+          <th
+            scope="col"
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Banner
+          </th>
+          <th
+            scope="col"
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Status
+          </th>
+          <th
+            scope="col"
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Created
+          </th>
+          <th
+            scope="col"
+            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for collection in collections %}
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap">
+            {% if collection.image_url %}
+            <img
+              src="{{ collection.image_url }}"
+              alt="{{ collection.name }}"
+              class="h-10 w-10 rounded-full object-cover"
+            />
+            {% else %}
+            <div
+              class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-gray-900">
+              {{ collection.name }}
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-500">
+              {% if collection.banner %} {{ collection.banner.title }} {% else
+              %} No banner {% endif %}
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span
+              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if collection.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
+            >
+              {{ 'Active' if collection.is_active else 'Inactive' }}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {{ collection.created_at.strftime('%Y-%m-%d') }}
+          </td>
+          <td
+            class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+          >
+            <a
+              href="/admin/collection/{{ collection.id }}/edit"
+              class="text-indigo-600 hover:text-indigo-900 mr-3"
+              >Edit</a
+            >
+            <a
+              href="/admin/collection/{{ collection.id }}/delete"
+              class="text-red-600 hover:text-red-900"
+              >Delete</a
+            >
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+            No collections found.
+            <a
+              href="/admin/collection/create"
+              class="text-indigo-600 hover:text-indigo-900"
+              >Create one</a
+            >
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

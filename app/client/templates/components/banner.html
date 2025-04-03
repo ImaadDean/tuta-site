@@ -1,0 +1,56 @@
+<div class="my-8">
+  <div class="container mx-auto px-4">
+    <div
+      class="flex items-center gap-2.5 overflow-auto hidden-scrollbar rounded-md has-scrollbar"
+    >
+      {% for banner in banners %}
+      <div
+        class="relative min-w-full max-h-[450px] aspect-square md:aspect-[5/3] lg:h-[380px] xl:h-[450px] rounded-md overflow-hidden snap-start"
+      >
+        <img
+          src="{{ banner.image_url }}"
+          alt="{{ banner.title }}"
+          class="w-full h-full object-cover object-right"
+        />
+
+        <div
+          class="absolute bottom-6 left-6 right-6 md:bottom-auto md:right-auto md:top-1/2 md:-translate-y-1/2 md:left-[75px] md:max-w-[380px] lg:max-w-[400px] xl:max-w-[460px] bg-white/80 p-5 md:p-6 rounded-md"
+        >
+          {% if banner.subtitle %}
+          <p
+            class="text-salmon-pink text-sm md:text-base lg:text-xl font-medium capitalize tracking-wider mb-2.5"
+          >
+            {{ banner.subtitle }}
+          </p>
+          {% endif %}
+
+          <h2
+            class="text-eerie-black text-2xl md:text-3xl lg:text-4xl uppercase leading-tight mb-2.5"
+          >
+            {{ banner.title }}
+          </h2>
+
+          <div
+            class="flex flex-row items-center justify-between gap-4 md:block"
+          >
+            {% if banner.description %}
+            <p
+              class="text-sonic-silver text-sm md:text-base lg:text-lg font-medium md:mb-2.5 flex-1"
+            >
+              {{ banner.description }}
+            </p>
+            {% endif %} {% if banner.link %}
+            <a
+              href="{{ banner.link }}"
+              class="inline-block bg-salmon-pink text-white text-xs md:text-sm font-semibold uppercase px-2.5 py-1 md:px-5 md:py-2 rounded-sm hover:bg-eerie-black transition-colors whitespace-nowrap"
+            >
+              Shop now
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

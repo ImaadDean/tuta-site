@@ -1,0 +1,122 @@
+{% extends "base.html" %} {% block title %}Brands - Admin Dashboard{% endblock
+%} {% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Brands</h1>
+    <a
+      href="/admin/brand/create"
+      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+    >
+      Add New Brand
+    </a>
+  </div>
+
+  {% if request.session.get('message') %}
+  <div
+    class="p-4 mb-6 rounded-md {% if request.session.get('message_type') == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
+  >
+    {{ request.session.pop('message') }}
+  </div>
+  {% endif %}
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white border border-gray-200">
+      <thead class="bg-gray-100">
+        <tr>
+          <th
+            class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+          >
+            Icon
+          </th>
+          <th
+            class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+          >
+            Name
+          </th>
+          <th
+            class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+          >
+            Collections
+          </th>
+          <th
+            class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+          >
+            Created At
+          </th>
+          <th
+            class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        {% for brand in brands %}
+        <tr class="hover:bg-gray-50">
+          <td class="py-4 px-4 whitespace-nowrap">
+            {% if brand.icon_url %}
+            <img
+              src="{{ brand.icon_url }}"
+              alt="{{ brand.name }}"
+              class="w-10 h-10 object-cover rounded-full"
+            />
+            {% else %}
+            <div
+              class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center"
+            >
+              <span class="text-gray-500">{{ brand.name[:1] | upper }}</span>
+            </div>
+            {% endif %}
+          </td>
+          <td class="py-4 px-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-gray-900">
+              {{ brand.name }}
+            </div>
+          </td>
+          <td class="py-4 px-4">
+            <div class="flex flex-wrap gap-1">
+              {% for collection in brand.collections %}
+              <span
+                class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+                >{{ collection.name }}</span
+              >
+              {% else %}
+              <span class="text-sm text-gray-500">No collections</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="py-4 px-4 whitespace-nowrap">
+            <div class="text-sm text-gray-500">
+              {{ brand.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+          </td>
+          <td class="py-4 px-4 whitespace-nowrap text-sm font-medium">
+            <div class="flex space-x-2">
+              <a
+                href="/admin/brand/{{ brand.id }}/edit"
+                class="text-indigo-600 hover:text-indigo-900"
+                >Edit</a
+              >
+              <a
+                href="/admin/brand/{{ brand.id }}/delete"
+                class="text-red-600 hover:text-red-900"
+                >Delete</a
+              >
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="py-4 px-4 text-center text-gray-500">
+            No brands found.
+            <a href="/admin/brand/create" class="text-blue-600 hover:underline"
+              >Create one</a
+            >.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
