@@ -6,11 +6,13 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.auth.jwt import get_current_user, get_current_active_admin, get_token_from_cookie
 from app.admin.dashboard import templates, router
+from app.utils.json import to_serializable_dict
 from enum import Enum
 import logging
 from uuid import uuid4
 from bson import ObjectId
 import json
+import traceback
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -30,50 +32,33 @@ async def admin_home(
     current_user: User = Depends(get_current_active_admin)
 ):
     try:
-        # Log authentication information for debugging
-        token = request.cookies.get("access_token")
-        logger.info(f"Admin access attempt - Token present: {bool(token)}")
-        
-        if token:
-            token_value = token.replace("Bearer ", "") if token.startswith("Bearer ") else token
-            logger.info(f"Token value (first 10 chars): {token_value[:10]}...")
-        
-        logger.info(f"Current user: {current_user.username} (role: {current_user.role})")
-        
         # Get products (assuming you have a Product model defined with Beanie)
         from app.models.product import Product
-        products = await Product.find_all().to_list()
         
-        # Convert products to dict to ensure proper serialization of variants
+        products = []
+        try:
+            products = await Product.find_all().to_list()
+        except Exception as e:
+            print(f"Error fetching products: {str(e)}")
+        
+        # Convert products to serializable dict with datetime handling
         serialized_products = []
         for product in products:
-            # Convert the Product object to a dictionary
             try:
-                product_dict = dict(product)
-            except TypeError:
-                # If direct dict conversion fails, try to get the model_dump method
-                product_dict = product.model_dump() if hasattr(product, 'model_dump') else product.dict()
-            
-            # Ensure variants are properly serialized
-            if product_dict.get('variants'):
-                serialized_variants = {}
-                for variant_type, variant_list in product_dict['variants'].items():
-                    # Convert each variant value to a dictionary if it's not already one
-                    serialized_variants[variant_type] = [
-                        dict(v) if not isinstance(v, dict) else v 
-                        for v in variant_list
-                    ]
-                product_dict['variants'] = serialized_variants
-            serialized_products.append(product_dict)
-            
-        logger.info(f"Found {len(serialized_products)} products")
+                serialized_products.append(to_serializable_dict(product))
+            except Exception as e:
+                print(f"Error serializing product: {str(e)}")
         
         # Get pending orders count
         from app.models.order import Order
-        pending_orders = await Order.find(
-            {"status": {"$in": [OrderStatus.PENDING.value, OrderStatus.PROCESSING.value, OrderStatus.DELIVERING.value]}}
-        ).count()
-        logger.info(f"Found {pending_orders} pending orders")
+        
+        pending_orders = 0
+        try:
+            pending_orders = await Order.find(
+                {"status": {"$in": [OrderStatus.PENDING.value, OrderStatus.PROCESSING.value, OrderStatus.DELIVERING.value]}}
+            ).count()
+        except Exception as e:
+            print(f"Error counting pending orders: {str(e)}")
         
         # Get today's sales
         today = datetime.now().date()
@@ -95,22 +80,43 @@ async def admin_home(
             }
         ]
         
-        daily_sales_result = await Order.aggregate(daily_sales_pipeline).to_list()
-        daily_sales = daily_sales_result[0]["total"] if daily_sales_result else 0
-        logger.info(f"Daily sales: {daily_sales}")
+        daily_sales = 0
+        try:
+            daily_sales_result = await Order.aggregate(daily_sales_pipeline).to_list()
+            if daily_sales_result and len(daily_sales_result) > 0 and "total" in daily_sales_result[0]:
+                daily_sales = daily_sales_result[0]["total"]
+        except Exception as e:
+            print(f"Error calculating daily sales: {str(e)}")
         
         # Get total users count
-        total_users = await User.find_all().count()
-        logger.info(f"Total users: {total_users}")
+        total_users = 0
+        try:
+            total_users = await User.find_all().count()
+        except Exception as e:
+            print(f"Error counting users: {str(e)}")
         
         # Get recent orders (last 5)
-        recent_orders = await Order.find_all().sort([("created_at", -1)]).limit(5).to_list()
-        logger.info(f"Found {len(recent_orders)} recent orders")
+        recent_orders = []
+        try:
+            recent_orders = await Order.find_all().sort([("created_at", -1)]).limit(5).to_list()
+            
+            # For each order, fetch the associated user
+            for order in recent_orders:
+                if hasattr(order, "user_id"):
+                    try:
+                        order.user = await User.find_one({"id": order.user_id})
+                    except Exception as e:
+                        print(f"Error fetching user for order: {str(e)}")
+        except Exception as e:
+            print(f"Error fetching recent orders: {str(e)}")
         
-        # For each order, fetch the associated user
+        # Convert recent orders to serializable format
+        serialized_orders = []
         for order in recent_orders:
-            if hasattr(order, "user_id"):
-                order.user = await User.find_one({"id": order.user_id})
+            try:
+                serialized_orders.append(to_serializable_dict(order))
+            except Exception as e:
+                print(f"Error serializing order: {str(e)}")
         
         # For now, return a simple success message if templates aren't set up yet
         if not hasattr(templates, "TemplateResponse"):
@@ -128,30 +134,37 @@ async def admin_home(
             </html>
             """)
         
+        # Safely serialize the current user
+        serialized_user = None
+        try:
+            serialized_user = to_serializable_dict(current_user)
+        except Exception as e:
+            print(f"Error serializing current user: {str(e)}")
+            serialized_user = {"username": current_user.username, "id": current_user.id}
+        
         return templates.TemplateResponse(
             "dashboard/index.html",
             {
                 "request": request,
                 "products": serialized_products,
-                "user": current_user,
+                "user": serialized_user,
                 "pending_orders": pending_orders,
                 "daily_sales": "{:.2f}".format(daily_sales),
                 "total_users": total_users,
-                "recent_orders": recent_orders
+                "recent_orders": serialized_orders
             }
         )
     except Exception as e:
-        logger.error(f"Admin dashboard error: {e}")
-        print(f"Admin dashboard error: {e}")
-        
         # Return a basic error page if templates aren't working
+        error_details = f"{type(e).__name__}: {str(e)}"
         return HTMLResponse(
             content=f"""
             <html>
                 <head><title>Admin Dashboard Error</title></head>
                 <body>
                     <h1>Error Loading Admin Dashboard</h1>
-                    <p>Error: {str(e)}</p>
+                    <p>Error: {error_details}</p>
+                    <pre>{traceback.format_exc()}</pre>
                     <p><a href="/auth/login">Return to login</a></p>
                 </body>
             </html>
@@ -170,31 +183,11 @@ async def get_admin_products(
         from app.models.product import Product
         products = await Product.find_all().to_list()
         
-        # Convert products to dict to ensure proper serialization of variants
-        serialized_products = []
-        for product in products:
-            # Convert the Product object to a dictionary
-            try:
-                product_dict = dict(product)
-            except TypeError:
-                # If direct dict conversion fails, try to get the model_dump method
-                product_dict = product.model_dump() if hasattr(product, 'model_dump') else product.dict()
-            
-            # Ensure variants are properly serialized
-            if product_dict.get('variants'):
-                serialized_variants = {}
-                for variant_type, variant_list in product_dict['variants'].items():
-                    # Convert each variant value to a dictionary if it's not already one
-                    serialized_variants[variant_type] = [
-                        dict(v) if not isinstance(v, dict) else v 
-                        for v in variant_list
-                    ]
-                product_dict['variants'] = serialized_variants
-            serialized_products.append(product_dict)
+        # Convert products to serializable dict with datetime handling
+        serialized_products = [to_serializable_dict(product) for product in products]
             
         return JSONResponse(content=serialized_products)
     except Exception as e:
-        logger.error(f"Error fetching admin products: {e}")
         return JSONResponse(
             status_code=500,
             content={"detail": f"Failed to fetch products: {str(e)}"}
@@ -229,7 +222,7 @@ async def set_product_discount(
                 content={"detail": "Discount price must be less than original price"}
             )
             
-        discount_percentage = round(100 - (discount_price / original_price * 100))
+        discount_percentage = round(100 - (discount_price / original_price * 100), 2)
         
         # Find the product
         from app.models.product import Product
@@ -240,8 +233,6 @@ async def set_product_discount(
                 content={"detail": "Product not found"}
             )
         
-        logger.info(f"Setting discount for product {product_id}: {discount_percentage}%")
-        
         # Update product with discount
         product.old_price = int(original_price)
         product.discount_percentage = discount_percentage
@@ -251,17 +242,19 @@ async def set_product_discount(
         # Save the updated product
         await product.save()
         
-        return JSONResponse(
-            content={
-                "success": True,
-                "message": f"Discount of {discount_percentage}% applied successfully",
-                "product_id": product_id,
-                "discount_percentage": discount_percentage,
-                "new_price": discount_price
-            }
-        )
+        # Convert to serializable format for response
+        response_data = {
+            "success": True,
+            "message": f"Discount of {discount_percentage}% applied successfully",
+            "product_id": product_id,
+            "discount_percentage": discount_percentage,
+            "new_price": discount_price,
+            "discount_start_date": product.discount_start_date.isoformat(),
+            "discount_end_date": product.discount_end_date.isoformat()
+        }
+        
+        return JSONResponse(content=response_data)
     except Exception as e:
-        logger.error(f"Error setting product discount: {e}")
         return JSONResponse(
             status_code=500,
             content={"detail": f"Failed to set discount: {str(e)}"}
@@ -296,7 +289,7 @@ async def set_variant_discount(
                 content={"detail": "Discount price must be less than original price"}
             )
             
-        discount_percentage = round(100 - (discount_price / original_price * 100))
+        discount_percentage = round(100 - (discount_price / original_price * 100), 2)
         
         # Find product with the variant
         from app.models.product import Product
@@ -332,8 +325,6 @@ async def set_variant_discount(
                 content={"detail": "Variant not found"}
             )
         
-        logger.info(f"Setting discount for variant {variant_id} of product {target_product.id}: {discount_percentage}%")
-        
         # Update variant with discount info
         target_variant.discount_percentage = discount_percentage
         target_variant.discount_start_date = datetime.now()
@@ -342,18 +333,20 @@ async def set_variant_discount(
         # Save the updated product
         await target_product.save()
         
-        return JSONResponse(
-            content={
-                "success": True,
-                "message": f"Discount of {discount_percentage}% applied successfully to {variant_type}: {target_variant.value}",
-                "product_id": target_product.id,
-                "variant_id": variant_id,
-                "discount_percentage": discount_percentage,
-                "new_price": discount_price
-            }
-        )
+        # Convert dates to ISO format for response
+        response_data = {
+            "success": True,
+            "message": f"Discount of {discount_percentage}% applied successfully to {variant_type}: {target_variant.value}",
+            "product_id": target_product.id,
+            "variant_id": variant_id,
+            "discount_percentage": discount_percentage,
+            "new_price": discount_price,
+            "discount_start_date": target_variant.discount_start_date.isoformat(),
+            "discount_end_date": target_variant.discount_end_date.isoformat()
+        }
+        
+        return JSONResponse(content=response_data)
     except Exception as e:
-        logger.error(f"Error setting variant discount: {e}")
         return JSONResponse(
             status_code=500,
             content={"detail": f"Failed to set discount: {str(e)}"}
@@ -369,14 +362,17 @@ async def debug_discount(
     form_data = await request.form()
     form_dict = {key: form_data[key] for key in form_data}
     
-    return JSONResponse({
+    # Convert form_data to serializable format
+    response_data = {
         "success": True,
         "message": "Debug information received",
         "form_data": form_dict,
         "body_data": data,
         "headers": dict(request.headers),
         "method": request.method
-    })
+    }
+    
+    return JSONResponse(content=response_data)
 
 @router.post("/api/admin/debug/form")
 async def debug_form(
@@ -387,13 +383,16 @@ async def debug_form(
     form_data = await request.form()
     form_dict = {key: form_data[key] for key in form_data}
     
-    return JSONResponse({
+    # Convert form_data to serializable format
+    response_data = {
         "success": True,
         "message": "Form data received",
         "form_data": form_dict,
         "headers": dict(request.headers),
         "method": request.method
-    })
+    }
+    
+    return JSONResponse(content=response_data)
 
 @router.get("/api/admin/debug/product/{product_id}")
 async def debug_product(
@@ -413,58 +412,12 @@ async def debug_product(
                 content={"detail": "Product not found"}
             )
         
-        # Log details for debugging
-        logger.info(f"Found product: {product.id} - {product.name}")
-        
-        # Try to get variants
-        variants_info = {}
-        
-        if hasattr(product, 'variants') and product.variants:
-            logger.info(f"Product has variants of types: {list(product.variants.keys())}")
-            
-            # Track variant details for each type
-            for vtype, variants in product.variants.items():
-                variants_info[vtype] = []
-                for i, variant in enumerate(variants):
-                    # Extract key information
-                    variant_data = {
-                        "index": i,
-                        "id": getattr(variant, 'id', None),
-                        "value": getattr(variant, 'value', None),
-                        "price": getattr(variant, 'price', None),
-                    }
-                    variants_info[vtype].append(variant_data)
-                    logger.info(f"Variant {i} of type {vtype}: {variant_data}")
-        else:
-            logger.info("Product has no variants")
-        
-        # Try to convert to dictionary
-        try:
-            product_dict = product.dict()
-            logger.info("Successfully converted product to dict")
-        except Exception as e:
-            logger.error(f"Error converting product to dict: {e}")
-            try:
-                product_dict = product.model_dump() if hasattr(product, 'model_dump') else {}
-                logger.info("Successfully converted product using model_dump")
-            except Exception as e:
-                logger.error(f"Error converting product using model_dump: {e}")
-                product_dict = {"id": product.id, "name": product.name}
+        # Convert product to serializable dict
+        product_dict = to_serializable_dict(product)
         
         # Return a detailed response
-        return JSONResponse(
-            content={
-                "product_id": product.id,
-                "product_name": product.name,
-                "has_variants": bool(variants_info),
-                "variant_types": list(variants_info.keys()) if variants_info else [],
-                "variant_counts": {vtype: len(variants) for vtype, variants in variants_info.items()} if variants_info else {},
-                "variants_info": variants_info,
-                "raw_product": product_dict
-            }
-        )
+        return JSONResponse(content=product_dict)
     except Exception as e:
-        logger.error(f"Error in debug_product: {e}")
         return JSONResponse(
             status_code=500,
             content={"detail": f"Error: {str(e)}"}
@@ -476,11 +429,10 @@ async def debug_product_variants(
     request: Request,
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Debug endpoint to get product variants in different formats"""
+    """API endpoint to debug a product's variants"""
     try:
-        from app.models.product import Product
-        
         # Find the product
+        from app.models.product import Product
         product = await Product.find_one({"id": product_id})
         if not product:
             return JSONResponse(
@@ -488,79 +440,27 @@ async def debug_product_variants(
                 content={"detail": "Product not found"}
             )
         
-        # Log details for debugging
-        logger.info(f"Debug variants for product: {product.id} - {product.name}")
-        
-        # Check if product has variants
-        if not hasattr(product, 'variants') or not product.variants:
-            return JSONResponse(
-                content={
-                    "message": "Product has no variants",
-                    "product_id": product_id,
-                    "product_name": product.name,
-                    "variants": {}
-                }
-            )
-        
-        # Try to extract variants in different formats
-        variants_by_type = {}  # Original structure
-        variants_flat = []     # Flattened array
-        
-        for variant_type, variant_values in product.variants.items():
-            variants_by_type[variant_type] = []
-            
-            for variant in variant_values:
-                # Try to convert to dict using different methods
-                try:
-                    if hasattr(variant, 'dict'):
-                        variant_dict = variant.dict()
-                    elif hasattr(variant, 'model_dump'):
-                        variant_dict = variant.model_dump()
-                    else:
-                        variant_dict = {k: v for k, v in variant.__dict__.items() if not k.startswith('_')}
-                        
-                    # Make sure id and value are present
-                    variant_dict['id'] = getattr(variant, 'id', None)
-                    variant_dict['value'] = getattr(variant, 'value', None)
-                    variant_dict['price'] = getattr(variant, 'price', 0)
-                    
-                    # Add to both structures
-                    variants_by_type[variant_type].append(variant_dict)
-                    
-                    # Add type to flat version
-                    flat_variant = dict(variant_dict)
-                    flat_variant['type'] = variant_type
-                    variants_flat.append(flat_variant)
-                    
-                except Exception as e:
-                    logger.error(f"Error serializing variant: {e}")
-                    # Add a minimal version
-                    minimal_variant = {
-                        "id": getattr(variant, 'id', str(uuid4())),
-                        "value": getattr(variant, 'value', "Unknown"),
-                        "price": getattr(variant, 'price', 0),
-                        "type": variant_type
+        # Try to get variants
+        variants_info = {}
+        if hasattr(product, 'variants') and product.variants:
+            for vtype, variants in product.variants.items():
+                variants_info[vtype] = []
+                for i, variant in enumerate(variants):
+                    variant_data = {
+                        "index": i,
+                        "id": variant.get("id", f"unknown_{i}"),
+                        "value": variant.get("value", "Unknown"),
+                        "price": variant.get("price", 0)
                     }
-                    variants_by_type[variant_type].append(minimal_variant)
-                    variants_flat.append(minimal_variant)
+                    variants_info[vtype].append(variant_data)
+        else:
+            variants_info = {"message": "Product has no variants"}
         
-        return JSONResponse(
-            content={
-                "message": "Variants debug information",
-                "product_id": product_id,
-                "product_name": product.name,
-                "has_variants": True,
-                "variant_types": list(variants_by_type.keys()),
-                "variant_counts": {vtype: len(variants) for vtype, variants in variants_by_type.items()},
-                "variants_by_type": variants_by_type,
-                "variants_flat": variants_flat
-            }
-        )
+        return JSONResponse(content=variants_info)
     except Exception as e:
-        logger.error(f"Error in debug_product_variants: {e}")
         return JSONResponse(
             status_code=500,
-            content={"detail": f"Error: {str(e)}"}
+            content={"detail": f"Failed to get variant information: {str(e)}"}
         )
 
 @router.get("/variant-test", response_class=HTMLResponse)
@@ -571,7 +471,7 @@ async def variant_test_page(
     """Page to test variant loading functionality"""
     return templates.TemplateResponse(
         "dashboard/variant-test.html",
-        {"request": request, "user": current_user}
+        {"request": request, "user": to_serializable_dict(current_user)}
     )
 
 @router.get("/api/debug/find")
@@ -597,6 +497,8 @@ async def debug_find_product(
         # Method 1: Direct id lookup
         doc1 = await collection.find_one({"id": id})
         if doc1:
+            # Convert _id to string for serialization
+            doc1["_id"] = str(doc1["_id"])
             results["results"].append({
                 "method": "Direct id lookup",
                 "found": True,
@@ -613,6 +515,8 @@ async def debug_find_product(
         if ObjectId.is_valid(id):
             doc2 = await collection.find_one({"_id": ObjectId(id)})
             if doc2:
+                # Convert _id to string for serialization
+                doc2["_id"] = str(doc2["_id"])
                 results["results"].append({
                     "method": "ObjectId lookup",
                     "found": True,
@@ -628,6 +532,8 @@ async def debug_find_product(
         # Method 3: Case insensitive lookup
         doc3 = await collection.find_one({"id": {"$regex": f"^{id}$", "$options": "i"}})
         if doc3:
+            # Convert _id to string for serialization
+            doc3["_id"] = str(doc3["_id"])
             results["results"].append({
                 "method": "Case insensitive lookup",
                 "found": True,
@@ -653,8 +559,6 @@ async def debug_find_product(
         
         return JSONResponse(content=results)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return JSONResponse(
             content={"error": str(e)},
             status_code=500
@@ -702,12 +606,15 @@ async def debug_fix_product(
                 }
             )
         
-        # Store original for comparison
+        # Store original for comparison (convert ObjectId to string)
+        original_doc = dict(product_doc)
+        original_doc["_id"] = str(original_doc["_id"])
+        
         results["original"] = {
-            "id": product_doc.get("id"),
-            "_id": str(product_doc.get("_id")),
-            "name": product_doc.get("name"),
-            "has_variants": "variants" in product_doc and bool(product_doc["variants"])
+            "id": original_doc.get("id"),
+            "_id": original_doc.get("_id"),
+            "name": original_doc.get("name"),
+            "has_variants": "variants" in original_doc and bool(original_doc["variants"])
         }
         
         # Step 2: Analyze variants and fix if needed
@@ -737,6 +644,12 @@ async def debug_fix_product(
                         fixed_variant["id"] = str(fixed_variant["id"])
                         results["actions"].append(f"Converted variant ID to string: {variant_type} - {fixed_variant.get('value', 'unknown')}")
                     
+                    # Convert any datetime objects to strings
+                    for key, value in fixed_variant.items():
+                        if isinstance(value, datetime):
+                            fixed_variant[key] = value.isoformat()
+                            results["actions"].append(f"Converted datetime field {key} to ISO format string")
+                    
                     fixed_variants[variant_type].append(fixed_variant)
             
             # Replace variants with fixed version
@@ -764,9 +677,12 @@ async def debug_fix_product(
         updated_doc = await collection.find_one({"_id": product_doc["_id"]})
         
         if updated_doc:
+            # Convert _id to string for JSON serialization
+            updated_doc["_id"] = str(updated_doc["_id"])
+            
             results["fixed"] = {
                 "id": updated_doc.get("id"),
-                "_id": str(updated_doc.get("_id")),
+                "_id": updated_doc.get("_id"),
                 "name": updated_doc.get("name"),
                 "has_variants": "variants" in updated_doc and bool(updated_doc["variants"])
             }
@@ -788,9 +704,79 @@ async def debug_fix_product(
         
         return JSONResponse(content=results)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return JSONResponse(
             content={"error": str(e)},
             status_code=500
+        )
+
+@router.get("/api/admin/stats/monthly-sales")
+async def get_monthly_sales(
+    year: int = None,
+    request: Request = None,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Get monthly sales data for the current year"""
+    try:
+        from app.models.order import Order
+        
+        # Default to current year if not specified
+        if not year:
+            year = datetime.now().year
+            
+        # Create date ranges for each month
+        monthly_data = []
+        for month in range(1, 13):
+            month_start = datetime(year, month, 1)
+            # Calculate end of month (start of next month - 1 day)
+            if month == 12:
+                month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
+            else:
+                month_end = datetime(year, month + 1, 1) - timedelta(days=1)
+            
+            # Set times to start and end of day
+            month_start = datetime.combine(month_start, datetime.min.time())
+            month_end = datetime.combine(month_end, datetime.max.time())
+            
+            # Query completed orders for this month
+            pipeline = [
+                {
+                    "$match": {
+                        "created_at": {"$gte": month_start, "$lte": month_end},
+                        "status": {"$in": [OrderStatus.COMPLETED.value, OrderStatus.DELIVERING.value]}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": None,
+                        "total": {"$sum": "$total_amount"},
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            monthly_result = await Order.aggregate(pipeline).to_list()
+            
+            # Handle case where there are no orders for the month
+            total = 0
+            count = 0
+            if monthly_result and len(monthly_result) > 0:
+                result_item = monthly_result[0]
+                if "total" in result_item:
+                    total = result_item["total"]
+                if "count" in result_item:
+                    count = result_item["count"]
+            
+            # Add month data to results
+            monthly_data.append({
+                "month": month,
+                "month_name": datetime(2000, month, 1).strftime("%b"),  # Jan, Feb, etc.
+                "sales": total,
+                "orders": count
+            })
+        
+        return JSONResponse(content=monthly_data)
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Failed to get monthly sales: {str(e)}"}
         )

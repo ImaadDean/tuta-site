@@ -131,11 +131,11 @@ async def update_scent(
         # Update basic fields
         scent.name = name
         scent.description = description
-        scent.banner_id = banner_id
+        scent.banner_id = banner_id if banner_id else None  # Ensure None is stored if empty string
         scent.is_active = is_active
 
         # Handle image upload if new image is provided
-        if image:
+        if image and image.filename:  # Check if image has a filename
             # Delete old image if exists
             if scent.image_url:
                 delete_image(scent.image_url)

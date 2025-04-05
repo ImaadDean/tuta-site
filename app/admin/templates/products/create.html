@@ -163,19 +163,14 @@ block extra_css %}
         </p>
       </div>
 
-      <div class="mt-4">
-        <label
-          for="long_description"
-          class="block mb-2 text-sm font-medium text-gray-900 required-field"
-          >Full Description</label
-        >
-        <textarea
-          id="long_description"
-          name="long_description"
-          rows="4"
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          required
-        ></textarea>
+      <div class="mb-6">
+        <label for="long_description" class="block text-sm font-medium text-gray-700">Long Description</label>
+        <textarea id="long_description" name="long_description" rows="5"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+        <p class="mt-1 text-xs text-gray-500">
+          Full product description, can include HTML formatting.
+        </p>
+        <input type="hidden" id="price" name="price" value="0" />
       </div>
     </div>
 
@@ -200,56 +195,25 @@ block extra_css %}
 
         <div id="scentSelection" class="hidden">
           <label
-            for="scent_id"
+            for="scent_ids"
             class="block mb-2 text-sm font-medium text-gray-900"
-            >Scent</label
+            >Scents</label
           >
           <select
-            id="scent_id"
-            name="scent_id"
+            id="scent_ids"
+            name="scent_ids"
+            multiple
             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            size="5"
           >
-            <option value="">Select a scent (optional)</option>
             {% for scent in scents %}
             <option value="{{ scent.id }}">{{ scent.name }}</option>
             {% endfor %}
           </select>
+          <p class="mt-1 text-sm text-gray-500">
+            Hold Ctrl/Cmd to select multiple scents
+          </p>
         </div>
-      </div>
-    </div>
-
-    <!-- Pricing -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Pricing
-      </h2>
-
-      <div>
-        <p class="text-sm text-gray-600 mb-4">
-          The product price will be automatically set to the highest variant
-          price. Add variants below.
-        </p>
-        <input type="hidden" id="price" name="price" value="0" />
-      </div>
-
-      <div class="mb-4">
-        <label for="price" class="block text-sm font-medium text-gray-700">Price (in cents)</label>
-        <input type="number" name="price" id="price" required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-      </div>
-
-      <div class="mb-4">
-        <label for="stock" class="block text-sm font-medium text-gray-700">Stock</label>
-        <input
-          type="number"
-          id="stock_quantity"
-          name="stock_quantity"
-          min="0"
-          step="1"
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          value="0"
-          required
-        />
       </div>
     </div>
 
@@ -321,13 +285,17 @@ block extra_css %}
         <select
           id="category_ids"
           name="category_ids"
+          multiple
           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          size="5"
         >
-          <option value="">Select a category</option>
           {% for category in categories %}
           <option value="{{ category.id }}">{{ category.name }}</option>
           {% endfor %}
         </select>
+        <p class="mt-1 text-sm text-gray-500">
+          Hold Ctrl/Cmd to select multiple categories
+        </p>
       </div>
 
       <div class="mb-4">
@@ -439,15 +407,18 @@ block extra_css %}
     // Perfume checkbox functionality
     const isPerfumeCheckbox = document.getElementById("is_perfume");
     const scentSelection = document.getElementById("scentSelection");
-    const scentSelect = document.getElementById("scent_id");
+    const scentSelect = document.getElementById("scent_ids");
 
     isPerfumeCheckbox.addEventListener("change", function() {
       if (this.checked) {
         scentSelection.classList.remove("hidden");
-        scentSelect.required = true;
       } else {
         scentSelection.classList.add("hidden");
-        scentSelect.required = false;
+        // Clear the scent selections when perfume checkbox is unchecked
+        const options = scentSelect.options;
+        for (let i = 0; i < options.length; i++) {
+          options[i].selected = false;
+        }
       }
     });
 
@@ -559,11 +530,10 @@ block extra_css %}
     let variantCount = 0;
 
     function updateProductPrice() {
-      // Find the highest variant price
+      // Since we're storing prices in variants, we don't need a separate base price field anymore.
+      // Just keeping a hidden field with a default value for backward compatibility with the form.
+      const variantPriceInputs = document.querySelectorAll(".variant-price");
       let highestPrice = 0;
-      const variantPriceInputs = document.querySelectorAll(
-        'input[name="variant_prices"]'
-      );
 
       variantPriceInputs.forEach((input) => {
         const price = parseFloat(input.value) || 0;
@@ -572,8 +542,8 @@ block extra_css %}
         }
       });
 
-      // Update the hidden price input
-      document.getElementById("price").value = highestPrice;
+      // Update the hidden price input with a value of 0 - the actual prices are in variants
+      document.getElementById("price").value = 0;
     }
 
     addVariantBtn.addEventListener("click", function () {
@@ -635,13 +605,6 @@ block extra_css %}
       if (imageInput.files.length === 0) {
         e.preventDefault();
         alert("Please select at least one product image");
-        return false;
-      }
-
-      // Check if scent is selected for perfume products
-      if (isPerfumeCheckbox.checked && !scentSelect.value) {
-        e.preventDefault();
-        alert("Please select a scent for perfume products");
         return false;
       }
 

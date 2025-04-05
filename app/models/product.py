@@ -5,13 +5,33 @@ from beanie import Document, Link, Indexed
 from pydantic import Field, BaseModel, validator
 from app.models.scent import Scent
 
+class DiscountActivity(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    discount_percentage: float
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    quantity_limit: Optional[int] = None
+    items_sold: int = 0
+    created_at: datetime = Field(default_factory=datetime.now)
+    is_active: bool = True
+
 class VariantValue(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     value: str
-    price: int
-    discount_percentage: Optional[int] = None
+    price: int  # Main price for this variant
+    discount_percentage: Optional[float] = None
     discount_start_date: Optional[datetime] = None
     discount_end_date: Optional[datetime] = None
+    discount_quantity_limit: Optional[int] = None
+    discount_quantity_used: Optional[int] = None
+    discount_activity: List[DiscountActivity] = []
+
+    @validator('discount_percentage')
+    def validate_discount_percentage(cls, v):
+        if v is not None:
+            # Round to 2 decimal places and limit to 2 decimal places
+            v = round(v, 2)
+        return v
 
     class Config:
         json_encoders = {
@@ -30,12 +50,34 @@ class VariantValue(BaseModel):
                 # Manually create a dictionary with the object's attributes
                 d = {}
                 for attr in ['id', 'value', 'price', 'discount_percentage', 
-                             'discount_start_date', 'discount_end_date']:
+                             'discount_start_date', 'discount_end_date',
+                             'discount_quantity_limit', 'discount_quantity_used',
+                             'discount_activity']:
                     if hasattr(self, attr):
                         value = getattr(self, attr)
                         # Handle MongoDB numbers
                         if isinstance(value, dict) and '$numberInt' in value:
                             value = int(value['$numberInt'])
+                        elif isinstance(value, dict) and '$numberDouble' in value:
+                            value = float(value['$numberDouble'])
+                        # Handle discount_activity list
+                        elif attr == 'discount_activity' and isinstance(value, list):
+                            # Serialize each DiscountActivity object
+                            serialized_activities = []
+                            for activity in value:
+                                if hasattr(activity, 'dict'):
+                                    activity_dict = activity.dict()
+                                    # Convert datetime objects
+                                    if 'start_date' in activity_dict and isinstance(activity_dict['start_date'], datetime):
+                                        activity_dict['start_date'] = activity_dict['start_date'].isoformat()
+                                    if 'end_date' in activity_dict and isinstance(activity_dict['end_date'], datetime):
+                                        activity_dict['end_date'] = activity_dict['end_date'].isoformat()
+                                    if 'created_at' in activity_dict and isinstance(activity_dict['created_at'], datetime):
+                                        activity_dict['created_at'] = activity_dict['created_at'].isoformat()
+                                    serialized_activities.append(activity_dict)
+                                elif isinstance(activity, dict):
+                                    serialized_activities.append(activity)
+                            value = serialized_activities
                         d[attr] = value
         
         # Convert datetime objects to ISO format strings
@@ -68,8 +110,11 @@ class VariantValue(BaseModel):
             d['price'] = int(d['price']['$numberInt'])
             
         # Handle MongoDB discount_percentage format if needed
-        if isinstance(d.get('discount_percentage'), dict) and '$numberInt' in d['discount_percentage']:
-            d['discount_percentage'] = int(d['discount_percentage']['$numberInt'])
+        if isinstance(d.get('discount_percentage'), dict):
+            if '$numberInt' in d['discount_percentage']:
+                d['discount_percentage'] = int(d['discount_percentage']['$numberInt'])
+            elif '$numberDouble' in d['discount_percentage']:
+                d['discount_percentage'] = float(d['discount_percentage']['$numberDouble'])
             
         return d
 
@@ -81,7 +126,7 @@ class Product(Document):
     name: str = Indexed()  # Correctly indexed field
     short_description: Optional[str] = None
     long_description: Optional[str] = None
-    price: int
+    # Removed price field - now using variant pricing only
     stock: int = 0
     in_stock: bool = False
     image_urls: List[str] = []
@@ -125,7 +170,6 @@ class Product(Document):
                 "name": "Premium Perfume",
                 "short_description": "Luxury fragrance with floral notes",
                 "long_description": "Detailed description of the perfume's scent profile...",
-                "price": 99999,
                 "stock": 100,
                 "in_stock": True,
                 "image_urls": ["https://example.com/images/perfume1.jpg", "https://example.com/images/perfume2.jpg"],
@@ -208,36 +252,52 @@ class Product(Document):
             return None
         return await Scent.find({"id": {"$in": self.scent_ids}}).to_list()
     
+    # Method to get the minimum price across all variants
+    def get_base_price(self) -> int:
+        """Get the minimum price across all variants"""
+        if not self.variants:
+            return 0
+            
+        min_price = None
+        for variant_type, variant_list in self.variants.items():
+            for variant in variant_list:
+                variant_price = getattr(variant, 'price', 0)
+                if min_price is None or variant_price < min_price:
+                    min_price = variant_price
+        
+        return min_price if min_price is not None else 0
+    
     # Method to check if product is on sale
     def is_on_sale(self) -> bool:
-        """Check if the product is currently on sale"""
-        if not self.discount_percentage or self.discount_percentage <= 0:
+        """Check if any variant of the product is on sale"""
+        if not self.variants:
             return False
             
         now = datetime.now()
         
-        # If no date constraints, it's on sale
-        if not self.discount_start_date and not self.discount_end_date:
-            return True
-            
-        # Check start date if set
-        if self.discount_start_date and now < self.discount_start_date:
-            return False
-            
-        # Check end date if set
-        if self.discount_end_date and now > self.discount_end_date:
-            return False
-            
-        return True
-    
-    # Method to get current price (considering discounts)
-    def get_current_price(self) -> int:
-        """Get the current price after applying any active discounts"""
-        if not self.is_on_sale():
-            return self.price
-            
-        discounted = self.price * (1 - (self.discount_percentage / 100))
-        return round(discounted)
+        for variant_type, variant_list in self.variants.items():
+            for variant in variant_list:
+                discount = getattr(variant, 'discount_percentage', 0)
+                if discount and discount > 0:
+                    # Check dates if they exist
+                    start_date = getattr(variant, 'discount_start_date', None)
+                    end_date = getattr(variant, 'discount_end_date', None)
+                    
+                    # If no date constraints, it's on sale
+                    if not start_date and not end_date:
+                        return True
+                        
+                    # Check start date if set
+                    if start_date and now < start_date:
+                        continue
+                        
+                    # Check end date if set
+                    if end_date and now > end_date:
+                        continue
+                        
+                    return True
+                    
+        return False
 
     def dict(self, *args, **kwargs):
         """
@@ -301,20 +361,73 @@ class Product(Document):
                         elif isinstance(v, dict) and '$numberDouble' in v:
                             cleaned_variant[k] = float(v['$numberDouble'])
                         else:
-                            cleaned_variant[k] = v
+                            # Ensure discount_percentage is properly rounded if it's a float
+                            if k == 'discount_percentage' and isinstance(v, float):
+                                cleaned_variant[k] = round(v, 2)
+                            else:
+                                cleaned_variant[k] = v
                     
                     serialized_variants[variant_type].append(cleaned_variant)
             
             d['variants'] = serialized_variants
         
+        # Add calculated base price for convenience
+        d['base_price'] = self.get_base_price()
+        
         return d
+
+    # Method to update discount activity when items are sold
+    async def update_discount_activity(self, variant_id: str, quantity_sold: int):
+        """
+        Updates the discount activity record when items are sold
+        
+        Args:
+            variant_id: ID of the variant that was sold
+            quantity_sold: Number of items sold
+        
+        Returns:
+            True if updated successfully, False otherwise
+        """
+        try:
+            # Find the variant
+            for variant_type, variants in self.variants.items():
+                for i, variant in enumerate(variants):
+                    variant_id_str = str(variant.id) if hasattr(variant, 'id') else None
+                    if variant_id_str == variant_id:
+                        # Found the variant, update active discount activity if any
+                        if hasattr(variant, 'discount_activity'):
+                            for j, activity in enumerate(variant.discount_activity):
+                                if hasattr(activity, 'is_active') and activity.is_active:
+                                    # Update items sold
+                                    current_items_sold = getattr(activity, 'items_sold', 0)
+                                    self.variants[variant_type][i].discount_activity[j].items_sold = current_items_sold + quantity_sold
+                                    
+                                    # Update discount quantity used if limit is set
+                                    if hasattr(variant, 'discount_quantity_limit') and variant.discount_quantity_limit:
+                                        current_used = getattr(variant, 'discount_quantity_used', 0)
+                                        new_used = current_used + quantity_sold
+                                        self.variants[variant_type][i].discount_quantity_used = new_used
+                                        
+                                        # Check if limit reached and deactivate if so
+                                        if new_used >= variant.discount_quantity_limit:
+                                            print(f"Discount limit reached for variant {variant_id}, deactivating discount")
+                                            self.variants[variant_type][i].discount_percentage = None
+                                            self.variants[variant_type][i].discount_start_date = None
+                                            self.variants[variant_type][i].discount_end_date = None
+                                            self.variants[variant_type][i].discount_activity[j].is_active = False
+                                    
+                                    return True
+            
+            return False
+        except Exception as e:
+            print(f"Error updating discount activity: {str(e)}")
+            return False
 
 # Pydantic models for API
 class ProductBase(BaseModel):
     name: str
     short_description: Optional[str] = None
     long_description: Optional[str] = None
-    price: int
     stock: int = 0
     in_stock: bool = False
     tags: List[str] = []
@@ -335,7 +448,6 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     short_description: Optional[str] = None
     long_description: Optional[str] = None
-    price: Optional[int] = None
     stock: Optional[int] = None
     in_stock: Optional[bool] = None
     image_urls: Optional[List[str]] = None
@@ -363,19 +475,25 @@ class ProductResponse(ProductBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
-    current_price: int
+    # Calculate base price and current price based on variants
+    base_price: int
     
-    @validator('current_price', pre=True, always=True)
-    def calculate_current_price(cls, v, values):
-        """Calculate the current price based on discount"""
-        price = values.get('price', 0)
-        discount = values.get('discount_percentage', 0)
-        
-        if not discount or discount <= 0:
-            return price
+    @validator('base_price', pre=True, always=True)
+    def calculate_base_price(cls, v, values):
+        """Calculate the base price from variants"""
+        variants = values.get('variants', {})
+        if not variants:
+            return 0
             
-        # Calculate discount on integer price
-        return int(price * (1 - (discount / 100)))
+        prices = []
+        for variant_type, variant_list in variants.items():
+            for variant in variant_list:
+                if hasattr(variant, 'price'):
+                    prices.append(variant.price)
+                elif isinstance(variant, dict) and 'price' in variant:
+                    prices.append(variant['price'])
+        
+        return min(prices) if prices else 0
 
     class Config:
         from_attributes = True 

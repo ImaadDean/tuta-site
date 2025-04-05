@@ -14,6 +14,8 @@ from app.admin.collection import router as admin_collection_router
 from app.admin.brand import router as admin_brand_router
 from app.admin.scent import router as admin_scent_router
 from app.database import initialize_mongodb, close_mongodb_connection
+from app.jinja_filters import setup_jinja_filters
+from fastapi.templating import Jinja2Templates
 import logging
 from config import get_settings
 
@@ -22,6 +24,15 @@ logger = logging.getLogger(__name__)
 
 # Get settings
 settings = get_settings()
+
+# Monkey patch Jinja2Templates to include our custom filters
+original_init = Jinja2Templates.__init__
+
+def patched_init(self, *args, **kwargs):
+    original_init(self, *args, **kwargs)
+    setup_jinja_filters(self.env)
+
+Jinja2Templates.__init__ = patched_init
 
 def create_app():
     app = FastAPI(title="Perfumes & More")

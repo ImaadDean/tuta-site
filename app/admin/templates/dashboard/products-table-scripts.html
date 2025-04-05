@@ -668,75 +668,256 @@
     const currentPriceDisplay = document.getElementById("current-price-display");
     const discountCancel = document.getElementById("discount-cancel");
 
-    // Function to load variants for a product
+    // Load variants for a product
     function loadVariants(productId) {
       const variantsContainer = document.getElementById('variants-container');
-      const variantSelect = document.getElementById('variant-select');
+      const variantSelection = document.getElementById('variant-selection');
+      const productPriceDisplay = document.getElementById('current-price-display');
       
       // Show loading state
-      variantsContainer.innerHTML = '<div class="py-3 text-center text-gray-500"><svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading variants...</div>';
+      variantsContainer.innerHTML = `
+        <div class="py-3 text-center text-gray-500">
+          <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading variants...
+        </div>
+      `;
       
-      // First try to get variants from the API
+      // Hide variant selection area until a variant is selected
+      variantSelection.classList.add('hidden');
+      
+      // Fetch variants from API
       fetch(`/admin/products/${productId}/variants`)
         .then(response => {
           if (!response.ok) {
-            throw new Error(`Failed to load variants: ${response.status} ${response.statusText}`);
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
           }
           return response.json();
         })
         .then(data => {
-          console.log('Variants response:', data);
+          console.log('Loaded variants:', data);
           
-          // Clear loading state
-          variantsContainer.innerHTML = '';
-          
-          if (data.success && data.variants) {
-            // Process the variants
-            let hasVariants = false;
-            variantSelect.innerHTML = '<option value="">Select a variant</option>';
+          if (data.variants && Object.keys(data.variants).length > 0) {
+            // Clear variants container
+            variantsContainer.innerHTML = '';
             
-            for (const [type, variants] of Object.entries(data.variants)) {
+            // Track if we found any variants
+            let foundVariants = false;
+            
+            // Process each variant type
+            Object.keys(data.variants).forEach(variantType => {
+              const variants = data.variants[variantType];
+              
               if (variants && variants.length > 0) {
-                hasVariants = true;
-                // Add type header to the variants container
-                variantsContainer.innerHTML += `<div class="font-medium text-gray-700 mt-2 mb-1">${type}:</div>`;
+                foundVariants = true;
                 
-                // Add variants to the select dropdown and the container
-                let variantsList = '';
+                // Create section for this variant type
+                const variantTypeSection = document.createElement('div');
+                variantTypeSection.className = 'mb-3';
+                
+                // Add heading for variant type
+                const typeHeading = document.createElement('h5');
+                typeHeading.className = 'text-sm font-medium text-gray-700 mb-1';
+                typeHeading.textContent = variantType;
+                variantTypeSection.appendChild(typeHeading);
+                
+                // Create list of variants
+                const variantsList = document.createElement('div');
+                variantsList.className = 'space-y-2';
+                
+                // Add each variant as a radio button option
                 variants.forEach(variant => {
-                  if (variant.id && variant.value) {
-                    variantsList += `
-                      <div class="flex items-center justify-between p-2 border rounded mb-1">
-                        <span>${variant.value}</span>
-                        <span class="font-medium">${variant.price}</span>
+                  const variantId = variant.id;
+                  const variantValue = variant.value;
+                  const price = variant.price;
+                  const discountPercentage = variant.discount_percentage;
+                  
+                  const variantItem = document.createElement('div');
+                  variantItem.className = 'flex items-center p-2 rounded hover:bg-gray-100 variant-item';
+                  
+                  // Format prices for display
+                  const formattedPrice = price.toLocaleString();
+                  
+                  // Calculate discounted price if discount is applied
+                  let discountedPriceDisplay = '';
+                  if (discountPercentage) {
+                    const discountedPrice = Math.round(price * (1 - discountPercentage / 100));
+                    
+                    // Get additional discount details if available
+                    const startDate = variant.discount_start_date ? new Date(variant.discount_start_date) : null;
+                    const endDate = variant.discount_end_date ? new Date(variant.discount_end_date) : null;
+                    const quantityLimit = variant.discount_quantity_limit;
+                    const quantityUsed = variant.discount_quantity_used || 0;
+                    
+                    // Get discount activity information
+                    let totalSold = 0;
+                    let totalDiscounts = 0;
+                    let currentDiscount = null;
+                    
+                    if (variant.discount_activity && Array.isArray(variant.discount_activity)) {
+                      totalDiscounts = variant.discount_activity.length;
+                      variant.discount_activity.forEach(activity => {
+                        totalSold += activity.items_sold || 0;
+                        if (activity.is_active) {
+                          currentDiscount = activity;
+                        }
+                      });
+                    }
+                    
+                    // Format dates for display
+                    const startDateDisplay = startDate ? startDate.toLocaleDateString() : '';
+                    const endDateDisplay = endDate ? endDate.toLocaleDateString() : '';
+                    
+                    // Create discount info
+                    let discountInfo = `
+                      <div class="text-green-600 text-xs">
+                        <span class="line-through text-gray-500">UGX ${formattedPrice}</span>
+                        UGX ${discountedPrice.toLocaleString()} (${discountPercentage}% off)
+                    `;
+                    
+                    // Add date range info if available
+                    if (startDate && endDate) {
+                      discountInfo += `
+                        <div class="text-xs text-gray-500 mt-1">Valid: ${startDateDisplay} to ${endDateDisplay}</div>
+                      `;
+                    }
+                    
+                    // Add quantity limit info if available
+                    if (quantityLimit) {
+                      const remaining = quantityLimit - quantityUsed;
+                      const progressPercent = Math.round((quantityUsed / quantityLimit) * 100);
+                      
+                      discountInfo += `
+                        <div class="text-xs text-gray-500 mt-1">
+                          Limited: ${quantityUsed}/${quantityLimit} used (${remaining} remaining)
+                          <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div class="bg-green-600 h-1.5 rounded-full" style="width: ${progressPercent}%"></div>
+                          </div>
+                        </div>
+                      `;
+                    }
+                    
+                    // Add discount activity summary if there's history
+                    if (totalDiscounts > 0) {
+                      discountInfo += `
+                        <div class="text-xs text-gray-500 mt-1">
+                          <span class="text-indigo-500 font-medium">${totalSold}</span> items sold with discounts
+                          <a href="/admin/products/${productId}/discount-history" class="text-blue-500 hover:underline ml-1" target="_blank">
+                            View history (${totalDiscounts})
+                          </a>
+                        </div>
+                      `;
+                    }
+                    
+                    // Add remove button
+                    discountInfo += `
+                        <button type="button" class="remove-discount-btn ml-1 text-red-500 underline text-xs hover:text-red-700" data-variant-id="${variantId}">
+                          Remove
+                        </button>
                       </div>
                     `;
                     
-                    variantSelect.innerHTML += `
-                      <option value="${variant.id}" 
-                        data-price="${variant.price}" 
-                        data-type="${type}" 
-                        data-value="${variant.value}">
-                        ${type}: ${variant.value} - ${variant.price}
-                      </option>
-                    `;
+                    discountedPriceDisplay = discountInfo;
                   }
+                  
+                  // Create radio button with variant info
+                  variantItem.innerHTML = `
+                    <div class="flex items-center mr-4">
+                      <input type="radio" name="variant_radio" id="variant-${variantId}" 
+                        class="variant-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" 
+                        data-variant-id="${variantId}" 
+                        data-variant-type="${variantType}" 
+                        data-variant-value="${variantValue}"
+                        data-variant-price="${price}">
+                      <label for="variant-${variantId}" class="ml-2 block text-sm text-gray-900">
+                        ${variantValue}
+                      </label>
+                    </div>
+                    <div class="ml-auto text-right">
+                      ${discountPercentage ? discountedPriceDisplay : `<div>UGX ${formattedPrice}</div>`}
+                    </div>
+                  `;
+                  
+                  // Add active discount indicator if discounted
+                  if (discountPercentage) {
+                    variantItem.classList.add('bg-green-50', 'border', 'border-green-200');
+                  }
+                  
+                  // Add event listener to the variant item
+                  variantItem.addEventListener('click', function(e) {
+                    // Don't select the variant if clicking on the remove discount button or links
+                    if (e.target.classList.contains('remove-discount-btn') || 
+                        e.target.tagName.toLowerCase() === 'a') {
+                      return;
+                    }
+                    
+                    const radioInput = this.querySelector('.variant-radio');
+                    if (radioInput) {
+                      radioInput.checked = true;
+                      
+                      // Trigger change event manually
+                      const changeEvent = new Event('change');
+                      radioInput.dispatchEvent(changeEvent);
+                    }
+                  });
+                  
+                  variantsList.appendChild(variantItem);
                 });
                 
-                variantsContainer.innerHTML += variantsList;
+                variantTypeSection.appendChild(variantsList);
+                variantsContainer.appendChild(variantTypeSection);
               }
-            }
+            });
             
-            if (!hasVariants) {
-              variantsContainer.innerHTML = '<div class="text-gray-500 py-2">No variants available for this product</div>';
-              document.getElementById('variant-selection').classList.add('hidden');
+            if (!foundVariants) {
+              variantsContainer.innerHTML = `
+                <div class="py-3 text-center text-gray-500">
+                  No variants found for this product
+                </div>
+              `;
             } else {
-              document.getElementById('variant-selection').classList.remove('hidden');
+              // Add event listeners to radio buttons
+              const radioButtons = document.querySelectorAll('.variant-radio');
+              radioButtons.forEach(radio => {
+                radio.addEventListener('change', function() {
+                  // Update hidden fields
+                  const variantId = this.dataset.variantId;
+                  const price = parseInt(this.dataset.variantPrice);
+                  document.getElementById('selected-variant-id').value = variantId;
+                  document.getElementById('old-price').value = price;
+                  document.getElementById('current-price-display').textContent = price.toLocaleString();
+                  
+                  // Show the variant selection form
+                  variantSelection.classList.remove('hidden');
+                });
+              });
+              
+              // Add event listeners to remove discount buttons
+              const removeDiscountButtons = document.querySelectorAll('.remove-discount-btn');
+              removeDiscountButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation(); // Prevent radio button selection
+                  
+                  // Get variant ID
+                  const variantId = this.dataset.variantId;
+                  const productId = document.getElementById('discount-product-id').value;
+                  
+                  // Show confirmation before removing
+                  if (confirm('Are you sure you want to remove this discount?')) {
+                    removeDiscount(productId, variantId);
+                  }
+                });
+              });
             }
           } else {
-            // No variants found or error occurred
-            variantsContainer.innerHTML = '<div class="text-gray-500 py-2">No variants available for this product</div>';
-            document.getElementById('variant-selection').classList.add('hidden');
+            variantsContainer.innerHTML = `
+              <div class="py-3 text-center text-gray-500">
+                No variants found for this product
+              </div>
+            `;
           }
         })
         .catch(error => {
@@ -768,6 +949,16 @@
         // Reset form fields
         discountForm.reset();
         
+        // Reset variant selection area
+        document.getElementById('variant-selection').classList.add('hidden');
+        
+        // Reset date and quantity limit containers
+        document.getElementById('date-range-container').classList.add('hidden');
+        document.getElementById('quantity-limit-container').classList.add('hidden');
+        
+        // Set default dates
+        setDefaultDates();
+        
         // Show the modal
         discountModal.classList.remove("hidden");
         document.body.classList.add("overflow-hidden");
@@ -776,12 +967,72 @@
       });
     });
 
+    // Setup date range toggle
+    const enableDateRange = document.getElementById('enable-date-range');
+    const dateRangeContainer = document.getElementById('date-range-container');
+    
+    enableDateRange.addEventListener('change', function() {
+      if (this.checked) {
+        dateRangeContainer.classList.remove('hidden');
+        setDefaultDates();
+      } else {
+        dateRangeContainer.classList.add('hidden');
+      }
+    });
+    
+    // Setup quantity limit toggle
+    const enableQuantityLimit = document.getElementById('enable-quantity-limit');
+    const quantityLimitContainer = document.getElementById('quantity-limit-container');
+    
+    enableQuantityLimit.addEventListener('change', function() {
+      if (this.checked) {
+        quantityLimitContainer.classList.remove('hidden');
+      } else {
+        quantityLimitContainer.classList.add('hidden');
+      }
+    });
+    
+    // Set default dates for start/end date inputs
+    function setDefaultDates() {
+      const startDateInput = document.getElementById('discount-start-date');
+      const endDateInput = document.getElementById('discount-end-date');
+      
+      // Set start date to now (rounded to nearest 15 minutes)
+      const now = new Date();
+      now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
+      now.setSeconds(0);
+      now.setMilliseconds(0);
+      
+      // Set end date to 30 days from now
+      const end = new Date(now);
+      end.setDate(end.getDate() + 30);
+      
+      // Format dates for datetime-local input
+      startDateInput.value = formatDateForInput(now);
+      endDateInput.value = formatDateForInput(end);
+    }
+    
+    // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
+    function formatDateForInput(date) {
+      return date.getFullYear() + '-' + 
+             String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+             String(date.getDate()).padStart(2, '0') + 'T' + 
+             String(date.getHours()).padStart(2, '0') + ':' + 
+             String(date.getMinutes()).padStart(2, '0');
+    }
+
     // Close discount modal
     function closeDiscountModal() {
       discountModal.classList.add("hidden");
       document.body.classList.remove("overflow-hidden");
       // Reset form
       discountForm.reset();
+      // Reset variant selection area
+      document.getElementById('variant-selection').classList.add('hidden');
+      document.getElementById('selected-variant-id').value = '';
+      // Reset date and quantity limit containers
+      document.getElementById('date-range-container').classList.add('hidden');
+      document.getElementById('quantity-limit-container').classList.add('hidden');
     }
 
     discountCancel.addEventListener("click", closeDiscountModal);
@@ -792,7 +1043,7 @@
       e.preventDefault();
       
       const productId = document.getElementById('discount-product-id').value;
-      const variantId = document.getElementById('variant-select').value;
+      const variantId = document.getElementById('selected-variant-id').value;
       const oldPrice = document.getElementById('old-price').value;
       const newPrice = document.getElementById('new-price').value;
       
@@ -803,16 +1054,23 @@
         newPrice
       });
       
+      // Helper function for showing notifications since toastr isn't available
+      function showAlert(message, type) {
+        // Use the notification area to show messages
+        const notificationArea = document.getElementById('discount-notification-area') || createNotificationArea();
+        showNotification(notificationArea, type, message);
+      }
+      
       // Validate input values
       if (variantId) {
         // This is a variant discount
         if (!newPrice) {
-          toastr.error('Please enter a new discounted price');
+          showAlert('Please enter a new discounted price', 'error');
           return;
         }
         
         if (parseFloat(newPrice) >= parseFloat(oldPrice)) {
-          toastr.error('New price must be lower than the current price');
+          showAlert('New price must be lower than the current price', 'error');
           return;
         }
         
@@ -826,10 +1084,31 @@
         formData.append('old_price', oldPrice);
         formData.append('discount_price', newPrice);
         
+        // Add date range if enabled
+        if (document.getElementById('enable-date-range').checked) {
+          const startDate = document.getElementById('discount-start-date').value;
+          const endDate = document.getElementById('discount-end-date').value;
+          
+          if (startDate) formData.append('start_date', startDate);
+          if (endDate) formData.append('end_date', endDate);
+        }
+        
+        // Add quantity limit if enabled
+        if (document.getElementById('enable-quantity-limit').checked) {
+          const quantityLimit = document.getElementById('discount-quantity-limit').value;
+          if (quantityLimit && parseInt(quantityLimit) > 0) {
+            formData.append('quantity_limit', quantityLimit);
+          }
+        }
+        
         // Determine the correct URL based on whether this is a main product or variant
         const apiUrl = `/admin/products/${productId}/variants/${variantId}/discount`;
         
         console.log(`Submitting discount to: ${apiUrl}`, { oldPrice, newPrice });
+        
+        // Clear previous notifications
+        const notificationArea = document.getElementById('discount-notification-area') || createNotificationArea();
+        notificationArea.innerHTML = '';
         
         // Send the request
         fetch(apiUrl, {
@@ -841,23 +1120,35 @@
           console.log('Discount response:', data);
           
           if (data.success) {
-            // Show success message
-            toastr.success(data.message || 'Discount applied successfully');
+            // Show success message in the form
+            showNotification(notificationArea, 'success', data.message || 'Discount applied successfully');
             
-            // Close the modal and reset form
-            document.getElementById('discount-modal').classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
+            // Show toast notification
+            showAlert(data.message || 'Discount applied successfully', 'success');
             
-            // Reload products table to reflect updated prices
-            loadProductsTable();
+            // Clear the discount price field to prevent accidental resubmission
+            document.getElementById('new-price').value = '';
+            
+            // Reset variant selection and reload variants to show updated discount
+            document.getElementById('variant-selection').classList.add('hidden');
+            document.getElementById('selected-variant-id').value = '';
+            loadVariants(productId);
           } else {
-            // Show error message
-            toastr.error(data.detail || 'Failed to apply discount');
+            // Show error message in the form
+            showNotification(notificationArea, 'error', data.detail || 'Failed to apply discount');
+            
+            // Show alert notification
+            showAlert(data.detail || 'Failed to apply discount', 'error');
           }
         })
         .catch(error => {
           console.error('Error applying discount:', error);
-          toastr.error('Error applying discount: ' + error.message);
+          
+          // Show error in form
+          showNotification(notificationArea, 'error', 'Error applying discount: ' + error.message);
+          
+          // Show alert notification
+          showAlert('Error applying discount: ' + error.message, 'error');
         })
         .finally(() => {
           // Reset button state
@@ -865,9 +1156,135 @@
           submitBtn.innerHTML = 'Apply Discount';
         });
       } else {
-        toastr.error('Please select a variant');
+        // Show error in form
+        const notificationArea = document.getElementById('discount-notification-area') || createNotificationArea();
+        showNotification(notificationArea, 'error', 'Please select a variant');
+        
+        showAlert('Please select a variant', 'error');
       }
     });
+    
+    // Helper function to create notification area in the form
+    function createNotificationArea() {
+      const form = document.getElementById('discount-form');
+      
+      // Create notification area at the top of the form
+      const notificationArea = document.createElement('div');
+      notificationArea.id = 'discount-notification-area';
+      notificationArea.className = 'mb-4';
+      
+      // Insert at the beginning of the form
+      const formFirstChild = form.firstChild;
+      form.insertBefore(notificationArea, formFirstChild);
+      
+      return notificationArea;
+    }
+    
+    // Helper function to show notifications in the form
+    function showNotification(container, type, message) {
+      let bgColor, iconSvg;
+      
+      // Define styles based on type
+      switch(type) {
+        case 'success':
+          bgColor = 'bg-green-50 border-green-400 text-green-700';
+          iconSvg = '<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>';
+          break;
+        case 'error':
+          bgColor = 'bg-red-50 border-red-400 text-red-700';
+          iconSvg = '<svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
+          break;
+        case 'info':
+          bgColor = 'bg-blue-50 border-blue-400 text-blue-700';
+          iconSvg = '<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>';
+          break;
+        default:
+          bgColor = 'bg-gray-50 border-gray-400 text-gray-700';
+          iconSvg = '<svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>';
+      }
+      
+      // Generate the notification HTML
+      container.innerHTML = `
+        <div class="rounded-md p-4 ${bgColor} border">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              ${iconSvg}
+            </div>
+            <div class="ml-3 flex-grow">
+              <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-auto pl-3">
+              <div class="-mx-1.5 -my-1.5">
+                <button type="button" class="notification-close inline-flex rounded-md p-1.5 ${type === 'success' ? 'text-green-500 hover:bg-green-100' : type === 'error' ? 'text-red-500 hover:bg-red-100' : 'text-blue-500 hover:bg-blue-100'} focus:outline-none">
+                  <span class="sr-only">Dismiss</span>
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Add event listener to close button
+      const closeButton = container.querySelector('.notification-close');
+      if (closeButton) {
+        closeButton.addEventListener('click', function() {
+          container.innerHTML = '';
+        });
+      }
+      
+      // Auto-hide success notifications after 20 seconds (much longer)
+      if (type === 'success') {
+        setTimeout(() => {
+          if (container.innerHTML !== '') {
+            container.innerHTML = '';
+          }
+        }, 20000);
+      }
+    }
+
+    // Function to remove a discount from a variant
+    function removeDiscount(productId, variantId) {
+      const notificationArea = document.getElementById('discount-notification-area') || createNotificationArea();
+      notificationArea.innerHTML = '';
+      
+      // Show loading notification
+      showNotification(notificationArea, 'info', 'Removing discount...');
+      
+      // Create the request
+      const formData = new FormData();
+      formData.append('remove_discount', 'true');
+      
+      // API endpoint to remove discount
+      const apiUrl = `/admin/products/${productId}/variants/${variantId}/remove-discount`;
+      
+      // Send the request
+      fetch(apiUrl, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Remove discount response:', data);
+        
+        if (data.success) {
+          // Show success message
+          showNotification(notificationArea, 'success', data.message || 'Discount removed successfully');
+          
+          // Reload variants to update UI
+          loadVariants(productId);
+        } else {
+          // Show error message
+          showNotification(notificationArea, 'error', data.detail || 'Failed to remove discount');
+        }
+      })
+      .catch(error => {
+        console.error('Error removing discount:', error);
+        showNotification(notificationArea, 'error', 'Error removing discount: ' + error.message);
+      });
+    }
 
     // Function to load the products table
     async function loadProductsTable() {
@@ -1016,7 +1433,7 @@
               </div>
             </td>
             <td class="px-6 py-4 text-sm text-gray-900">
-              <span class="font-medium">UGX ${product.price || 0}</span>
+              <span class="font-medium">UGX ${product.base_price || 0}</span>
             </td>
             <td class="px-6 py-4 text-sm">
               ${stockStatus}
@@ -1036,7 +1453,7 @@
                 <button class="text-purple-600 hover:text-purple-900 set-discount" 
                   data-product-id="${product.id}" 
                   data-product-name="${product.name}" 
-                  data-product-price="${product.price}">
+                  data-product-price="${product.base_price}">
                   Discount
                 </button>
                 <button class="text-red-600 hover:text-red-900 out-of-stock" 
@@ -1081,6 +1498,16 @@
           
           // Reset form fields
           discountForm.reset();
+          
+          // Reset variant selection area
+          document.getElementById('variant-selection').classList.add('hidden');
+          
+          // Reset date and quantity limit containers
+          document.getElementById('date-range-container').classList.add('hidden');
+          document.getElementById('quantity-limit-container').classList.add('hidden');
+          
+          // Set default dates
+          setDefaultDates();
           
           // Show the modal
           discountModal.classList.remove("hidden");

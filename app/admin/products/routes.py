@@ -1,6 +1,11 @@
-from fastapi import APIRouter, Request, Depends, HTTPException, status, Form, UploadFile, File
-from fastapi.responses import RedirectResponse, JSONResponse
-from typing import List, Optional
+from typing import Optional, List
+from datetime import datetime, timedelta
+from uuid import uuid4
+import re
+import json
+import traceback
+from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from app.database import get_db
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.user import User
@@ -10,11 +15,8 @@ from app.models.category import Category
 from app.models.collection import Collection
 from app.models.brand import Brand
 from app.models.scent import Scent
-from app.utils.image import validate_and_optimize_product_image, delete_images  # Import the image deletion function
-from uuid import uuid4
-from datetime import datetime, timedelta
-import traceback
-import json
+from app.utils.image import validate_and_optimize_product_image, delete_images, delete_image  # Import the specific delete_image function
+from app.utils.json import to_serializable_dict  # Import our custom JSON serializer
 
 # Get router and templates from the package
 from app.admin.products import router, templates
@@ -31,27 +33,8 @@ async def list_products(
     # Use MongoDB aggregation to get products with related data
     products = await Product.find().to_list()
     
-    # Convert products to dict to ensure proper serialization of variants
-    serialized_products = []
-    for product in products:
-        # Convert the Beanie document to a dictionary
-        try:
-            product_dict = product.dict()
-        except AttributeError:
-            # If the product doesn't have dict method, try model_dump or convert directly
-            product_dict = product.model_dump() if hasattr(product, 'model_dump') else dict(product)
-            
-        # Ensure variants are properly serialized
-        if product_dict.get('variants'):
-            serialized_variants = {}
-            for variant_type, variant_list in product_dict['variants'].items():
-                # Convert each variant value to a dictionary if it's not already one
-                serialized_variants[variant_type] = [
-                    v if isinstance(v, dict) else (v.dict() if hasattr(v, 'dict') else dict(v))
-                    for v in variant_list
-                ]
-            product_dict['variants'] = serialized_variants
-        serialized_products.append(product_dict)
+    # Convert products to serializable dict format that handles datetime objects
+    serialized_products = [to_serializable_dict(product) for product in products]
     
     return templates.TemplateResponse(
         "products/list.html",
@@ -97,7 +80,6 @@ async def create_product(
     name: str = Form(...),
     long_description: str = Form(...),
     short_description: Optional[str] = Form(None),
-    price: float = Form(...),
     in_stock: bool = Form(False),
     stock_quantity: int = Form(0),
     images: List[UploadFile] = File(...),
@@ -146,8 +128,14 @@ async def create_product(
                 variants[variant_types[i]].append({
                     "id": str(uuid4()),
                     "value": variant_values[i],
-                    "price": int(variant_prices[i])
+                    "price": int(float(variant_prices[i]) * 100)  # Convert to cents
                 })
+        else:
+            # If no variants provided, raise an error since we need at least one variant with a price
+            raise HTTPException(
+                status_code=400,
+                detail="At least one variant with price is required"
+            )
         
         # Create product with MongoDB document
         product_data = {
@@ -155,7 +143,6 @@ async def create_product(
             "name": name,
             "short_description": short_description,
             "long_description": long_description,
-            "price": int(float(price) * 100),  # Convert to cents
             "stock": stock_quantity,
             "in_stock": in_stock or stock_quantity > 0,
             "image_urls": image_urls,
@@ -362,31 +349,24 @@ async def edit_product(
     name: str = Form(...),
     long_description: str = Form(...),
     short_description: Optional[str] = Form(None),
-    price: float = Form(...),
     in_stock: bool = Form(False),
     stock_quantity: int = Form(0),
-    images: Optional[List[UploadFile]] = File(None),
     brand_id: Optional[str] = Form(None),
     category_ids: List[str] = Form([]),
     tags: Optional[str] = Form(None),
     status: str = Form("published"),
     featured: bool = Form(False),
-    is_new: bool = Form(False),
-    is_bestseller: bool = Form(False),
+    collection_id: Optional[str] = Form(None),
     is_perfume: bool = Form(False),
     scent_ids: List[str] = Form([]),
     variant_types: List[str] = Form([]),
     variant_values: List[str] = Form([]),
     variant_prices: List[float] = Form([]),
-    variant_old_prices: List[Optional[str]] = Form([]),
-    variant_discount_percentages: List[Optional[str]] = Form([]),
-    variant_discount_start_dates: List[Optional[str]] = Form([]),
-    variant_discount_end_dates: List[Optional[str]] = Form([]),
     variant_ids: List[Optional[str]] = Form([]),
     current_user: User = Depends(get_current_active_admin)
 ):
     """
-    Update an existing product
+    Update an existing product (excluding images which are handled by separate endpoints)
     """
     try:
         # First try to find by exact ID match
@@ -408,27 +388,6 @@ async def edit_product(
                 status_code=404
             )
         
-        # Handle image uploads if new images are provided
-        if images and any(image.filename for image in images):
-            # Store the old image URLs to delete later if upload succeeds
-            old_image_urls = product.image_urls.copy() if product.image_urls else []
-            
-            # Upload new images
-            image_urls = []
-            for image in images:
-                if image.filename:
-                    image_url = await validate_and_optimize_product_image(image)
-                    image_urls.append(image_url)
-            
-            if image_urls:
-                # Update the product with new image URLs
-                product.image_urls = image_urls
-                
-                # Delete old images once the new ones are successfully uploaded
-                if old_image_urls:
-                    delete_result = delete_images(old_image_urls)
-                    print(f"Replaced images: deleted {delete_result['success']} old images, failed to delete {delete_result['failed']}")
-        
         # Create a map of existing variants to preserve IDs
         existing_variants = {}
         if product.variants:
@@ -440,46 +399,34 @@ async def edit_product(
         
         # Process variants
         variants = {}
-        for i in range(len(variant_types)):
-            if variant_types[i] not in variants:
-                variants[variant_types[i]] = []
-            
-            # Parse dates if provided
-            discount_start = None
-            if variant_discount_start_dates[i]:
-                try:
-                    discount_start = datetime.fromisoformat(variant_discount_start_dates[i])
-                except ValueError:
-                    pass
-                    
-            discount_end = None
-            if variant_discount_end_dates[i]:
-                try:
-                    discount_end = datetime.fromisoformat(variant_discount_end_dates[i])
-                except ValueError:
-                    pass
-            
-            # Use existing variant ID if available, otherwise generate a new one
-            variant_id = None
-            # Check if we have an ID in the form data
-            if i < len(variant_ids) and variant_ids[i]:
-                variant_id = variant_ids[i]
-            # Otherwise check if we can find a matching variant by type and value
-            elif variant_types[i] in existing_variants and variant_values[i] in existing_variants[variant_types[i]]:
-                variant_id = existing_variants[variant_types[i]][variant_values[i]]
-            # Generate a new ID if no existing ID found
-            if not variant_id:
-                variant_id = str(uuid4())
-            
-            variants[variant_types[i]].append({
-                "id": variant_id,
-                "value": variant_values[i],
-                "price": int(variant_prices[i]),
-                "old_price": int(float(variant_old_prices[i])) if variant_old_prices[i] and variant_old_prices[i].strip() else None,
-                "discount_percentage": int(variant_discount_percentages[i]) if variant_discount_percentages[i] and variant_discount_percentages[i].strip() else None,
-                "discount_start_date": discount_start,
-                "discount_end_date": discount_end
-            })
+        if variant_types and variant_values and variant_prices and len(variant_types) == len(variant_values) == len(variant_prices):
+            for i in range(len(variant_types)):
+                if variant_types[i] not in variants:
+                    variants[variant_types[i]] = []
+                
+                # Use existing variant ID if available, otherwise generate a new one
+                variant_id = None
+                # Check if we have an ID in the form data
+                if i < len(variant_ids) and variant_ids[i]:
+                    variant_id = variant_ids[i]
+                # Otherwise check if we can find a matching variant by type and value
+                elif variant_types[i] in existing_variants and variant_values[i] in existing_variants[variant_types[i]]:
+                    variant_id = existing_variants[variant_types[i]][variant_values[i]]
+                # Generate a new ID if no existing ID found
+                if not variant_id:
+                    variant_id = str(uuid4())
+                
+                variants[variant_types[i]].append({
+                    "id": variant_id,
+                    "value": variant_values[i],
+                    "price": int(float(variant_prices[i])),  # Already in cents
+                })
+        else:
+            # If no variants provided, raise an error since we need at least one variant with a price
+            raise HTTPException(
+                status_code=400,
+                detail="At least one variant with price is required"
+            )
         
         # Process tags
         tag_list = []
@@ -490,20 +437,25 @@ async def edit_product(
         product.name = name
         product.short_description = short_description
         product.long_description = long_description
-        product.price = int(float(price) * 100)  # Convert to cents
         product.in_stock = in_stock or stock_quantity > 0
         product.stock = stock_quantity
         product.brand_id = brand_id if brand_id and brand_id.strip() else None
+        product.collection_id = collection_id if collection_id and collection_id.strip() else None
         product.category_ids = [cat_id for cat_id in category_ids if cat_id and cat_id.strip()]
         product.tags = tag_list
         product.status = status
         product.featured = featured
-        product.is_new = is_new
-        product.is_bestseller = is_bestseller
         product.is_perfume = is_perfume
         product.scent_ids = [scent_id for scent_id in scent_ids if scent_id and scent_id.strip()]
         product.variants = variants
         product.updated_at = datetime.now()
+        
+        # Check if we have at least one image
+        if not product.image_urls or len(product.image_urls) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Product must have at least one image"
+            )
         
         # Save the updated product
         await product.save()
@@ -640,7 +592,7 @@ async def restock_product(
     """
     try:
         # Find the product
-        product = await Product.find_one({"id": product_id})
+        product = await Product.find_one({"_id": product_id})
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
         
@@ -687,7 +639,7 @@ async def update_stock(
     """
     try:
         # Find the product
-        product = await Product.find_one({"id": product_id})
+        product = await Product.find_one({"_id": product_id})
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
         
@@ -731,7 +683,7 @@ async def get_stock_info(
     Get current stock information for a product
     """
     # Find the product
-    product = await Product.find_one({"id": product_id})
+    product = await Product.find_one({"_id": product_id})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
@@ -754,7 +706,7 @@ async def update_transit(
     """
     try:
         # Find the product
-        product = await Product.find_one({"id": product_id})
+        product = await Product.find_one({"_id": product_id})
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
         
@@ -789,7 +741,7 @@ async def receive_transit(
     """
     try:
         # Find the product
-        product = await Product.find_one({"id": product_id})
+        product = await Product.find_one({"_id": product_id})
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
         
@@ -849,7 +801,7 @@ async def update_discount(
         
         # Find the product
         print(f"Looking for product with id: {product_id}")
-        product = await Product.find_one({"id": product_id})
+        product = await Product.find_one({"_id": product_id})
         
         # If not found by id, try _id (in case MongoDB is using _id instead)
         if not product:
@@ -876,7 +828,7 @@ async def update_discount(
             if new_price >= original_price:
                 raise HTTPException(status_code=400, detail="Discount price must be less than original price")
                 
-            discount_percentage = round(100 - (new_price / original_price * 100))
+            discount_percentage = round(100 - (new_price / original_price * 100), 2)
             print(f"Calculated discount percentage: {discount_percentage}%")
             
             # Update product discount info
@@ -1020,6 +972,28 @@ async def get_product_variants(
                 elif isinstance(variant, dict) and 'discount_percentage' in variant:
                     variant_dict["discount_percentage"] = variant['discount_percentage']
                 
+                # Get discount dates if available
+                if hasattr(variant, 'discount_start_date'):
+                    variant_dict["discount_start_date"] = variant.discount_start_date.isoformat() if variant.discount_start_date else None
+                elif isinstance(variant, dict) and 'discount_start_date' in variant:
+                    variant_dict["discount_start_date"] = variant['discount_start_date'].isoformat() if variant['discount_start_date'] else None
+                
+                if hasattr(variant, 'discount_end_date'):
+                    variant_dict["discount_end_date"] = variant.discount_end_date.isoformat() if variant.discount_end_date else None
+                elif isinstance(variant, dict) and 'discount_end_date' in variant:
+                    variant_dict["discount_end_date"] = variant['discount_end_date'].isoformat() if variant['discount_end_date'] else None
+                
+                # Get quantity limit information if available
+                if hasattr(variant, 'discount_quantity_limit'):
+                    variant_dict["discount_quantity_limit"] = variant.discount_quantity_limit
+                elif isinstance(variant, dict) and 'discount_quantity_limit' in variant:
+                    variant_dict["discount_quantity_limit"] = variant['discount_quantity_limit']
+                
+                if hasattr(variant, 'discount_quantity_used'):
+                    variant_dict["discount_quantity_used"] = variant.discount_quantity_used
+                elif isinstance(variant, dict) and 'discount_quantity_used' in variant:
+                    variant_dict["discount_quantity_used"] = variant['discount_quantity_used']
+                
                 processed_variants[variant_type].append(variant_dict)
         
         return JSONResponse(
@@ -1049,6 +1023,9 @@ async def set_variant_discount(
     variant_id: str,
     old_price: Optional[str] = Form(None),
     discount_price: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    end_date: Optional[str] = Form(None),
+    quantity_limit: Optional[int] = Form(None),
     current_user: User = Depends(get_current_active_admin)
 ):
     """
@@ -1056,10 +1033,10 @@ async def set_variant_discount(
     """
     try:
         print(f"Setting discount for product ID: {product_id}, variant ID: {variant_id}")
-        print(f"Form data: old_price={old_price}, discount_price={discount_price}")
+        print(f"Form data: old_price={old_price}, discount_price={discount_price}, start_date={start_date}, end_date={end_date}, quantity_limit={quantity_limit}")
         
         # Find the product
-        product = await Product.find_one({"id": product_id})
+        product = await Product.find_one({"_id": product_id})
         
         # If not found by id, try _id (in case MongoDB is using _id instead)
         if not product:
@@ -1085,9 +1062,39 @@ async def set_variant_discount(
             if new_price >= original_price:
                 raise HTTPException(status_code=400, detail="Discount price must be less than original price")
                 
-            discount_percentage = round(100 - (new_price / original_price * 100))
+            discount_percentage = round(100 - (new_price / original_price * 100), 2)
         
         print(f"Calculated discount percentage: {discount_percentage}%")
+        
+        # Process date parameters
+        discount_start_date = None
+        if start_date:
+            try:
+                discount_start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                # Ensure start date is not in the past
+                now = datetime.now()
+                if discount_start_date < now:
+                    discount_start_date = now
+            except ValueError as e:
+                print(f"Error parsing start_date: {e}")
+                discount_start_date = datetime.now()
+        else:
+            discount_start_date = datetime.now()
+            
+        discount_end_date = None
+        if end_date:
+            try:
+                discount_end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                # Ensure end date is after start date
+                if discount_end_date < discount_start_date:
+                    discount_end_date = discount_start_date + timedelta(days=30)
+            except ValueError as e:
+                print(f"Error parsing end_date: {e}")
+                discount_end_date = discount_start_date + timedelta(days=30)
+        else:
+            discount_end_date = discount_start_date + timedelta(days=30)
+            
+        print(f"Discount period: {discount_start_date} to {discount_end_date}")
         
         # Find the variant in the product
         found_variant = False
@@ -1098,8 +1105,46 @@ async def set_variant_discount(
                     # Update variant discount info
                     print(f"Found variant {variant_id} in type {variant_type}")
                     product.variants[variant_type][i].discount_percentage = discount_percentage
-                    product.variants[variant_type][i].discount_start_date = datetime.now()
-                    product.variants[variant_type][i].discount_end_date = datetime.now() + timedelta(days=30)
+                    product.variants[variant_type][i].discount_start_date = discount_start_date
+                    product.variants[variant_type][i].discount_end_date = discount_end_date
+                    
+                    # Add quantity limit if provided
+                    if quantity_limit is not None and quantity_limit > 0:
+                        product.variants[variant_type][i].discount_quantity_limit = quantity_limit
+                        product.variants[variant_type][i].discount_quantity_used = 0  # Initialize counter
+                        print(f"Discount limited to {quantity_limit} items")
+                    else:
+                        # Remove quantity limit if it was previously set
+                        if hasattr(product.variants[variant_type][i], 'discount_quantity_limit'):
+                            delattr(product.variants[variant_type][i], 'discount_quantity_limit')
+                        if hasattr(product.variants[variant_type][i], 'discount_quantity_used'):
+                            delattr(product.variants[variant_type][i], 'discount_quantity_used')
+                    
+                    # Record this discount in the discount activity history
+                    from app.models.product import DiscountActivity
+                    
+                    # Create a new discount activity record
+                    discount_activity = DiscountActivity(
+                        discount_percentage=discount_percentage,
+                        start_date=discount_start_date,
+                        end_date=discount_end_date,
+                        quantity_limit=quantity_limit,
+                        items_sold=0,
+                        is_active=True
+                    )
+                    
+                    # Mark any previous active discounts as inactive
+                    if hasattr(product.variants[variant_type][i], 'discount_activity'):
+                        for activity in product.variants[variant_type][i].discount_activity:
+                            if hasattr(activity, 'is_active') and activity.is_active:
+                                activity.is_active = False
+                    else:
+                        product.variants[variant_type][i].discount_activity = []
+                    
+                    # Add the new discount activity to the list
+                    product.variants[variant_type][i].discount_activity.append(discount_activity)
+                    print(f"Recorded discount activity: {discount_activity}")
+                    
                     found_variant = True
                     variant_info = {
                         "type": variant_type,
@@ -1129,22 +1174,125 @@ async def set_variant_discount(
         await product.save()
         print(f"Product saved successfully")
         
+        # Create response data
+        response_data = {
+            "success": True,
+            "message": f"Discount of {discount_percentage}% applied successfully to {variant_info['type']}: {variant_info['value']}",
+            "product_id": product_id,
+            "variant_id": variant_id,
+            "discount_percentage": discount_percentage,
+            "discount_start_date": discount_start_date.isoformat(),
+            "discount_end_date": discount_end_date.isoformat(),
+        }
+        
+        # Add quantity limit to response if applicable
+        if quantity_limit is not None and quantity_limit > 0:
+            response_data["quantity_limit"] = quantity_limit
+            response_data["message"] += f" (Limited to {quantity_limit} items)"
+            
+        return JSONResponse(content=response_data)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Error in set_variant_discount: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not set variant discount: {str(e)}"
+        )
+
+@router.post("/{product_id}/variants/{variant_id}/remove-discount")
+async def remove_variant_discount(
+    product_id: str,
+    variant_id: str,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Remove a discount from a specific product variant
+    """
+    try:
+        print(f"Removing discount for product ID: {product_id}, variant ID: {variant_id}")
+        
+        # Find the product
+        product = await Product.find_one({"_id": product_id})
+        
+        # If not found by id, try ObjectId (in case MongoDB is using ObjectId instead)
+        if not product:
+            print(f"Product not found by id, trying ObjectId...")
+            try:
+                from bson import ObjectId
+                if ObjectId.is_valid(product_id):
+                    product = await Product.find_one({"_id": ObjectId(product_id)})
+                    print(f"Product found by ObjectId: {product is not None}")
+            except Exception as e:
+                print(f"Error when searching by ObjectId: {e}")
+        
+        if not product:
+            print(f"Product not found: {product_id}")
+            raise HTTPException(status_code=404, detail="Product not found")
+            
+        # Find the variant in the product
+        found_variant = False
+        for variant_type, variants in product.variants.items():
+            for i, variant in enumerate(variants):
+                variant_id_str = str(variant.id) if hasattr(variant, 'id') else None
+                if variant_id_str == variant_id:
+                    # Store variant info for response message
+                    variant_info = {
+                        "type": variant_type,
+                        "value": variant.value,
+                        "original_discount": variant.discount_percentage
+                    }
+                    
+                    # Remove discount info
+                    print(f"Found variant {variant_id} in type {variant_type}, removing discount")
+                    product.variants[variant_type][i].discount_percentage = None
+                    product.variants[variant_type][i].discount_start_date = None
+                    product.variants[variant_type][i].discount_end_date = None
+                    
+                    # Also reset quantity limit and usage
+                    product.variants[variant_type][i].discount_quantity_limit = None
+                    product.variants[variant_type][i].discount_quantity_used = None
+                    print(f"Reset discount quantity limits and usage to null")
+                    
+                    # Mark all active discount activities as inactive
+                    if hasattr(product.variants[variant_type][i], 'discount_activity'):
+                        for activity in product.variants[variant_type][i].discount_activity:
+                            if hasattr(activity, 'is_active') and activity.is_active:
+                                activity.is_active = False
+                                print(f"Marked discount activity {activity.id} as inactive")
+                    
+                    found_variant = True
+                    break
+            if found_variant:
+                break
+                
+        if not found_variant:
+            print(f"Variant not found: {variant_id}")
+            raise HTTPException(status_code=404, detail="Variant not found")
+            
+        # Save the updated product
+        print(f"Saving product with removed discount...")
+        await product.save()
+        print(f"Product saved successfully")
+        
         return JSONResponse(
             content={
                 "success": True,
-                "message": f"Discount of {discount_percentage}% applied successfully to {variant_info['type']}: {variant_info['value']}",
+                "message": f"Discount removed successfully from {variant_info['type']}: {variant_info['value']}",
                 "product_id": product_id,
                 "variant_id": variant_id,
-                "discount_percentage": discount_percentage
+                "removed_discount": variant_info['original_discount']
             }
         )
     except HTTPException as he:
         raise he
     except Exception as e:
-        print(f"Error in set_variant_discount: {str(e)}")
+        print(f"Error in remove_variant_discount: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
-            detail=f"Could not set variant discount: {str(e)}"
+            detail=f"Could not remove variant discount: {str(e)}"
         )
 
 @router.get("/{product_id}/debug")
@@ -1363,4 +1511,222 @@ async def debug_all_products(
                 "error": str(e)
             },
             status_code=500
+        )
+
+@router.get("/{product_id}/discount-history")
+async def get_discount_history(
+    product_id: str,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Get discount activity history for a product and its variants
+    """
+    try:
+        print(f"Getting discount history for product ID: {product_id}")
+        
+        # Find the product
+        product = await Product.find_one({"_id": product_id})
+        
+        # If not found by id, try ObjectId (in case MongoDB is using ObjectId instead)
+        if not product:
+            print(f"Product not found by id, trying ObjectId...")
+            try:
+                from bson import ObjectId
+                if ObjectId.is_valid(product_id):
+                    product = await Product.find_one({"_id": ObjectId(product_id)})
+                    print(f"Product found by ObjectId: {product is not None}")
+            except Exception as e:
+                print(f"Error when searching by ObjectId: {e}")
+        
+        if not product:
+            print(f"Product not found: {product_id}")
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Build discount history response
+        discount_history = {
+            "product_id": product_id,
+            "product_name": product.name,
+            "variants": {}
+        }
+        
+        # Loop through variants to collect discount activity
+        total_variants = 0
+        total_discounts = 0
+        total_items_sold = 0
+        
+        for variant_type, variants in product.variants.items():
+            discount_history["variants"][variant_type] = []
+            
+            for variant in variants:
+                total_variants += 1
+                variant_history = {
+                    "id": str(variant.id) if hasattr(variant, 'id') else "unknown",
+                    "value": variant.value if hasattr(variant, 'value') else "unknown",
+                    "price": variant.price if hasattr(variant, 'price') else 0,
+                    "current_discount": variant.discount_percentage if hasattr(variant, 'discount_percentage') else None,
+                    "discount_activity": []
+                }
+                
+                # Add discount activity if available
+                if hasattr(variant, 'discount_activity') and variant.discount_activity:
+                    for activity in variant.discount_activity:
+                        total_discounts += 1
+                        total_items_sold += activity.items_sold if hasattr(activity, 'items_sold') else 0
+                        
+                        activity_dict = {
+                            "id": str(activity.id) if hasattr(activity, 'id') else "unknown",
+                            "discount_percentage": activity.discount_percentage if hasattr(activity, 'discount_percentage') else 0,
+                            "start_date": activity.start_date.isoformat() if hasattr(activity, 'start_date') and activity.start_date else None,
+                            "end_date": activity.end_date.isoformat() if hasattr(activity, 'end_date') and activity.end_date else None,
+                            "quantity_limit": activity.quantity_limit if hasattr(activity, 'quantity_limit') else None,
+                            "items_sold": activity.items_sold if hasattr(activity, 'items_sold') else 0,
+                            "created_at": activity.created_at.isoformat() if hasattr(activity, 'created_at') and activity.created_at else None,
+                            "is_active": activity.is_active if hasattr(activity, 'is_active') else False
+                        }
+                        
+                        variant_history["discount_activity"].append(activity_dict)
+                
+                discount_history["variants"][variant_type].append(variant_history)
+        
+        # Add summary statistics
+        discount_history["summary"] = {
+            "total_variants": total_variants,
+            "total_discounts_applied": total_discounts,
+            "total_items_sold_with_discount": total_items_sold
+        }
+        
+        return JSONResponse(
+            content={
+                "success": True,
+                "discount_history": discount_history
+            }
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Error in get_discount_history: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not get discount history: {str(e)}"
+        )
+
+@router.delete("/{product_id}/images")
+async def delete_product_image(
+    product_id: str,
+    image_url: str,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Delete a single product image
+    """
+    try:
+        # Find the product
+        product = await Product.find_one({"id": product_id})
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+            
+        if not product:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Product not found"}
+            )
+        
+        # Remove image URL from product's image_urls list
+        if image_url in product.image_urls:
+            product.image_urls.remove(image_url)
+            
+            # Delete the image from storage
+            deleted = delete_image(image_url)
+            
+            # Save the product with updated image list
+            await product.save()
+            
+            if deleted:
+                return JSONResponse(
+                    status_code=200,
+                    content={"success": True, "message": "Image deleted successfully"}
+                )
+            else:
+                # The image was removed from the product but failed to delete from storage
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "success": True, 
+                        "message": "Image removed from product but failed to delete from storage"
+                    }
+                )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Image not found in product"}
+            )
+            
+    except Exception as e:
+        print(f"Error deleting product image: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Failed to delete image: {str(e)}"}
+        )
+
+@router.post("/{product_id}/images")
+async def add_product_image(
+    product_id: str,
+    image: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Add a single image to a product
+    """
+    try:
+        # Find the product
+        product = await Product.find_one({"id": product_id})
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+            
+        if not product:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Product not found"}
+            )
+        
+        # Validate and upload the image
+        if not image or not image.filename:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "No image provided"}
+            )
+            
+        # Upload the image
+        image_url = await validate_and_optimize_product_image(image)
+        
+        if not image_url:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "message": "Failed to upload image"}
+            )
+        
+        # Add the image URL to the product's image_urls list
+        if not hasattr(product, 'image_urls') or product.image_urls is None:
+            product.image_urls = []
+            
+        product.image_urls.append(image_url)
+        
+        # Save the product with the new image
+        await product.save()
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True, 
+                "message": "Image added successfully",
+                "image_url": image_url
+            }
+        )
+            
+    except Exception as e:
+        print(f"Error adding product image: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Failed to add image: {str(e)}"}
         ) 
