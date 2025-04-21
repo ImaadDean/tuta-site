@@ -12,6 +12,13 @@ class OrderStatus(str, Enum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
+class PaymentStatus(str, Enum):
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+
 class OrderItem(BaseModel):
     product_id: str
     product_name: str
@@ -30,12 +37,12 @@ class ShippingAddress(BaseModel):
 class Order(Document):
     """MongoDB Order document model using Beanie ODM"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str  # Reference to User id
+    user_id: Optional[str] = None  # Reference to User id, optional for guest checkout
     items: List[OrderItem]
     shipping_address: ShippingAddress
     total_amount: float
     payment_method: str
-    payment_status: str = "pending"
+    payment_status: PaymentStatus = PaymentStatus.PENDING
     status: OrderStatus = OrderStatus.PENDING
     tracking_number: Optional[str] = None
     notes: Optional[str] = None
@@ -63,7 +70,7 @@ class OrderCreate(BaseModel):
 
 class OrderUpdate(BaseModel):
     status: Optional[OrderStatus] = None
-    payment_status: Optional[str] = None
+    payment_status: Optional[PaymentStatus] = None
     tracking_number: Optional[str] = None
     notes: Optional[str] = None
 
@@ -74,7 +81,7 @@ class OrderOut(BaseModel):
     shipping_address: ShippingAddress
     total_amount: float
     payment_method: str
-    payment_status: str
+    payment_status: PaymentStatus
     status: OrderStatus
     tracking_number: Optional[str]
     notes: Optional[str]

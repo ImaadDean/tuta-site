@@ -190,12 +190,11 @@ async def login(
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
-            max_age=31536000,  # 1 year in seconds (365 days * 24 hours * 60 minutes * 60 seconds)
+            max_age=31536000,  # 1 year in seconds
             expires=31536000,
             samesite="lax",
-            secure=False  # Set to True in production with HTTPS
+            secure=False,  # Set to True in production with HTTPS
         )
-        
         print(f"Cookie set for {user.username}")
         return response
 

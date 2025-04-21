@@ -114,6 +114,18 @@ async def admin_home(
         serialized_orders = []
         for order in recent_orders:
             try:
+                # Create a copy we can modify with formatted dates before serialization
+                if hasattr(order, "created_at") and order.created_at:
+                    # Pre-format the date for template display
+                    if isinstance(order.created_at, datetime):
+                        order.created_at_formatted = order.created_at.strftime('%b %d, %Y')
+                    else:
+                        order.created_at_formatted = str(order.created_at)
+                
+                # Make sure user exists
+                if not hasattr(order, "user") or not order.user:
+                    order.user = {"username": "Guest"}
+                    
                 serialized_orders.append(to_serializable_dict(order))
             except Exception as e:
                 print(f"Error serializing order: {str(e)}")

@@ -237,27 +237,16 @@ async def view_product(
     View a single product's details
     """
     try:
-        # First try to find by exact ID match
-        product = await Product.find_one({"id": product_id})
+        # Attempt to find product by ID
+        product = await Product.find_one({"_id": product_id})
         
-        if product is None:
-            # Try to find by _id if id not found
-            product = await Product.find_one({"_id": product_id})
-            
         if not product:
-            # If still not found, return 404
-            return templates.TemplateResponse(
-                "products/404.html",
-                {
-                    "request": request,
-                    "user": current_user,
-                    "error": "Product not found"
-                },
-                status_code=404
-            )
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
+        
+        # Get categories from DB
+        categories = await Category.find({"is_active": True}).to_list()
         
         # Get related data
-        categories = await product.get_categories()
         brand = await product.get_brand()
         scent = await product.get_scent()
         
@@ -293,24 +282,11 @@ async def edit_product_form(
     Display product edit form
     """
     try:
-        # First try to find by exact ID match
+        # Attempt to find product by ID
         product = await Product.find_one({"id": product_id})
         
-        if product is None:
-            # Try to find by _id if id not found
-            product = await Product.find_one({"_id": product_id})
-            
         if not product:
-            # If still not found, return 404
-            return templates.TemplateResponse(
-                "products/404.html",
-                {
-                    "request": request,
-                    "user": current_user,
-                    "error": "Product not found"
-                },
-                status_code=404
-            )
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
         
         # Get all necessary data for dropdowns
         categories = await Category.find({"is_active": True}).to_list()
@@ -369,24 +345,11 @@ async def edit_product(
     Update an existing product (excluding images which are handled by separate endpoints)
     """
     try:
-        # First try to find by exact ID match
+        # Attempt to find product by ID
         product = await Product.find_one({"id": product_id})
         
-        if product is None:
-            # Try to find by _id if id not found
-            product = await Product.find_one({"_id": product_id})
-            
         if not product:
-            # If still not found, return 404
-            return templates.TemplateResponse(
-                "products/404.html",
-                {
-                    "request": request,
-                    "user": current_user,
-                    "error": "Product not found"
-                },
-                status_code=404
-            )
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
         
         # Create a map of existing variants to preserve IDs
         existing_variants = {}
@@ -521,24 +484,11 @@ async def delete_product(
     Delete a product
     """
     try:
-        # First try to find by exact ID match
+        # Attempt to find product by ID
         product = await Product.find_one({"id": product_id})
         
-        if product is None:
-            # Try to find by _id if id not found
-            product = await Product.find_one({"_id": product_id})
-            
         if not product:
-            # If still not found, return 404
-            return templates.TemplateResponse(
-                "products/404.html",
-                {
-                    "request": Request,
-                    "user": current_user,
-                    "error": "Product not found"
-                },
-                status_code=404
-            )
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
         
         # Delete images from Cloudinary if they exist
         if product.image_urls:

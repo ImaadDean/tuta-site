@@ -3,8 +3,12 @@ from pydantic import EmailStr
 import cloudinary
 import secrets
 from fastapi_mail import ConnectionConfig
+import os
 
 class Settings(BaseSettings):
+    # Environment
+    ENVIRONMENT: str = "production"
+    
     # Session settings
     SECRET_KEY: str = secrets.token_hex(32)
 
@@ -24,6 +28,10 @@ class Settings(BaseSettings):
     MONGO_HOST: str = "cluster0.zvzoq.mongodb.net"
     MONGO_DATABASE: str = "perfumes_more"
     MONGO_POOL_SIZE: int = 20
+    
+    # New MongoDB URI setting
+    MONGODB_URI: str = ""
+    MONGODB_DATABASE: str = "perfumes_more"
     
     # Database connection pool settings
     DB_POOL_SIZE: int = 20
@@ -67,6 +75,14 @@ def get_settings():
         USE_CREDENTIALS=settings.USE_CREDENTIALS,
         VALIDATE_CERTS=True,
     )
+    
+    # Create MongoDB URI if not provided
+    if not settings.MONGODB_URI:
+        settings.MONGODB_URI = f"mongodb+srv://{settings.MONGO_USERNAME}:{settings.MONGO_PASSWORD}@{settings.MONGO_HOST}/{settings.MONGO_DATABASE}?retryWrites=true&w=majority"
+        settings.MONGODB_DATABASE = settings.MONGO_DATABASE
+    
+    # Log the environment type
+    print(f"Running in {settings.ENVIRONMENT} environment")
     
     return settings
 

@@ -1,0 +1,125 @@
+<!-- Common Styles -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            status: {
+              delivered: '#34D399',
+              processing: '#60A5FA',
+              pending: '#FBBF24',
+              cancelled: '#F87171',
+              delivering: '#818CF8'
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.4s ease-out',
+            'fade-up': 'fadeUp 0.5s ease-out',
+            'smooth-appear': 'smoothAppear 0.3s ease-out'
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            fadeUp: {
+              '0%': { opacity: '0', transform: 'translateY(10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            },
+            smoothAppear: {
+              '0%': { opacity: '0', transform: 'scale(0.98)' },
+              '100%': { opacity: '1', transform: 'scale(1)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    .glass-card {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .track-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background-color: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(4px);
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      transition: all 0.2s;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .track-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+    }
+    
+    .step-connector {
+      height: 2px;
+      flex-grow: 1;
+      background-color: #e5e7eb;
+      margin: 0 0.5rem;
+    }
+    
+    .step-connector.complete {
+      background-color: #60A5FA;
+    }
+    
+    .step-circle {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f3f4f6;
+      border: 2px solid #e5e7eb;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    
+    .step-circle.active {
+      background-color: #60A5FA;
+      border-color: #60A5FA;
+      color: white;
+    }
+    
+    .step-circle.complete {
+      background-color: #34D399;
+      border-color: #34D399;
+      color: white;
+    }
+    
+    .step-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+      text-align: center;
+      color: #6b7280;
+    }
+    
+    .step-label.active, .step-label.complete {
+      color: #1f2937;
+      font-weight: 600;
+    }
+  </style>
+  
+  

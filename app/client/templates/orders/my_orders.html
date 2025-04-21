@@ -1,141 +1,426 @@
-{% extends "base.html" %} {% block title %}My Orders{% endblock %} {% block
-content %}
-<div class="max-w-6xl mx-auto p-4">
-  <h1 class="text-2xl font-bold mb-4">My Orders</h1>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Viewer</title>
+    <meta name="description" content="Track your orders" />
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% include "shared/styles.html" %}
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: '#3b82f6',
+                foreground: '#f8fafc'
+              },
+              destructive: {
+                DEFAULT: '#ef4444',
+              },
+              muted: {
+                DEFAULT: '#f1f5f9',
+                foreground: '#64748b' 
+              },
+              card: {
+                DEFAULT: '#ffffff',
+              },
+              border: '#e2e8f0',
+              background: '#f8fafc',
+              foreground: '#0f172a',
+              status: {
+                delivered: '#34D399',
+                processing: '#60A5FA',
+                pending: '#FBBF24',
+                cancelled: '#F87171'
+              }
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out',
+              'slide-up': 'slideUp 0.4s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' }
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(10px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' }
+              }
+            }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      @media (max-width: 639px) {
+        .desktop-table {
+          display: none;
+        }
+      }
+      
+      @media (min-width: 640px) {
+        .mobile-card {
+          display: none;
+        }
+      }
+      
+      /* Animation delay classes */
+      .delay-0 { animation-delay: 0s; }
+      .delay-1 { animation-delay: 0.1s; }
+      .delay-2 { animation-delay: 0.2s; }
+      .delay-3 { animation-delay: 0.3s; }
+      .delay-4 { animation-delay: 0.4s; }
+      .delay-5 { animation-delay: 0.5s; }
+      .delay-6 { animation-delay: 0.6s; }
+      .delay-7 { animation-delay: 0.7s; }
+      .delay-8 { animation-delay: 0.8s; }
+      .delay-9 { animation-delay: 0.9s; }
+      
+      :root {
+        --primary: #3b82f6;
+        --primary-foreground: #f8fafc;
+        --destructive: #ef4444;
+        --muted: #f1f5f9;
+        --muted-foreground: #64748b;
+        --card: #ffffff;
+        --border: #e2e8f0;
+        --background: #f8fafc;
+        --foreground: #0f172a;
+      }
+    </style>
+  </head>
 
-  <div class="mb-6 flex justify-between items-center">
-    <a href="/" class="text-blue-600 hover:text-blue-800">← Back to Home</a>
+  <body class="bg-background text-foreground font-sans">
+    <div class="min-h-screen">
+      <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div class="mb-8 flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-semibold sm:text-3xl">Your Orders</h1>
+            <p class="text-muted-foreground mt-1">Track and manage all your purchases</p>
+            <a 
+              href="/track" 
+              class="text-sm text-blue-600 flex items-center gap-1 hover:underline"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Track Order
+            </a>
+          </div>
+          <a 
+            href="/" 
+            class="text-sm text-primary flex items-center gap-1 hover:underline"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <path d="m12 19-7-7 7-7"></path>
+              <path d="M19 12H5"></path>
+            </svg>
+            Back to shop
+          </a>
+        </div>
 
-    <div class="flex space-x-2">
-      <a
-        href="/my-orders"
-        class="px-3 py-1 rounded-md text-sm {% if not current_status %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
-      >
-        All
-      </a>
-      <a
-        href="/orders/filter?status=pending"
-        class="px-3 py-1 rounded-md text-sm {% if current_status == 'pending' %}bg-yellow-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
-      >
-        Pending
-      </a>
-      <a
-        href="/orders/filter?status=processing"
-        class="px-3 py-1 rounded-md text-sm {% if current_status == 'processing' %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
-      >
-        Processing
-      </a>
-      <a
-        href="/orders/filter?status=delivered"
-        class="px-3 py-1 rounded-md text-sm {% if current_status == 'delivered' %}bg-green-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
-      >
-        Delivered
-      </a>
-      <a
-        href="/orders/filter?status=cancelled"
-        class="px-3 py-1 rounded-md text-sm {% if current_status == 'cancelled' %}bg-red-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}"
-      >
-        Cancelled
-      </a>
-    </div>
-  </div>
+        <!-- Search Box -->
+        <div class="mb-8 max-w-md mx-auto">
+          <div class="relative">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search by order ID, product or status..."
+              class="w-full px-3 py-2 rounded-md bg-background border border-border
+                    transition-all duration-200 outline-none
+                    focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+              <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
 
-  {% if orders %}
-  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th
-              scope="col"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order #
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Date
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Total
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Status
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <!-- Filter Options -->
+        <div class="mb-8 flex flex-wrap justify-center gap-2">
+          <a href="/my-orders" class="px-4 py-2 rounded-full text-sm {% if not current_status %}bg-primary text-primary-foreground font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+            All Orders
+          </a>
+          <a href="/orders/filter?status=pending" class="px-4 py-2 rounded-full text-sm {% if current_status == 'pending' %}bg-[#FBBF24] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+            Pending
+          </a>
+          <a href="/orders/filter?status=processing" class="px-4 py-2 rounded-full text-sm {% if current_status == 'processing' %}bg-[#60A5FA] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+            Processing
+          </a>
+          <a href="/orders/filter?status=delivering" class="px-4 py-2 rounded-full text-sm {% if current_status == 'delivering' %}bg-indigo-500 text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+            Delivering
+          </a>
+          <a href="/orders/filter?status=delivered" class="px-4 py-2 rounded-full text-sm {% if current_status == 'delivered' %}bg-[#34D399] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+            Delivered
+          </a>
+          <a href="/orders/filter?status=cancelled" class="px-4 py-2 rounded-full text-sm {% if current_status == 'cancelled' %}bg-[#F87171] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+            Cancelled
+          </a>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="desktop-table overflow-hidden">
+          <div class="bg-card shadow-sm rounded-lg border animate-slide-up">
+            <table class="min-w-full divide-y divide-border">
+              <thead class="bg-muted">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Order ID</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Products</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Price</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody class="bg-card divide-y divide-border" id="orderTableBody">
+                {% for order in orders %}
+                <tr class="hover:bg-muted/30 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ order.order_no }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    {% if order.order_items|length > 0 %}
+                      {% if order.order_items[0].product %}
+                        {{ order.order_items[0].product.name }}
+                        {% if order.order_items|length > 1 %}
+                          <span class="text-muted-foreground">+{{ order.order_items|length - 1 }} more</span>
+                        {% endif %}
+                      {% else %}
+                        Product information unavailable
+                      {% endif %}
+                    {% else %}
+                      No products
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">UGX {{ order.total_amount }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">{{ order.created_at.strftime('%b %d, %Y') }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    {% if order.status == 'delivered' %}
+                      <span class="status-badge bg-green-100 text-green-800 border border-green-200">Delivered</span>
+                    {% elif order.status == 'processing' %}
+                      <span class="status-badge bg-blue-100 text-blue-800 border border-blue-200">Processing</span>
+                    {% elif order.status == 'pending' %}
+                      <span class="status-badge bg-yellow-100 text-yellow-800 border border-yellow-200">Pending</span>
+                    {% elif order.status == 'delivering' %}
+                      <span class="status-badge bg-indigo-100 text-indigo-800 border border-indigo-200">Delivering</span>
+                    {% elif order.status == 'cancelled' %}
+                      <span class="status-badge bg-red-100 text-red-800 border border-red-200">Cancelled</span>
+                    {% else %}
+                      <span class="status-badge bg-gray-100 text-gray-800 border border-gray-200">{{ order.status|capitalize }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <a href="/order/{{ order.id }}" class="text-primary hover:text-primary/80 font-medium">
+                      View Details
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            
+            {% if orders|length == 0 %}
+            <div id="noOrdersDesktop" class="py-12 text-center">
+              <p class="text-muted-foreground">No orders found matching your search.</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="space-y-4" id="mobileOrderCards">
           {% for order in orders %}
-          <tr>
-            <td
-              class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
-            >
-              {{ order.order_no }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              ${{ "%.2f"|format(order.total_amount) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800 {% elif order.status == 'processing' %}bg-blue-100 text-blue-800 {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800 {% elif order.status == 'delivered' %}bg-green-100 text-green-800 {% elif order.status == 'cancelled' %}bg-red-100 text-red-800 {% endif %}"
-              >
-                {{ order.status }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <a
-                href="/order/{{ order.id }}"
-                class="text-blue-600 hover:text-blue-900 mr-4"
-                >View Details</a
-              >
-              {% if order.status == 'pending' %}
-              <form
-                action="/cancel-order/{{ order.id }}"
-                method="POST"
-                class="inline"
-              >
-                <button type="submit" class="text-red-600 hover:text-red-900">
-                  Cancel
-                </button>
-              </form>
+          <div class="mobile-card bg-card shadow-sm rounded-lg border p-4 animate-slide-up delay-{{ loop.index0 % 10 }}">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <span class="font-medium">{{ order.order_no }}</span>
+                <div class="text-sm text-muted-foreground mt-1">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+              </div>
+              {% if order.status == 'delivered' %}
+                <span class="status-badge bg-green-100 text-green-800 border border-green-200">Delivered</span>
+              {% elif order.status == 'processing' %}
+                <span class="status-badge bg-blue-100 text-blue-800 border border-blue-200">Processing</span>
+              {% elif order.status == 'pending' %}
+                <span class="status-badge bg-yellow-100 text-yellow-800 border border-yellow-200">Pending</span>
+              {% elif order.status == 'delivering' %}
+                <span class="status-badge bg-indigo-100 text-indigo-800 border border-indigo-200">Delivering</span>
+              {% elif order.status == 'cancelled' %}
+                <span class="status-badge bg-red-100 text-red-800 border border-red-200">Cancelled</span>
+              {% else %}
+                <span class="status-badge bg-gray-100 text-gray-800 border border-gray-200">{{ order.status|capitalize }}</span>
               {% endif %}
-            </td>
-          </tr>
+            </div>
+            
+            {% for item in order.order_items %}
+            <div class="flex items-center justify-between text-sm mt-2">
+              <div class="flex items-center gap-2">
+                {% if item.product and item.product.image_urls and item.product.image_urls|length > 0 %}
+                <div class="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+                  <img 
+                    src="{{ item.product.image_urls[0] }}" 
+                    alt="{{ item.product.name }}" 
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                {% endif %}
+                <span>
+                  {% if item.product %}
+                    {{ item.product.name }} × {{ item.quantity }}
+                  {% else %}
+                    Product unavailable × {{ item.quantity }}
+                  {% endif %}
+                </span>
+              </div>
+              <div class="text-right">
+                <p class="font-medium">UGX {{ item.product.price * item.quantity }}</p>
+              </div>
+            </div>
+            {% endfor %}
+            
+            <div class="flex justify-between pt-2 border-t border-gray-200">
+              <span class="font-medium">Total</span>
+              <span>UGX {{ order.total_amount }}</span>
+            </div>
+            <div class="mt-3">
+              <a href="/order/{{ order.id }}" class="inline-block text-primary hover:text-primary/80 text-sm font-medium">
+                View Order Details →
+              </a>
+            </div>
+          </div>
           {% endfor %}
-        </tbody>
-      </table>
+        </div>
+        
+        {% if orders|length == 0 %}
+        <div id="noOrdersMobile" class="py-8 text-center mobile-card">
+          <p class="text-muted-foreground">No orders found matching your search.</p>
+        </div>
+        {% endif %}
+        
+        <!-- Pagination -->
+        {% if pagination and pagination.total_pages > 1 %}
+        <div class="mt-8 flex justify-center">
+          <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.current_page - 1 }}{% if current_status %}&status={{ current_status }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
+              <span class="sr-only">Previous</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </a>
+            {% else %}
+            <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-muted text-sm font-medium text-muted-foreground">
+              <span class="sr-only">Previous</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </span>
+            {% endif %}
+            
+            {% for page_num in range(1, pagination.total_pages + 1) %}
+              {% if page_num == pagination.current_page %}
+              <span class="relative inline-flex items-center px-4 py-2 border border-primary bg-primary/10 text-sm font-medium text-primary">
+                {{ page_num }}
+              </span>
+              {% else %}
+              <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-border bg-card text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                {{ page_num }}
+              </a>
+              {% endif %}
+            {% endfor %}
+            
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.current_page + 1 }}{% if current_status %}&status={{ current_status }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
+              <span class="sr-only">Next</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </a>
+            {% else %}
+            <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-muted text-sm font-medium text-muted-foreground">
+              <span class="sr-only">Next</span>
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+              </svg>
+            </span>
+            {% endif %}
+          </nav>
+        </div>
+        {% endif %}
+        
+        <!-- Order Count Summary -->
+        <div class="mt-8 text-center text-sm text-muted-foreground">
+          Showing {{ orders|length }} {% if pagination %}of {{ pagination.total_items }}{% endif %} orders
+        </div>
+      </div>
+      
+      <footer class="py-6 border-t mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p class="text-center text-sm text-muted-foreground">
+            &copy; <span id="current-year"></span> Your Store. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
-  </div>
-  {% else %}
-  <div class="bg-white shadow rounded-lg p-6 text-center">
-    <p class="text-gray-500 mb-4">
-      {% if current_status %} You don't have any {{ current_status }} orders. {%
-      else %} You don't have any orders yet. {% endif %}
-    </p>
-    <a
-      href="/"
-      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-    >
-      Start Shopping
-    </a>
-  </div>
-  {% endif %}
-</div>
-{% endblock %}
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Set the current year in the footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        // Setup search functionality
+        const searchInput = document.getElementById('searchInput');
+        const tableRows = document.querySelectorAll('.hover\\:bg-muted\\/30');
+        const mobileCards = document.querySelectorAll('.mobile-card');
+        const noOrdersDesktop = document.getElementById('noOrdersDesktop');
+        const noOrdersMobile = document.getElementById('noOrdersMobile');
+        
+        searchInput.addEventListener('input', function() {
+          const query = this.value.toLowerCase();
+          let visibleCount = 0;
+          
+          // Filter desktop table rows
+          tableRows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const isVisible = text.includes(query);
+            row.style.display = isVisible ? '' : 'none';
+            if (isVisible) visibleCount++;
+          });
+          
+          // Filter mobile cards
+          mobileCards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            const isVisible = text.includes(query);
+            card.style.display = isVisible ? '' : 'none';
+          });
+          
+          // Show/hide "no orders" message
+          if (noOrdersDesktop) {
+            noOrdersDesktop.style.display = visibleCount === 0 ? 'block' : 'none';
+          }
+          
+          if (noOrdersMobile) {
+            noOrdersMobile.style.display = visibleCount === 0 ? 'block' : 'none';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div class="bg-white"
+  x-data='{
+    products: {{ perfumes|tojson }},
+    activeFilters: [],
+    priceRange: [0, {{ max_price|int }}],
+    originalPriceRange: [0, {{ max_price|int }}],
+    toggleFilter(filter) {
+      if (this.activeFilters.includes(filter)) {
+        this.activeFilters = this.activeFilters.filter(f => f !== filter);
+      } else {
+        this.activeFilters.push(filter);
+      }
+    },
+    toggleFavorite(productId) {
+      if ($store && $store.favorites) {
+        $store.favorites.toggleFavorite(productId);
+      } else {
+        console.error("Favorites store not accessible");
+      }
+    },
+    isFilterActive(filter) {
+      return this.activeFilters.includes(filter);
+    },
+    resetFilters() {
+      this.activeFilters = [];
+      this.priceRange = [...this.originalPriceRange];
+    },
+    applyPriceFilter(min, max) {
+      this.priceRange = [min, max];
+    }
+  }'
+>
+  <div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex text-sm text-gray-600 mb-6" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+          <a href="/" class="text-gray-700 hover:text-blue-600">Home</a>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 9l4-4-4-4"/>
+            </svg>
+            <span class="text-gray-500 ml-1">Products</span>
+      </div>
+        </li>
+      </ol>
+    </nav>
+    
+    <!-- Shop header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Our Products</h1>
+      <p class="text-gray-600 max-w-3xl">Browse our selection of premium products and find something special.</p>
+  </div>
+  
+    <!-- Filters and Products Grid -->
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar Filters -->
+      <div class="w-full lg:w-64 shrink-0">
+        <div class="sticky top-24">
+          <div class="border border-gray-200 rounded-lg p-4 mb-6">
+            <h3 class="font-medium text-gray-900 mb-3">Categories</h3>
+            <div class="space-y-2">
+              {% for category in category_options %}
+              <div>
+                <a 
+                  href="/products?category={{ category }}" 
+                  class="block text-sm {% if category == current_category %}text-blue-600 font-medium{% else %}text-gray-600 hover:text-blue-600{% endif %}"
+                >{{ category }}</a>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="border border-gray-200 rounded-lg p-4 mb-6">
+            <h3 class="font-medium text-gray-900 mb-3">Price Range</h3>
+            <form id="price-filter-form" action="/products" method="get">
+              <!-- Keep the current category in the form -->
+              {% if current_category != 'All' %}
+              <input type="hidden" name="category" value="{{ current_category }}">
+              {% endif %}
+              
+              <!-- Keep the current sort in the form -->
+              {% if current_sort %}
+              <input type="hidden" name="sort" value="{{ current_sort }}">
+              {% endif %}
+              
+              <div class="space-y-3">
+                <div>
+                  <label for="min_price" class="block text-sm text-gray-600 mb-1">Min Price (UGX)</label>
+                  <input 
+                    type="number" 
+                    id="min_price" 
+                    name="min_price" 
+                    value="{{ min_price or '' }}" 
+                    placeholder="Min price" 
+                    class="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                </div>
+                <div>
+                  <label for="max_price" class="block text-sm text-gray-600 mb-1">Max Price (UGX)</label>
+                  <input 
+                    type="number" 
+                    id="max_price" 
+                    name="max_price" 
+                    value="{{ max_price or '' }}" 
+                    placeholder="Max price" 
+                    class="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+              </div>
+              <button 
+                type="submit" 
+                  class="mt-2 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                Apply Filter
+              </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Products Grid -->
+      <div class="flex-1">
+        <!-- Sort options -->
+        <div class="flex justify-between items-center mb-6">
+          <div class="text-sm text-gray-500">{{ perfumes|length }} products</div>
+          <div>
+            <label for="sortOrder" class="text-sm text-gray-600 mr-2">Sort by:</label>
+            <select 
+              id="sortOrder" 
+              onchange="location = this.value;" 
+              class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="/products{% if current_category != 'All' %}?category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if not current_sort %}selected{% endif %}>
+                Newest
+              </option>
+              <option value="/products?sort=price_low{% if current_category != 'All' %}&category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if current_sort == 'price_low' %}selected{% endif %}>
+                Price: Low to High
+              </option>
+              <option value="/products?sort=price_high{% if current_category != 'All' %}&category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if current_sort == 'price_high' %}selected{% endif %}>
+                Price: High to Low
+              </option>
+              <option value="/products?sort=rating{% if current_category != 'All' %}&category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if current_sort == 'rating' %}selected{% endif %}>
+                Top Rated
+              </option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Product grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {% for product in perfumes %}
+          <div 
+            class="group bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
+            x-data="{ 
+              currentImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+              defaultImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+              alternateImage: '{{ product.image_urls[1] if product.image_urls|length > 1 else product.image_urls[0] if product.image_urls else '' }}'
+            }"
+            data-product-id="{{ product.id }}"
+            data-product-name="{{ product.name }}"
+          >
+            <!-- Product badges -->
+            <div class="relative">
+              {% if product.new %}
+              <span class="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-xs font-medium px-2 py-1 rounded">New</span>
+              {% endif %}
+              {% if product.bestseller %}
+              <span class="absolute top-2 {% if product.new %}right-2{% else %}left-2{% endif %} z-10 bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded">Bestseller</span>
+              {% endif %}
+            </div>
+
+            <!-- Image section -->
+            <a href="/products/{{ product.id }}" class="block relative overflow-hidden">
+              <div 
+                class="h-64 overflow-hidden bg-gray-50"
+                @mouseenter="currentImage = alternateImage"
+                @mouseleave="currentImage = defaultImage"
+              >
+                {% if product.image_urls and product.image_urls|length > 0 %}
+                <img
+                  :src="currentImage || '/static/images/product-placeholder.jpg'"
+                  alt="{{ product.name }}"
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              {% else %}
+                <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              {% endif %}
+              </div>
+              
+              <!-- Out of stock overlay if needed -->
+              {% if product.stock <= 0 %}
+              <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="bg-white text-gray-800 font-medium px-4 py-2 rounded-full text-sm transform rotate-12">
+                  Out of Stock
+                </div>
+              </div>
+              {% endif %}
+            </a>
+            
+            <!-- Content section -->
+            <div class="p-4">
+              <a href="/category/{{ product.category }}" class="text-xs text-blue-600 hover:underline">{{ product.category }}</a>
+              <a href="/products/{{ product.id }}" class="block mt-2">
+                <h3 class="text-base font-medium text-gray-900 hover:text-blue-600 line-clamp-1">{{ product.name }}</h3>
+              </a>
+              
+              <div class="flex items-center mt-1 mb-2">
+                <div class="flex">
+                  {% for i in range(5) %}
+                  <svg class="w-4 h-4 {% if i < product.rating|int %}text-amber-400{% else %}text-gray-300{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  {% endfor %}
+                </div>
+                <span class="text-xs text-gray-500 ml-1">({{ product.review_count }})</span>
+              </div>
+              
+              <div class="mt-3 flex items-center justify-between">
+                <div class="flex flex-col">
+                  <span class="text-lg font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</span>
+                </div>
+                
+                <div class="flex gap-2">
+                  {% if product.stock > 0 %}
+                  <button
+                    @click="$store.cart.addToCart({ 
+                      id: '{{ product.id }}', 
+                      name: '{{ product.name }}', 
+                      price: {{ product.price }},
+                      image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+                      stock: {{ product.stock }}
+                    });
+                    $dispatch('show-notification', {
+                      message: '{{ product.name }} added to cart',
+                      type: 'success'
+                    });"
+                    class="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+                    title="Add to cart"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </button>
+                  {% else %}
+                  <button 
+                    class="p-2 text-gray-400 bg-gray-100 rounded-full cursor-not-allowed"
+                    disabled
+                    title="Out of Stock"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </button>
+                  {% endif %}
+                  
+                  <!-- Favorite button -->
+                <button 
+                    @click="
+                      $store.favorites.toggleFavorite('{{ product.id }}');
+                      $dispatch('show-notification', {
+                        message: $store.favorites.isFavorite('{{ product.id }}') ?
+                          'Added to favorites' :
+                          'Removed from favorites',
+                        type: $store.favorites.isFavorite('{{ product.id }}') ? 'success' : 'info'
+                      });
+                    "
+                    class="p-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+                    :class="$store.favorites.isFavorite('{{ product.id }}') ? 'text-red-500' : 'text-gray-400'"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+  </div>
+  
+        <!-- Empty state -->
+        {% if perfumes|length == 0 %}
+        <div class="text-center py-12 px-4 bg-gray-50 rounded-lg">
+          <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-1">No products found</h3>
+          <p class="text-gray-500 mb-4">Try adjusting your filters or browse our categories for more options.</p>
+          <a href="/products" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            View all products
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification Component -->
+<div
+  x-data="{
+    notifications: [],
+    add(message, type = 'info') {
+      const id = Date.now();
+      this.notifications.push({
+        id,
+        message,
+        type
+      });
+      setTimeout(() => {
+        this.remove(id);
+      }, 3000);
+    },
+    remove(id) {
+      this.notifications = this.notifications.filter(notification => notification.id !== id);
+    }
+  }"
+  @show-notification.window="add($event.detail.message, $event.detail.type)"
+  class="fixed top-4 inset-x-0 z-50 flex flex-col items-center justify-start space-y-2 px-4 py-2 pointer-events-none sm:items-end sm:right-4 sm:left-auto"
+>
+  <template x-for="notification in notifications" :key="notification.id">
+    <div
+      x-show="true"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 transform -translate-y-2"
+      x-transition:enter-end="opacity-100 transform translate-y-0"
+      x-transition:leave="transition ease-in duration-150"
+      x-transition:leave-start="opacity-100 transform translate-y-0"
+      x-transition:leave-end="opacity-0 transform -translate-y-2"
+      class="flex items-center justify-between w-full max-w-sm rounded-lg shadow-lg border p-2 pointer-events-auto"
+      :class="{
+        'bg-green-50 border-green-200': notification.type === 'success',
+        'bg-blue-50 border-blue-200': notification.type === 'info',
+        'bg-yellow-50 border-yellow-200': notification.type === 'warning',
+        'bg-red-50 border-red-200': notification.type === 'error'
+      }"
+    >
+      <div class="flex items-center">
+        <!-- Success Icon -->
+        <div 
+          x-show="notification.type === 'success'"
+          class="flex-shrink-0 w-7 h-7 bg-green-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        
+        <!-- Info Icon -->
+        <div 
+          x-show="notification.type === 'info'"
+          class="flex-shrink-0 w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        
+        <!-- Warning Icon -->
+        <div 
+          x-show="notification.type === 'warning'"
+          class="flex-shrink-0 w-7 h-7 bg-yellow-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        
+        <!-- Error Icon -->
+        <div 
+          x-show="notification.type === 'error'"
+          class="flex-shrink-0 w-7 h-7 bg-red-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+        
+        <span 
+          class="text-sm font-medium"
+          :class="{
+            'text-green-800': notification.type === 'success',
+            'text-blue-800': notification.type === 'info',
+            'text-yellow-800': notification.type === 'warning',
+            'text-red-800': notification.type === 'error'
+          }"
+          x-text="notification.message"
+        ></span>
+      </div>
+      
+      <button 
+        @click="remove(notification.id)" 
+        class="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-500 focus:outline-none"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  </template>
+</div>
+{% endblock %} 

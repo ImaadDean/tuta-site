@@ -22,7 +22,7 @@
       <div class="px-6 py-4 grid grid-cols-3 gap-4">
         <div class="text-sm font-medium text-gray-500">Total Amount</div>
         <div class="col-span-2 text-sm font-semibold text-gray-900">
-          ${{ "%.2f"|format(order.total_amount) }}
+          UGX {{ order.total_amount }}
         </div>
       </div>
 
@@ -80,10 +80,10 @@
                   {{ item.quantity }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${{ "%.2f"|format(item.price) }}
+                  UGX {{ item.price }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${{ "%.2f"|format(item.price * item.quantity) }}
+                  UGX {{ item.price * item.quantity }}
                 </td>
               </tr>
               {% endfor %}
@@ -99,7 +99,7 @@
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
                 >
-                  ${{ "%.2f"|format(order.total_amount) }}
+                  UGX {{ order.total_amount }}
                 </td>
               </tr>
             </tfoot>

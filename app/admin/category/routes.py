@@ -59,11 +59,17 @@ async def create_category_form(
     try:
         # Get active banners for category pages
         banners = await Banner.find({"position": BannerPosition.CATEGORY_PAGE, "is_active": True}).to_list()
+        
+        # Get active collections
+        from app.models.collection import Collection
+        collections = await Collection.find({"is_active": True}).to_list()
+        
         return templates.TemplateResponse(
             "category/create.html",
             {
                 "request": request,
                 "banners": banners,
+                "collections": collections,
                 "user": current_user
             }
         )
@@ -86,6 +92,7 @@ async def create_category(
     description: Optional[str] = Form(None),
     icon: UploadFile = File(...),
     banner_id: Optional[str] = Form(None),
+    collection_id: Optional[str] = Form(None),
     is_active: bool = Form(True),
     current_user: User = Depends(get_current_active_admin)
 ):
@@ -96,14 +103,27 @@ async def create_category(
         # Check if category name already exists
         existing_category = await Category.find_one({"name": name})
         if existing_category:
+            # Get active banners and collections for repopulating the form
+            banners = await Banner.find({"position": BannerPosition.CATEGORY_PAGE, "is_active": True}).to_list()
+            from app.models.collection import Collection
+            collections = await Collection.find({"is_active": True}).to_list()
+            
             return templates.TemplateResponse(
                 "category/create.html",
                 {
                     "request": request,
                     "user": current_user,
+                    "banners": banners,
+                    "collections": collections,
                     "message": "Category name already exists",
                     "message_type": "error",
-                    "form_data": {"name": name, "description": description, "is_active": is_active}
+                    "form_data": {
+                        "name": name, 
+                        "description": description, 
+                        "is_active": is_active,
+                        "collection_id": collection_id,
+                        "banner_id": banner_id
+                    }
                 }
             )
 
@@ -116,6 +136,7 @@ async def create_category(
             description=description,
             icon_url=icon_url,
             banner_id=banner_id,
+            collection_id=collection_id,
             is_active=is_active,
             created_at=datetime.now()
         )
@@ -127,14 +148,28 @@ async def create_category(
         )
     except Exception as e:
         logger.error(f"Error creating category: {str(e)}")
+        
+        # Get active banners and collections for repopulating the form
+        banners = await Banner.find({"position": BannerPosition.CATEGORY_PAGE, "is_active": True}).to_list()
+        from app.models.collection import Collection
+        collections = await Collection.find({"is_active": True}).to_list()
+        
         return templates.TemplateResponse(
             "category/create.html",
             {
                 "request": request,
                 "user": current_user,
+                "banners": banners,
+                "collections": collections,
                 "message": f"Could not create category: {str(e)}",
                 "message_type": "error",
-                "form_data": {"name": name, "description": description, "is_active": is_active}
+                "form_data": {
+                    "name": name, 
+                    "description": description, 
+                    "is_active": is_active,
+                    "collection_id": collection_id,
+                    "banner_id": banner_id
+                }
             }
         )
 
@@ -163,12 +198,17 @@ async def edit_category_form(
         # Get active banners for category pages
         banners = await Banner.find({"position": BannerPosition.CATEGORY_PAGE, "is_active": True}).to_list()
         
+        # Get active collections
+        from app.models.collection import Collection
+        collections = await Collection.find({"is_active": True}).to_list()
+        
         return templates.TemplateResponse(
             "category/edit.html",
             {
                 "request": request,
                 "category": category,
                 "banners": banners,
+                "collections": collections,
                 "user": current_user
             }
         )
@@ -192,6 +232,7 @@ async def update_category(
     description: Optional[str] = Form(None),
     icon: Optional[UploadFile] = File(None),
     banner_id: Optional[str] = Form(None),
+    collection_id: Optional[str] = Form(None),
     is_active: bool = Form(True),
     current_user: User = Depends(get_current_active_admin)
 ):
@@ -217,11 +258,18 @@ async def update_category(
             "_id": {"$ne": category_id}
         })
         if existing_category:
+            # Get active banners and collections for repopulating the form
+            banners = await Banner.find({"position": BannerPosition.CATEGORY_PAGE, "is_active": True}).to_list()
+            from app.models.collection import Collection
+            collections = await Collection.find({"is_active": True}).to_list()
+            
             return templates.TemplateResponse(
                 "category/edit.html",
                 {
                     "request": request,
                     "category": category,
+                    "banners": banners,
+                    "collections": collections,
                     "user": current_user,
                     "message": "Category name already exists",
                     "message_type": "error"
@@ -233,6 +281,7 @@ async def update_category(
         category.description = description
         category.is_active = is_active
         category.banner_id = banner_id
+        category.collection_id = collection_id
 
         # Handle icon upload if provided
         if icon:
@@ -252,11 +301,19 @@ async def update_category(
         )
     except Exception as e:
         logger.error(f"Error updating category: {str(e)}")
+        
+        # Get active banners and collections for repopulating the form
+        banners = await Banner.find({"position": BannerPosition.CATEGORY_PAGE, "is_active": True}).to_list()
+        from app.models.collection import Collection
+        collections = await Collection.find({"is_active": True}).to_list()
+        
         return templates.TemplateResponse(
             "category/edit.html",
             {
                 "request": request,
                 "category": category,
+                "banners": banners,
+                "collections": collections,
                 "user": current_user,
                 "message": f"Could not update category: {str(e)}",
                 "message_type": "error"

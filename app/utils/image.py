@@ -6,6 +6,7 @@ from PIL import Image
 import io
 import os
 from datetime import datetime
+import uuid
 
 def optimize_image(file: UploadFile, max_size: int = 1024, quality: int = 85):
     """
@@ -691,6 +692,103 @@ async def validate_and_optimize_scent_image(file: UploadFile, max_size_mb: int =
     except Exception as e:
         # Handle any other errors
         print(f"Error processing scent image: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing image: {str(e)}"
+        )
+
+async def validate_and_save_review_image(file: UploadFile, max_size_mb: int = 5, max_dimension: int = 1200):
+    """
+    Validates and optimizes a review image, then uploads to Cloudinary
+    
+    Args:
+        file: The uploaded image file
+        max_size_mb: Maximum file size in MB
+        max_dimension: Maximum image dimension in pixels
+        
+    Returns:
+        Cloudinary secure URL for the uploaded image
+        
+    Raises:
+        HTTPException: If validation fails or upload fails
+    """
+    try:
+        # Validate file extension
+        valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+        if not file.filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing filename"
+            )
+            
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        
+        if not file_extension:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not determine file extension"
+            )
+        
+        if file_extension not in valid_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file extension. Allowed extensions are: {', '.join(valid_extensions)}"
+            )
+        
+        # Check if content-type is image
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file is not an image"
+            )
+        
+        # Read file into memory to check size
+        file.file.seek(0)
+        contents = await file.read()
+        size_mb = len(contents) / (1024 * 1024)
+        
+        if size_mb > max_size_mb:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Image size exceeds maximum allowed size of {max_size_mb}MB"
+            )
+            
+        # Create a BytesIO object with the contents
+        file_obj = io.BytesIO(contents)
+        
+        # Generate a unique filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        safe_filename = os.path.splitext(file.filename)[0].replace(' ', '_')
+        unique_filename = f"review_{timestamp}_{unique_id}_{safe_filename}{file_extension}"
+        
+        # Use cloudinary uploader with specific transformations for reviews
+        result = cloudinary.uploader.upload(
+            file_obj,
+            folder=f"{settings.CLOUDINARY_BASE_FOLDER}/reviews",
+            public_id=unique_filename,
+            overwrite=True,
+            resource_type="auto",
+            transformation=[
+                {"width": max_dimension, "height": max_dimension, "crop": "limit"},
+                {"quality": 80}
+            ]
+        )
+        
+        if not result or 'secure_url' not in result:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to upload review image to Cloudinary"
+            )
+            
+        return result['secure_url']
+        
+    except HTTPException as he:
+        # Re-raise HTTP exceptions
+        raise he
+    except Exception as e:
+        # Handle any other errors
+        print(f"Error processing review image: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error processing image: {str(e)}"

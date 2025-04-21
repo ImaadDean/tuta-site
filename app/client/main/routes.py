@@ -1,138 +1,268 @@
-from fastapi import Request, Depends, HTTPException, Response
+from fastapi import Request, Depends, HTTPException
 from app.client.main import router, templates
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.models.product import Product, ProductCreate, ProductResponse
+from app.models.product import Product
 from app.models.banner import Banner
 from app.models.collection import Collection
 from app.models.category import Category
-from app.models.user import User, UserRole
-from app.database import get_db
+from app.database import get_db, initialize_mongodb
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 import uuid
-import secrets
+from fastapi.responses import RedirectResponse
+import logging
+from fastapi.responses import HTMLResponse
+from typing import Optional, Dict, Any, List
+from app.auth.jwt import get_current_user_optional
+from app.models.user import User
+import asyncio
 
-async def get_or_create_guest_user(request: Request, response: Response, db: AsyncSession):
-    """
-    Check for existing user ID in cookies. If found, verify user exists in database.
-    If not found or user doesn't exist, create a new guest user in the database.
-    Returns the user ID.
-    """
-    # Check if user already has a user ID in cookies
-    user_id_str = request.cookies.get("user_id")
-    
-    # If user ID exists in cookies, verify it exists in the database
-    if user_id_str:
-        try:
-            user_id = uuid.UUID(user_id_str)
-            query = select(User).where(User.id == user_id)
-            result = await db.execute(query)
-            user = result.scalar_one_or_none()
+logger = logging.getLogger(__name__)
+
+# Error handling helper
+async def safe_db_operation(operation, fallback_value=None, error_message="Database operation failed"):
+    """Execute a database operation safely with error handling"""
+    try:
+        return await operation
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            logger.error(f"Event loop closed during database operation: {str(e)}")
+            # Create a new event loop if the current one is closed
+            try:
+                # Try to re-initialize the database connection
+                await initialize_mongodb()
+                # Try the operation again with a fresh connection
+                try:
+                    return await operation
+                except Exception as retry_error:
+                    logger.error(f"Failed retry after event loop closed: {str(retry_error)}")
+                    return fallback_value
+            except Exception as conn_error:
+                logger.error(f"Failed to re-initialize connection: {str(conn_error)}")
+                return fallback_value
+        raise
+    except asyncio.CancelledError:
+        logger.error("Database operation was cancelled (serverless timeout)")
+        return fallback_value
+    except Exception as e:
+        logger.error(f"{error_message}: {str(e)}")
+        # For other exceptions, also return the fallback
+        return fallback_value
+
+@router.get("/", response_class=HTMLResponse)
+async def home(
+    request: Request, 
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Home page with featured products, banners, categories, and collections"""
+    try:
+        # Fetch data with safe operations
+        banners = await safe_db_operation(
+            Banner.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch banners"
+        )
+        
+        # Get featured products
+        featured_products = await safe_db_operation(
+            Product.find({"featured": True, "status": "published"}).limit(8).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch featured products"
+        )
+        
+        # Get bestseller products using the dedicated method
+        bestseller_products = await safe_db_operation(
+            Product.get_bestsellers(limit=8),
+            fallback_value=[],
+            error_message="Failed to fetch bestseller products"
+        )
+        
+        # Get new arrivals
+        new_arrivals = await safe_db_operation(
+            Product.find({"status": "published"}).sort([("created_at", -1)]).limit(4).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch new arrivals"
+        )
+        
+        # Get trending products (most viewed in the last 30 days)
+        trending_products = await safe_db_operation(
+            Product.find({"status": "published"}).sort([("view_count", -1)]).limit(8).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch trending products"
+        )
+        
+        # Get top rated products
+        top_rated_products = await safe_db_operation(
+            Product.find({"status": "published"}).sort([("rating_avg", -1)]).limit(8).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch top rated products"
+        )
+        
+        # Get categories
+        categories = await safe_db_operation(
+            Category.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch categories"
+        )
+        
+        # Get collections
+        collections = await safe_db_operation(
+            Collection.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch collections"
+        )
+        
+        # Helper function to format product data
+        def format_product(product):
+            # Ensure we have at least one image
+            image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
             
-            # If user exists in database, return the user ID
-            if user:
-                return str(user.id)
-        except (ValueError, TypeError):
-            # Invalid UUID format in cookie, will create a new user
-            pass
-    
-    # Create a new guest user if no valid user ID was found
-    random_suffix = secrets.token_hex(6)
-    guest_username = f"guest_{random_suffix}"
-    
-    # Create a new guest user
-    new_guest_user = User(
-        id=uuid.uuid4(),
-        email=f"{guest_username}@guest.temporary",
-        username=guest_username,
-        is_active=True,
-        role=UserRole.GUEST,
-        is_guest=True
-    )
-    
-    # Add to database
-    db.add(new_guest_user)
-    await db.commit()
-    await db.refresh(new_guest_user)
-    
-    # Set the user ID in a cookie
-    user_id = str(new_guest_user.id)
-    response.set_cookie(key="user_id", value=user_id, httponly=True)
-    
-    return user_id
+            # Use the base_price property instead of calculating it
+            base_price = product.base_price
+            
+            return {
+                "id": product.id,
+                "name": product.name,
+                "price": base_price,
+                "image_urls": image_urls,
+                "view_count": getattr(product, 'view_count', 0),
+                "rating_avg": getattr(product, 'rating_avg', 0),
+                "review_count": getattr(product, 'review_count', 0),
+                "sales_count": getattr(product, 'sales_count', 0),
+                "bestseller": getattr(product, 'is_bestseller', False),
+                "new": getattr(product, 'is_new', False),
+                "stock": getattr(product, 'stock', 0),
+                "short_description": getattr(product, 'short_description', ''),
+                "long_description": getattr(product, 'long_description', '')
+            }
+        
+        # Get all published products for the "Our Products" section
+        all_products = await safe_db_operation(
+            Product.find({"status": "published"}).limit(12).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch all products"
+        )
+        
+        # Format product lists
+        formatted_featured = [format_product(p) for p in featured_products]
+        formatted_bestsellers = [format_product(p) for p in bestseller_products]
+        formatted_new_arrivals = [format_product(p) for p in new_arrivals]
+        formatted_trending = [format_product(p) for p in trending_products]
+        formatted_top_rated = [format_product(p) for p in top_rated_products]
+        formatted_products = [format_product(p) for p in all_products]
+            
+        # Return the template with all the data
+        return templates.TemplateResponse(
+            "index.html", 
+            {
+                "request": request, 
+                "banners": banners,
+                "featured_products": formatted_featured,
+                "bestseller_products": formatted_bestsellers,
+                "new_arrivals": formatted_new_arrivals,
+                "trending_products": formatted_trending,
+                "top_rated_products": formatted_top_rated,
+                "products": formatted_products,
+                "categories": categories,
+                "collections": collections,
+                "best_sellers_sidebar": formatted_bestsellers,
+                "current_user": current_user
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering home page: {str(e)}")
+        # In case of an error, return a basic template with minimal data
+        return templates.TemplateResponse(
+                "index.html",
+            {
+                "request": request, 
+                    "banners": [],
+                    "featured_products": [],
+                    "bestseller_products": [],
+                    "new_arrivals": [],
+                    "trending_products": [],
+                    "top_rated_products": [],
+                    "products": [],
+                    "categories": [],
+                    "collections": [],
+                    "best_sellers_sidebar": [],
+                    "error_message": "Failed to load some content. Please refresh the page.",
+                    "current_user": current_user
+                }
+            )
 
-@router.get("/")
-async def home(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
-    # Get or create guest user
-    # user_id = await get_or_create_guest_user(request, response, db)
-    
-    # Fetch active banners for the home page
-    banner_query = select(Banner).where(
-        Banner.is_active == True,
-        Banner.position.in_(["home_top", "home_middle", "home_bottom"])
-    ).order_by(Banner.created_at.desc())
-    result = await db.execute(banner_query)
-    banners = result.scalars().all()
-    
-    # Fetch active categories
-    category_query = select(Category).where(Category.is_active == True)
-    result = await db.execute(category_query)
-    categories = result.scalars().all()
-    
-    # Fetch active collections
-    collection_query = select(Collection).where(Collection.is_active == True)
-    result = await db.execute(collection_query)
-    collections = result.scalars().all()
-
-    # Fetch featured products
-    featured_query = select(Product).where(
-        Product.featured == True,
-        Product.status == "published"
-    )
-    result = await db.execute(featured_query)
-    featured_products = result.scalars().all()
-    
-    # Fetch all products
-    product_query = select(Product)
-    result = await db.execute(product_query)
-    products = result.scalars().all()
-    
-    return templates.TemplateResponse(
-        "index.html", 
-        {
-            "request": request, 
-            "products": products, 
-            "banners": banners,
-            "featured_products": featured_products,
-            "categories": categories,
-            "collections": collections,
- # Pass the user ID to the template
-        }
-    )
-
-# Keep the rest of your routes as they are
-@router.get("/product/{product_id}")
-async def product_detail(request: Request, product_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    query = select(Product).where(Product.id == product_id)
-    result = await db.execute(query)
-    product = result.scalar_one_or_none()
-    
-    if product is None:
-        raise HTTPException(status_code=404, detail="Product not found")
-    
-    return templates.TemplateResponse(
-        "product_detail.html", 
-        {
-            "request": request, 
-            "product": product
-        }
-    )
-
-@router.post("/products/", response_model=ProductResponse)
-async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_db)):
-    db_product = Product(**product.dict(), id=uuid.uuid4())
-    db.add(db_product)
-    await db.commit()
-    await db.refresh(db_product)
-    return db_product
+@router.get("/bestsellers", response_class=HTMLResponse)
+async def bestsellers_page(
+    request: Request, 
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Display all bestseller products"""
+    try:
+        # Get bestseller products with a higher limit
+        bestseller_products = await safe_db_operation(
+            Product.get_bestsellers(limit=24),
+            fallback_value=[],
+            error_message="Failed to fetch bestseller products"
+        )
+        
+        # Get categories for filtering
+        categories = await safe_db_operation(
+            Category.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch categories"
+        )
+        
+        # Format bestseller products 
+        def format_product(product):
+            # Ensure we have at least one image
+            image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
+            
+            # Use the base_price property
+            base_price = product.base_price
+            
+            return {
+                "id": product.id,
+                "name": product.name,
+                "price": base_price,
+                "image_urls": image_urls,
+                "view_count": getattr(product, 'view_count', 0),
+                "rating_avg": getattr(product, 'rating_avg', 0),
+                "review_count": getattr(product, 'review_count', 0),
+                "sales_count": getattr(product, 'sales_count', 0),
+                "bestseller": getattr(product, 'is_bestseller', False),
+                "new": getattr(product, 'is_new', False),
+                "stock": getattr(product, 'stock', 0),
+                "short_description": getattr(product, 'short_description', ''),
+                "long_description": getattr(product, 'long_description', '')
+            }
+        
+        formatted_bestsellers = [format_product(p) for p in bestseller_products]
+        
+        # Return the template with bestseller products
+        return templates.TemplateResponse(
+            "bestsellers.html", 
+            {
+                "request": request,
+                "bestseller_products": formatted_bestsellers,
+                "categories": categories,
+                "current_user": current_user,
+                "page_title": "Best Sellers",
+                "meta_description": "Browse our most popular and best-selling products."
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering bestsellers page: {str(e)}")
+        # In case of an error, return a basic template with minimal data
+        return templates.TemplateResponse(
+            "bestsellers.html",
+            {
+                "request": request,
+                "bestseller_products": [],
+                "categories": [],
+                "current_user": current_user,
+                "error_message": "Failed to load bestseller products. Please try again later.",
+                "page_title": "Best Sellers"
+            }
+        )

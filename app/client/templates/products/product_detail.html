@@ -1037,6 +1037,43 @@
                 </svg>
                 {% endfor %}
               </div>
+              <span class="text-xs text-gray-500 ml-1.5">({{ related.review_count|default(0) }})</span>
+            </div>
+            
+            <div class="mt-2 flex items-center justify-between">
+              <div>
+                <span class="text-base font-semibold text-gray-900">UGX {{ "{:,}".format(related.price) }}</span>
+              </div>
+              
+              {% if related.stock|default(0) > 0 %}
+              <button 
+                x-data
+                @click="$store.cart.addToCart({ 
+                    id: '{{ related.id }}', 
+                    name: '{{ related.name }}', 
+                    price: {{ related.price }},
+                  image: '{{ related.image_urls[0] if related.image_urls and related.image_urls|length > 0 else '/static/images/product-placeholder.jpg' }}',
+                  stock: {{ related.stock|default(0) }}
+                  });
+                showNotification('{{ related.name }} added to cart', 'success');"
+                class="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+                title="Add to cart"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </button>
+              {% else %}
+              <button 
+                class="p-2 text-gray-400 bg-gray-100 rounded-full cursor-not-allowed"
+                disabled
+                title="Out of Stock"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </button>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -1045,5 +1082,169 @@
     </div>
     {% endif %}
   </div>
+</div>
+
+<script>
+  // Increment quantity
+  function incrementQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value, 10);
+    const maxStock = parseInt("{{ product.stock|default(0) }}", 10);
+    
+    if (currentValue < maxStock) {
+      quantityInput.value = currentValue + 1;
+    }
+  }
+  
+  // Decrement quantity
+  function decrementQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value, 10);
+    
+    if (currentValue > 1) {
+      quantityInput.value = currentValue - 1;
+    }
+  }
+
+  // Show notification function
+  function showNotification(message, type) {
+    const event = new CustomEvent('show-notification', {
+      detail: {
+        message: message,
+        type: type
+      }
+    });
+    window.dispatchEvent(event);
+  }
+
+  // Add helpful vote
+  function helpfulVote(review) {
+    fetch('/products/{{ product.id }}/reviews/helpful', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        review_id: review.id
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('Thank you for your feedback!', 'success');
+        review.helpful_votes = data.helpful_votes;
+    } else {
+        showNotification(data.message || 'An error occurred', 'error');
+    }
+    })
+    .catch(error => {
+      console.error('Error marking review as helpful:', error);
+      showNotification('An error occurred. Please try again later.', 'error');
+    });
+  }
+</script>
+
+<!-- Toast Notification Component -->
+<div
+  x-data="{
+    notifications: [],
+    add(message, type = 'info') {
+      const id = Date.now();
+      this.notifications.push({
+        id,
+        message,
+        type
+      });
+      setTimeout(() => {
+        this.remove(id);
+      }, 3000);
+    },
+    remove(id) {
+      this.notifications = this.notifications.filter(notification => notification.id !== id);
+    }
+  }"
+  @show-notification.window="add($event.detail.message, $event.detail.type)"
+  class="fixed top-4 inset-x-0 z-50 flex flex-col items-center justify-start space-y-2 px-4 py-2 pointer-events-none sm:items-end sm:right-4 sm:left-auto"
+>
+  <template x-for="notification in notifications" :key="notification.id">
+    <div
+      x-show="true"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 transform -translate-y-2"
+      x-transition:enter-end="opacity-100 transform translate-y-0"
+      x-transition:leave="transition ease-in duration-150"
+      x-transition:leave-start="opacity-100 transform translate-y-0"
+      x-transition:leave-end="opacity-0 transform -translate-y-2"
+      class="flex items-center justify-between w-full max-w-sm rounded-lg shadow-lg border p-2 pointer-events-auto"
+      :class="{
+        'bg-green-50 border-green-200': notification.type === 'success',
+        'bg-blue-50 border-blue-200': notification.type === 'info',
+        'bg-yellow-50 border-yellow-200': notification.type === 'warning',
+        'bg-red-50 border-red-200': notification.type === 'error'
+      }"
+    >
+      <div class="flex items-center">
+        <!-- Success Icon -->
+        <div 
+          x-show="notification.type === 'success'"
+          class="flex-shrink-0 w-7 h-7 bg-green-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        
+        <!-- Info Icon -->
+        <div 
+          x-show="notification.type === 'info'"
+          class="flex-shrink-0 w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        
+        <!-- Warning Icon -->
+        <div 
+          x-show="notification.type === 'warning'"
+          class="flex-shrink-0 w-7 h-7 bg-yellow-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        
+        <!-- Error Icon -->
+        <div 
+          x-show="notification.type === 'error'"
+          class="flex-shrink-0 w-7 h-7 bg-red-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+        
+        <span 
+          class="text-sm font-medium"
+          :class="{
+            'text-green-800': notification.type === 'success',
+            'text-blue-800': notification.type === 'info',
+            'text-yellow-800': notification.type === 'warning',
+            'text-red-800': notification.type === 'error'
+          }"
+          x-text="notification.message"
+        ></span>
+      </div>
+      
+      <button 
+        @click="remove(notification.id)" 
+        class="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-500 focus:outline-none"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  </template>
 </div>
 {% endblock %}

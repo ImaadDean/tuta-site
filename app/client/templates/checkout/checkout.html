@@ -1,81 +1,629 @@
-{% extends "base.html" %} {% block content %}
-<div class="max-w-2xl mx-auto p-4">
-  <h1 class="text-2xl font-bold mb-4">Checkout</h1>
-  <form
-    action="/checkout"
-    method="POST"
-    class="space-y-4"
-    x-data="{ cart: JSON.parse(localStorage.getItem('cart') || '[]') }"
-  >
-    <div>
-      <label for="name" class="block text-sm font-medium text-gray-700"
-        >Full Name</label
-      >
-      <input
-        type="text"
-        id="name"
-        name="name"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-      />
+{% extends "base.html" %}
+
+{% block title %}Checkout - Your Store{% endblock %}
+
+{% block content %}
+      <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div class="mb-8 flex items-center justify-between">
+          <div>
+      <h1 class="text-2xl font-semibold sm:text-3xl text-gray-900">Checkout</h1>
+      <p class="text-gray-500 mt-1">Complete your purchase</p>
+          </div>
+          <a 
+            href="/" 
+      class="text-sm text-blue-600 flex items-center gap-1 hover:underline"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <path d="m12 19-7-7 7-7"></path>
+              <path d="M19 12H5"></path>
+            </svg>
+            Back to shop
+          </a>
+        </div>
+        
+        <!-- Checkout Form and Order Summary -->
+        <div id="checkout-container" class="grid gap-8 lg:grid-cols-3">
+          <div class="lg:col-span-2">
+            <!-- Checkout Form -->
+      <div class="bg-white shadow-lg rounded-lg border border-gray-200 p-6">
+              <form id="order-form" class="space-y-6">
+                <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Personal Information</h3>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="relative space-y-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        id="name"
+                        required
+                        value="{{ user.username if user else '' }}"
+                  class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                              transition-all duration-200 outline-none
+                        focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div class="relative space-y-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Email <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        required
+                        value="{{ user.email if user else '' }}"
+                  class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                              transition-all duration-200 outline-none
+                        focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div class="relative space-y-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        id="phone"
+                        required
+                        value="{{ user.phone_number if user else '' }}"
+                  class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                              transition-all duration-200 outline-none
+                        focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+
+              {% if not user %}
+              <div class="sm:col-span-2 flex items-center mt-4">
+                <p class="text-sm text-gray-600">Already have an account? 
+                  <a href="/auth/login?next=/checkout" class="text-blue-600 hover:text-blue-800 font-medium">Log in</a> 
+                  for a faster checkout experience and to track your order history.
+                </p>
+              </div>
+              {% endif %}
+                  </div>
+                </div>
+                
+                <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Delivery Address</h3>
+                  
+                  {% if user and user.addresses %}
+                  <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Saved Addresses</label>
+                    <select 
+                      id="savedAddresses" 
+                class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                            transition-all duration-200 outline-none
+                      focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                onchange="toggleAddressForm(this.value)"
+                    >
+                      <option value="">Enter a new address</option>
+                      {% for address in user.addresses %}
+                <option value="{{ loop.index0 }}" 
+                  data-address="{{ address.address }}" 
+                  data-city="{{ address.city }}" 
+                  data-country="{{ address.country }}">
+                  {{ address.name }}: {{ address.address }}, {{ address.city }}, {{ address.country }}
+                </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  {% endif %}
+                  
+                  <div id="addressFormFields" class="grid gap-4 sm:grid-cols-2">
+              <div class="relative space-y-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Street Address <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="address"
+                        id="address"
+                        required
+                  class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                              transition-all duration-200 outline-none
+                        focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div class="relative space-y-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  City <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        id="city"
+                        required
+                  class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                              transition-all duration-200 outline-none
+                        focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div class="relative space-y-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Country <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="country"
+                        id="country"
+                        required
+                  class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                              transition-all duration-200 outline-none
+                        focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                  
+            {% if user %}
+                  <div class="mt-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      name="save_address"
+                      id="save_address"
+                class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+              <label for="save_address" class="ml-2 block text-sm text-gray-700">
+                Save this address for future orders
+                    </label>
+                  </div>
+                  
+            <div id="address_name_field" class="mt-4 hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Address nickname (e.g. Home, Work)
+                    </label>
+                    <input
+                      type="text"
+                      name="address_name"
+                      id="address_name"
+                class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
+                            transition-all duration-200 outline-none
+                      focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                placeholder="e.g. Home, Work, etc."
+              />
+            </div>
+            {% endif %}
+          </div>
+          
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium text-gray-900">Payment Method</h3>
+            <div class="grid gap-3">
+              <!-- Cash on Delivery Payment Option -->
+              <div class="relative rounded-lg border border-gray-200 p-4 transition-all duration-200
+                        cursor-pointer hover:border-blue-500/40
+                        bg-white hover:bg-blue-50"
+                   data-payment="cash"
+                   onclick="selectPaymentMethod('cash')"
+              >
+                <div class="flex items-start gap-3">
+                  <div class="mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                      <circle cx="12" cy="12" r="2"></circle>
+                      <path d="M6 12h.01M18 12h.01"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex justify-between items-center">
+                      <p class="font-medium text-gray-900">Cash on Delivery</p>
+                      <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center payment-radio">
+                        <!-- Selected indicator will be added via JS -->
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Pay when your order arrives</p>
+                  </div>
+                  </div>
+                </div>
+                
+              <div class="relative rounded-lg border border-gray-200 p-4 transition-all duration-200
+                        cursor-pointer hover:border-blue-500/40
+                        bg-white hover:bg-blue-50"
+                         data-payment="airtel"
+                   onclick="selectPaymentMethod('airtel')"
+                    >
+                      <div class="flex items-start gap-3">
+                        <div class="mt-0.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                          </svg>
+                        </div>
+                        <div class="flex-1">
+                          <div class="flex justify-between items-center">
+                      <p class="font-medium text-gray-900">Airtel Money</p>
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center payment-radio">
+                              <!-- Selected indicator will be added via JS -->
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+              <!-- MTN Payment Option -->
+              <div class="relative rounded-lg border border-gray-200 p-4 transition-all duration-200
+                        cursor-pointer hover:border-blue-500/40
+                        bg-white hover:bg-blue-50"
+                        data-payment="mtn"
+                   onclick="selectPaymentMethod('mtn')"
+                    >
+                      <div class="flex items-start gap-3">
+                        <div class="mt-0.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                          </svg>
+                        </div>
+                        <div class="flex-1">
+                          <div class="flex justify-between items-center">
+                      <p class="font-medium text-gray-900">MTN Mobile Money</p>
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center payment-radio">
+                              <!-- Selected indicator will be added via JS -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                  </div>
+                </div>
+                
+            <!-- Cash on Delivery Instructions -->
+            <div id="cash-instructions" class="mt-4 p-4 bg-green-50 border border-green-100 rounded-lg hidden">
+              <h4 class="text-sm font-medium text-green-800 mb-2">Cash on Delivery:</h4>
+              <ul class="text-sm text-green-700 space-y-1 pl-5 list-disc">
+                <li>You'll pay when the order is delivered to your address</li>
+                <li>Please have the exact amount ready for payment</li>
+                <li>Our delivery person will provide a receipt upon payment</li>
+              </ul>
+            </div>
+
+            <!-- Airtel Payment Instructions -->
+            <div id="airtel-instructions" class="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg hidden">
+              <h4 class="text-sm font-medium text-red-800 mb-2">How to pay with Airtel Money:</h4>
+              <ol class="text-sm text-red-700 space-y-1 pl-5 list-decimal">
+                <li>Dial *165# on your Airtel number</li>
+                <li>Select "Make Payments" option</li>
+                <li>Choose "Pay Merchant"</li>
+                <li>Enter merchant code: 123456</li>
+                <li>Enter the amount shown at checkout</li>
+                <li>Confirm with your PIN</li>
+                <li>Your order will be confirmed automatically</li>
+              </ol>
+            </div>
+
+            <!-- MTN Payment Instructions -->
+            <div id="mtn-instructions" class="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-lg hidden">
+              <h4 class="text-sm font-medium text-yellow-800 mb-2">How to pay with MTN Mobile Money:</h4>
+              <ol class="text-sm text-yellow-700 space-y-1 pl-5 list-decimal">
+                <li>Dial *165*3# on your MTN number</li>
+                <li>Select "Pay Bill" option</li>
+                <li>Choose "Enter Number"</li>
+                <li>Enter merchant number: 098765</li>
+                <li>Enter the amount shown at checkout</li>
+                <li>Enter your reference number (will be provided after order submission)</li>
+                <li>Confirm with your PIN</li>
+                <li>Your order will be confirmed automatically</li>
+              </ol>
+            </div>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+    <!-- Order Summary -->
+    <div class="lg:col-span-1">
+      <div class="bg-white shadow-lg rounded-lg border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
+        
+        <div class="space-y-4" x-data="{ cart: JSON.parse(localStorage.getItem('cart') || '[]') }">
+          <template x-for="item in cart" :key="item.id">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-3">
+                <img :src="item.image || '/placeholder.svg'" :alt="item.name" class="w-16 h-16 object-cover rounded-md">
+                <div>
+                  <p class="text-sm font-medium text-gray-900" x-text="item.name"></p>
+                  <p class="text-sm text-gray-500">Quantity: <span x-text="item.quantity"></span></p>
+                </div>
+              </div>
+              <p class="text-sm font-medium text-gray-900" x-text="'UGX ' + (item.price * item.quantity)"></p>
+            </div>
+          </template>
+          
+          <div class="border-t border-gray-200 pt-4">
+            <div class="flex justify-between text-lg">
+              <span class="font-medium text-gray-900">Total</span>
+              <span class="font-medium text-gray-900" x-text="'UGX ' + cart.reduce((total, item) => total + item.price * item.quantity, 0)"></span>
+                </div>
+              </div>
+              
+              <button
+            type="submit"
+            form="order-form"
+                id="place-order-btn"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 font-medium"
+              >
+                Place Order
+              </button>
+        </div>
+      </div>
     </div>
-    <div>
-      <label for="address" class="block text-sm font-medium text-gray-700"
-        >Address</label
-      >
-      <input
-        type="text"
-        id="address"
-        name="address"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-      />
-    </div>
-    <div>
-      <label for="city" class="block text-sm font-medium text-gray-700"
-        >City</label
-      >
-      <input
-        type="text"
-        id="city"
-        name="city"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-      />
-    </div>
-    <div>
-      <label for="country" class="block text-sm font-medium text-gray-700"
-        >Country</label
-      >
-      <input
-        type="text"
-        id="country"
-        name="country"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-      />
-    </div>
-    <div>
-      <label for="postal_code" class="block text-sm font-medium text-gray-700"
-        >Postal Code</label
-      >
-      <input
-        type="text"
-        id="postal_code"
-        name="postal_code"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-      />
-    </div>
-    <input type="hidden" name="cart" :value="JSON.stringify(cart)" />
-    <div>
-      <button
-        type="submit"
-        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-      >
-        Review Order
-      </button>
-    </div>
-  </form>
+  </div>
 </div>
+
+<!-- Success message section (hidden by default) -->
+<div id="success-message" class="hidden bg-white p-8 rounded-lg shadow-lg max-w-2xl mx-auto animate-fade-in">
+  <div class="text-center">
+    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
+    
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">Order Successfully Placed!</h2>
+    <p class="text-gray-600 mb-6">Thank you for your order. Your order number is <span id="success-order-number" class="font-medium text-gray-800"></span>.</p>
+    <p class="text-gray-600 mb-6">You can use this order number to track the status of your delivery.</p>
+    
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a id="success-view-order-link" href="#" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-all duration-200">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        </svg>
+        View Order Details
+      </a>
+      
+      <a href="/products" class="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-800 font-medium rounded-md hover:bg-gray-200 transition-all duration-200">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Continue Shopping
+      </a>
+    </div>
+    
+    {% if not user %}
+    <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+      <p class="text-blue-800 mb-2 font-medium">Create an account to track all your orders</p>
+      <p class="text-blue-700 text-sm mb-4">You can create an account now to track this order and all future orders in one place.</p>
+      <a href="/auth/register" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md hover:bg-blue-700 transition-all duration-200">
+        Create an Account
+      </a>
+    </div>
+    {% endif %}
+  </div>
+            </div>
+            
+<!-- Processing overlay -->
+<div id="processing-overlay" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-5 rounded-lg shadow-lg flex items-center">
+    <svg class="animate-spin h-6 w-6 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+    <span class="text-gray-700">Processing your order...</span>
+              </div>
+            </div>
+
+<!-- Order Success Message -->
+<div id="order-success" class="hidden fixed inset-0 z-50 overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div class="p-6 text-center">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Order Successful!</h3>
+        <p class="text-sm text-gray-500 mb-4">Your order has been placed successfully.</p>
+        <p class="text-sm font-medium text-gray-900 mb-2">Order #: <span id="order-number" class="font-bold"></span></p>
+        <p class="text-sm text-gray-600 mb-6">You can track your order status using this order number.</p>
+        
+        <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <a id="view-order-link" href="#" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+              View Order Details
+            </a>
+          <a href="/" class="px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-200 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Continue Shopping
+          </a>
+          </div>
+        
+        <div class="mt-4 text-center">
+          <a id="track-order-link" href="#" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 inline-flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
+            Track Your Order
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loader Overlay -->
+<div id="loading-overlay" class="hidden fixed inset-0 z-50 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+  <div class="bg-white p-5 rounded-lg shadow-lg flex items-center">
+    <svg class="animate-spin h-6 w-6 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <span class="text-gray-700">Processing your order...</span>
+  </div>
+    </div>
+    
+<!-- Add JavaScript at the end of the content block -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+    // Select default payment method on page load
+    selectPaymentMethod('cash');
+        
+    // Set up event listener for saved addresses dropdown
+        const savedAddressesSelect = document.getElementById('savedAddresses');
+        if (savedAddressesSelect) {
+          savedAddressesSelect.addEventListener('change', function() {
+        toggleAddressForm(this.value);
+      });
+      // Initial setup
+      toggleAddressForm(savedAddressesSelect.value);
+    }
+    
+    // Set up event listener for save address checkbox
+        const saveAddressCheckbox = document.getElementById('save_address');
+        const addressNameField = document.getElementById('address_name_field');
+        if (saveAddressCheckbox && addressNameField) {
+          saveAddressCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+              addressNameField.classList.remove('hidden');
+            } else {
+              addressNameField.classList.add('hidden');
+            }
+          });
+        }
+        
+    // Handle form submission
+    const orderForm = document.getElementById('order-form');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const orderSuccess = document.getElementById('order-success');
+    
+    if (orderForm) {
+      orderForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Show loading overlay
+        loadingOverlay.classList.remove('hidden');
+        
+        // Get form data
+        const formData = new FormData(orderForm);
+        
+        // Add cart data from localStorage
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        formData.append('cart', JSON.stringify(cart));
+        
+        // Submit the form via fetch API
+        fetch('/api/process-order', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error processing order');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Hide loading overlay
+          loadingOverlay.classList.add('hidden');
+          
+          if (data.success) {
+            // Hide checkout container
+            document.getElementById('checkout-container').style.display = 'none';
+            
+            // Show success message
+            orderSuccess.classList.remove('hidden');
+            
+            // Set order number and links in both places
+            document.getElementById('order-number').textContent = data.order_no;
+            document.getElementById('success-order-number').textContent = data.order_no;
+            document.getElementById('view-order-link').href = `/order/by-number/${data.order_no}`;
+            document.getElementById('success-view-order-link').href = `/order/by-number/${data.order_no}`;
+            document.getElementById('track-order-link').href = `/track-order-by-number/${data.order_no}`;
+            
+            // Clear cart in localStorage
+            localStorage.setItem('cart', '[]');
+          } else {
+            alert(`Error processing order: ${data.error || 'Unknown error'}`);
+          }
+        })
+        .catch(error => {
+          console.error('Order processing error:', error);
+          
+          // Hide loading overlay
+          loadingOverlay.classList.add('hidden');
+          
+          // Show error message
+          alert('An error occurred while processing your order. Please try again.');
+        });
+      });
+    }
+  });
+  
+  // Function to toggle address form visibility
+  function toggleAddressForm(value) {
+    const addressFormFields = document.getElementById('addressFormFields');
+    const saveAddressOption = document.getElementById('save_address')?.parentElement;
+    const addressNameField = document.getElementById('address_name_field');
+    
+    if (value === '') {
+      // Clear form fields for new address
+      document.getElementById('address').value = '';
+      document.getElementById('city').value = '';
+      document.getElementById('country').value = '';
+      
+      // Show address form fields and save option
+      addressFormFields.style.display = 'grid';
+      if (saveAddressOption) saveAddressOption.style.display = 'flex';
+    } else {
+      // Fill with selected address
+      const option = document.querySelector(`option[value="${value}"]`);
+      document.getElementById('address').value = option.dataset.address;
+      document.getElementById('city').value = option.dataset.city;
+      document.getElementById('country').value = option.dataset.country;
+      
+      // Show address form but hide save option
+      addressFormFields.style.display = 'grid';
+      if (saveAddressOption) saveAddressOption.style.display = 'none';
+      if (addressNameField) addressNameField.classList.add('hidden');
+    }
+  }
+  
+  // Function to select payment method
+  function selectPaymentMethod(method) {
+    // Remove selected style from all payment methods
+    const paymentMethods = document.querySelectorAll('[data-payment]');
+    paymentMethods.forEach(m => {
+      const radio = m.querySelector('.payment-radio');
+      radio.innerHTML = '';
+      radio.classList.remove('border-blue-500');
+      radio.classList.add('border-gray-300');
+    });
+    
+    // Add selected style to clicked payment method
+    const selectedMethod = document.querySelector(`[data-payment="${method}"]`);
+    const radio = selectedMethod.querySelector('.payment-radio');
+    radio.innerHTML = '<div class="w-3 h-3 rounded-full bg-blue-500"></div>';
+    radio.classList.remove('border-gray-300');
+    radio.classList.add('border-blue-500');
+    
+    // Hide all payment instructions
+    document.getElementById('cash-instructions').classList.add('hidden');
+    document.getElementById('airtel-instructions').classList.add('hidden');
+    document.getElementById('mtn-instructions').classList.add('hidden');
+    
+    // Show only the relevant payment instructions for the selected method
+    document.getElementById(`${method}-instructions`).classList.remove('hidden');
+    
+    // Add hidden input for payment method
+    let paymentInput = document.getElementById('payment_method');
+    if (!paymentInput) {
+      paymentInput = document.createElement('input');
+      paymentInput.type = 'hidden';
+      paymentInput.id = 'payment_method';
+      paymentInput.name = 'payment_method';
+      document.getElementById('order-form').appendChild(paymentInput);
+    }
+    paymentInput.value = method;
+  }
+    </script>
 {% endblock %}
+

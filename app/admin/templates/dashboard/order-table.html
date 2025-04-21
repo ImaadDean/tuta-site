@@ -60,7 +60,11 @@
             {{ order.user.username }}
           </td>
           <td class="px-6 py-4 text-sm text-gray-500">
-            {{ order.created_at.strftime('%b %d, %Y') }}
+            {% if order.created_at_formatted is defined %}
+              {{ order.created_at_formatted }}
+            {% else %}
+              {{ order.created_at }}
+            {% endif %}
           </td>
           <td class="px-6 py-4 text-sm">
             <div class="flex items-center gap-2">

@@ -13,12 +13,14 @@ from app.admin.category import router as admin_category_router
 from app.admin.collection import router as admin_collection_router
 from app.admin.brand import router as admin_brand_router
 from app.admin.scent import router as admin_scent_router
-from app.database import initialize_mongodb, close_mongodb_connection
+from app.database import initialize_mongodb, close_mongodb_connection, lifespan_mongodb_connection
 from app.jinja_filters import setup_jinja_filters
 from fastapi.templating import Jinja2Templates
 import logging
 from config import get_settings
-
+from app.client.main.routes import router as client_main_router
+from app.client.products import router as client_products_router
+from app.client.checkout import router as client_checkout_router
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,11 @@ def patched_init(self, *args, **kwargs):
 Jinja2Templates.__init__ = patched_init
 
 def create_app():
-    app = FastAPI(title="Perfumes & More")
+    # Use the lifespan context manager for database connections
+    app = FastAPI(
+        title="Perfumes & More",
+        lifespan=lifespan_mongodb_connection
+    )
     
     # Configure CORS
     app.add_middleware(
@@ -66,13 +72,10 @@ def create_app():
     app.include_router(admin_collection_router)
     app.include_router(admin_brand_router)
     app.include_router(admin_scent_router)
-    # Setup startup and shutdown events
-    @app.on_event("startup")
-    async def startup_db_client():
-        await initialize_mongodb()
-    
-    @app.on_event("shutdown")
-    async def shutdown_db_client():
-        await close_mongodb_connection()
+    app.include_router(client_main_router)
+    app.include_router(client_products_router)
+    app.include_router(client_checkout_router)
+    # No need for these event handlers anymore, they're handled by the lifespan
+    # context manager
     
     return app

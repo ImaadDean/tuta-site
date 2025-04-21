@@ -52,7 +52,7 @@
                 ></h3>
                 <p
                   class="text-sm text-gray-500"
-                  x-text="'$' + item.price.toFixed(2)"
+                  x-text="'UGX ' + item.price"
                 ></p>
               </div>
               <button
@@ -116,7 +116,7 @@
               </div>
               <span
                 class="font-medium text-gray-900"
-                x-text="'$' + (item.price * item.quantity).toFixed(2)"
+                x-text="'UGX ' + (item.price * item.quantity)"
               ></span>
             </div>
           </div>
@@ -128,7 +128,7 @@
           <span class="text-base font-medium text-gray-900">Total</span>
           <span
             class="text-lg font-semibold text-gray-900"
-            x-text="'$' + cartTotal()"
+            x-text="'UGX ' + cartTotal()"
           ></span>
         </div>
         <button

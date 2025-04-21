@@ -88,20 +88,25 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
             detail="Could not create access token"
         )
 
+
+# Updated get_token_from_cookie function in jwt.py
 async def get_token_from_cookie(request: Request) -> Optional[str]:
     """Extract the token from cookies with better error handling"""
     try:
         token = request.cookies.get("access_token")
         
         if not token:
+            print("No access_token cookie found")
             return None
         
         # Strip 'Bearer ' prefix if present
         if token.startswith("Bearer "):
             token = token.replace("Bearer ", "")
             
+        print(f"Token extracted from cookie: {token[:10]}...")
         return token
-    except Exception:
+    except Exception as e:
+        print(f"Error extracting token from cookie: {e}")
         return None
 
 async def get_current_user(
@@ -228,19 +233,53 @@ async def get_current_user_optional(
     if not token:
         token = await get_token_from_cookie(request)
         if not token:
+            print("No token found in cookie or header")
             return None
     
     try:
+        print(f"Decoding token: {token[:10]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
+            print("No user_id found in token payload")
             return None
-    except JWTError:
+        print(f"User ID from token: {user_id}")
+    except JWTError as e:
+        print(f"JWT decode error: {e}")
         return None
         
     try:
+        print(f"Looking up user with ID: {user_id}")
+        # Try different ways to find the user
+        user = None
+        
+        # Method 1: Direct ID lookup
         user = await User.find_one({"id": user_id})
-    except Exception:
+        
+        # Method 2: Try with _id if method 1 fails
+        if user is None:
+            print("Trying with _id field")
+            user = await User.find_one({"_id": user_id})
+        
+        # Method 3: Try with string comparison if methods 1 and 2 fail
+        if user is None:
+            print("Trying with string comparison")
+            all_users = await User.find().to_list()
+            for u in all_users:
+                if str(u.id) == user_id:
+                    user = u
+                    print(f"Found user with string comparison: {u.username}")
+                    break
+        
+        if user:
+            print(f"Found user: {user.username}, role: {user.role}")
+        else:
+            print(f"No user found with ID: {user_id}")
+            # Debug: Print all user IDs to see what's in the database
+            all_users = await User.find().to_list()
+            print(f"All user IDs in database: {[str(u.id) for u in all_users]}")
+    except Exception as e:
+        print(f"Database error when looking up user: {e}")
         return None
         
     return user
