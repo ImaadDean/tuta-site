@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status, Request
@@ -163,6 +163,37 @@ async def get_current_active_admin(
         response.delete_cookie("access_token")
         return response
     
+    return current_user
+
+
+async def get_current_active_client(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> Union[None, User, RedirectResponse]:
+    """
+    Returns:
+      - User            → logged‑in client or admin
+      - None            → anonymous visitor (no valid token)
+      - RedirectResponse→ inactive non‑admin user
+    """
+    # 1️⃣ try to pull & validate via your existing get_current_user
+    try:
+        current_user = await get_current_user(request, token, db)
+    except HTTPException:
+        # missing or invalid token → treat as public
+        return None
+
+    # 2️⃣ if they’re a non-admin but inactive, kick them out
+    if current_user.role != UserRole.ADMIN and not current_user.is_active:
+        resp = RedirectResponse(
+            url=f"/auth/login?error={quote('Your account has been deactivated. Please contact support.')}",
+            status_code=303
+        )
+        resp.delete_cookie("access_token")
+        return resp
+
+    # 3️⃣ otherwise (active client or any admin), hand back the User
     return current_user
 
 async def is_logged_in(

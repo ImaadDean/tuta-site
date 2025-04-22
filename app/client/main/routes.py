@@ -13,7 +13,7 @@ from fastapi.responses import RedirectResponse
 import logging
 from fastapi.responses import HTMLResponse
 from typing import Optional, Dict, Any, List
-from app.auth.jwt import get_current_user_optional
+from app.auth.jwt import get_current_user_optional, get_current_active_client
 from app.models.user import User
 import asyncio
 
@@ -53,7 +53,7 @@ async def safe_db_operation(operation, fallback_value=None, error_message="Datab
 async def home(
     request: Request, 
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_active_client)
 ):
     """Home page with featured products, banners, categories, and collections"""
     try:
@@ -191,78 +191,3 @@ async def home(
                     "current_user": current_user
                 }
             )
-
-@router.get("/bestsellers", response_class=HTMLResponse)
-async def bestsellers_page(
-    request: Request, 
-    db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
-):
-    """Display all bestseller products"""
-    try:
-        # Get bestseller products with a higher limit
-        bestseller_products = await safe_db_operation(
-            Product.get_bestsellers(limit=24),
-            fallback_value=[],
-            error_message="Failed to fetch bestseller products"
-        )
-        
-        # Get categories for filtering
-        categories = await safe_db_operation(
-            Category.find({"is_active": True}).to_list(),
-            fallback_value=[],
-            error_message="Failed to fetch categories"
-        )
-        
-        # Format bestseller products 
-        def format_product(product):
-            # Ensure we have at least one image
-            image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
-            
-            # Use the base_price property
-            base_price = product.base_price
-            
-            return {
-                "id": product.id,
-                "name": product.name,
-                "price": base_price,
-                "image_urls": image_urls,
-                "view_count": getattr(product, 'view_count', 0),
-                "rating_avg": getattr(product, 'rating_avg', 0),
-                "review_count": getattr(product, 'review_count', 0),
-                "sales_count": getattr(product, 'sales_count', 0),
-                "bestseller": getattr(product, 'is_bestseller', False),
-                "new": getattr(product, 'is_new', False),
-                "stock": getattr(product, 'stock', 0),
-                "short_description": getattr(product, 'short_description', ''),
-                "long_description": getattr(product, 'long_description', '')
-            }
-        
-        formatted_bestsellers = [format_product(p) for p in bestseller_products]
-        
-        # Return the template with bestseller products
-        return templates.TemplateResponse(
-            "bestsellers.html", 
-            {
-                "request": request,
-                "bestseller_products": formatted_bestsellers,
-                "categories": categories,
-                "current_user": current_user,
-                "page_title": "Best Sellers",
-                "meta_description": "Browse our most popular and best-selling products."
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error rendering bestsellers page: {str(e)}")
-        # In case of an error, return a basic template with minimal data
-        return templates.TemplateResponse(
-            "bestsellers.html",
-            {
-                "request": request,
-                "bestseller_products": [],
-                "categories": [],
-                "current_user": current_user,
-                "error_message": "Failed to load bestseller products. Please try again later.",
-                "page_title": "Best Sellers"
-            }
-        )

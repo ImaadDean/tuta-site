@@ -12,7 +12,7 @@ from app.database import get_db
 from app.models.product import Product
 from app.models.review import Review, ReviewCreate
 from app.client.products import templates
-from app.auth.jwt import get_current_user_optional
+from app.auth.jwt import get_current_user_optional, get_current_active_client
 from app.models.user import User
 
 
@@ -59,7 +59,7 @@ async def get_products(
     max_price: Optional[int] = None,
     sort: Optional[str] = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_active_client)
 ):
     # Build the query for products
     query = {"status": "published"}
@@ -153,7 +153,7 @@ async def get_products(
             "min_price": min_price,
             "max_price": max_price,
             "current_sort": sort,
-            "current_user": current_user if current_user else {"is_authenticated": False}
+            "current_user": current_user
         }
     )
 
@@ -189,7 +189,7 @@ async def get_product(
     product_id: str,
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_active_client)
 ):
     """
     Get a single product by ID and render the detail page
@@ -384,7 +384,7 @@ async def get_product(
                 "request": request,
                 "product": make_json_serializable(formatted_product),
                 "related_products": make_json_serializable(formatted_related),
-                "current_user": current_user if current_user else {"is_authenticated": False}
+                "current_user": current_user
             }
         )
     except HTTPException:
@@ -412,7 +412,7 @@ async def get_product(
                     "view_count": 0
                 },
                 "related_products": [],
-                "current_user": current_user if current_user else {"is_authenticated": False}
+                "current_user": current_user  
             },
             status_code=500
         )
@@ -513,7 +513,7 @@ async def add_product_review(
     photos: List[UploadFile] = [],
     request: Request = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_active_client)
 ):
     """
     Add a new review for a product
@@ -670,7 +670,7 @@ async def mark_review_helpful(
     product_id: str,
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_active_client)
 ):
     """
     Mark a review as helpful

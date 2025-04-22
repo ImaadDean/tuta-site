@@ -21,6 +21,8 @@ from config import get_settings
 from app.client.main.routes import router as client_main_router
 from app.client.products import router as client_products_router
 from app.client.checkout import router as client_checkout_router
+from app.client.orders import router as client_orders_router
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,7 @@ def create_app():
     app.include_router(client_main_router)
     app.include_router(client_products_router)
     app.include_router(client_checkout_router)
+    app.include_router(client_orders_router)
     # No need for these event handlers anymore, they're handled by the lifespan
     # context manager
     
