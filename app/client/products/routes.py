@@ -447,14 +447,14 @@ async def get_product_reviews(
                 content={"success": False, "message": "Product not found"}
             )
         
-        # Get reviews for the product
+        # Get reviews for the product - ONLY include reviews with content (not rating-only)
         reviews = await safe_db_operation(
-            Review.get_by_product(product_id),
+            Review.find({"product_id": product_id, "is_rating_only": {"$ne": True}, "content": {"$ne": ""}}).to_list(),
             fallback_value=[],
             error_message=f"Error fetching reviews for product: {product_id}"
         )
         
-        # Calculate rating statistics
+        # Calculate rating statistics (include ALL ratings, even rating-only ones)
         rating_stats = await safe_db_operation(
             Review.calculate_product_rating(product_id),
             fallback_value={"rating_avg": 0, "review_count": 0, "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}},
@@ -466,12 +466,30 @@ async def get_product_reviews(
         for review in reviews:
             # Get user if available
             user = None
+            username = "Anonymous"
+            
             if review.user_id:
+                # Try to find the user by ID
                 user = await safe_db_operation(
-                    review.get_user(),
+                    User.find_one({"id": review.user_id}),
                     fallback_value=None,
                     error_message=f"Error fetching user for review: {review.id}"
                 )
+                
+                # If not found by id, try with _id
+                if not user:
+                    user = await safe_db_operation(
+                        User.find_one({"_id": review.user_id}),
+                        fallback_value=None,
+                        error_message=f"Error fetching user with _id for review: {review.id}"
+                    )
+                
+                # If user found, get username
+                if user:
+                    username = user.username
+            elif review.user_name:
+                # Use the provided user_name for non-logged in users
+                username = review.user_name
             
             formatted_review = {
                 "id": review.id,
@@ -483,7 +501,7 @@ async def get_product_reviews(
                 "created_at": review.created_at.isoformat() if review.created_at else None,
                 "user": {
                     "id": user.id if user else None,
-                    "name": user.name if user else review.user_name or "Anonymous"
+                    "name": username
                 }
             }
             formatted_reviews.append(formatted_review)
@@ -603,7 +621,8 @@ async def add_product_review(
             "rating": rating,
             "content": content or "",
             "photo_urls": photo_urls,
-            "verified_purchase": False  # This could be checked against order history
+            "verified_purchase": False,  # This could be checked against order history
+            "is_rating_only": is_rating_only_submission  # Add flag to identify rating-only submissions
         }
         
         # Add user information based on what's available
@@ -640,14 +659,15 @@ async def add_product_review(
             status_code=201,
             content={
                 "success": True,
-                "message": "Review added successfully",
+                "message": "Rating submitted successfully" if is_rating_only_submission else "Review added successfully",
                 "review": {
                     "id": review.id,
                     "rating": review.rating,
                     "content": review.content,
                     "photo_urls": review.photo_urls,
                     "helpful_votes": review.helpful_votes,
-                    "created_at": review.created_at.isoformat() if review.created_at else None
+                    "created_at": review.created_at.isoformat() if review.created_at else None,
+                    "is_rating_only": is_rating_only_submission
                 },
                 "updated_stats": rating_stats
             }
@@ -750,4 +770,4 @@ async def mark_review_helpful(
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": "Failed to mark review as helpful"}
-    ) 
+        )
