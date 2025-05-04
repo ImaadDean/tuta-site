@@ -113,13 +113,38 @@ async def home(
             error_message="Failed to fetch collections"
         )
         
-        # Helper function to format product data
+        # Helper function to format product data with variants
         def format_product(product):
             # Ensure we have at least one image
             image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
             
             # Use the base_price property instead of calculating it
             base_price = product.base_price
+            
+            # Find the variant with the highest price
+            highest_price_variant = None
+            highest_price = 0
+            
+            if hasattr(product, 'variants') and product.variants:
+                for variant_type, variant_values in product.variants.items():
+                    for variant in variant_values:
+                        variant_price = getattr(variant, 'price', 0) if not isinstance(variant, dict) else variant.get('price', 0)
+                        
+                        if variant_price > highest_price:
+                            highest_price = variant_price
+                            variant_id = getattr(variant, 'id', str(uuid.uuid4())) if not isinstance(variant, dict) else variant.get('id', str(uuid.uuid4()))
+                            variant_value = getattr(variant, 'value', '') if not isinstance(variant, dict) else variant.get('value', '')
+                            
+                            highest_price_variant = {
+                                'id': variant_id,
+                                'type': variant_type,
+                                'value': variant_value,
+                                'price': variant_price,
+                                'display_name': f"{variant_value}"
+                            }
+            
+            # Create a list with just the highest price variant, or empty if no variants
+            formatted_variants = [highest_price_variant] if highest_price_variant else []
             
             return {
                 "id": product.id,
@@ -134,9 +159,10 @@ async def home(
                 "new": getattr(product, 'is_new', False),
                 "stock": getattr(product, 'stock', 0),
                 "short_description": getattr(product, 'short_description', ''),
-                "long_description": getattr(product, 'long_description', '')
+                "long_description": getattr(product, 'long_description', ''),
+                "variants": formatted_variants,  # Now contains only the highest price variant
+                "has_variants": len(formatted_variants) > 0  # Flag to check if product has variants
             }
-        
         # Get all published products for the "Our Products" section
         all_products = await safe_db_operation(
             Product.find({"status": "published"}).limit(12).to_list(),

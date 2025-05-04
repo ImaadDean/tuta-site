@@ -464,12 +464,14 @@
 
     <!-- Cart Sidebar -->
     <div
+      x-data="{}"
       x-show="$store.cart.open"
       x-cloak
-      @click.away="$store.cart.open = false"
+      @click="$store.cart.open = false"
       class="cart-overlay fixed inset-0 bg-black bg-opacity-50 z-40"
     >
       <div
+        @click.stop
         class="cart-panel fixed right-0 top-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300"
         :class="$store.cart.open ? 'translate-x-0' : 'translate-x-full'"
       >

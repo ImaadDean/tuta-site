@@ -52,7 +52,7 @@ async def process_order(
         form_data = await request.form()
         
         # Get selected address ID if user is selecting a saved address
-        selected_address_id = form_data.get("selected_address_id")
+        selected_address_id = form_data.get("savedAddresses")
         
         # Parse cart data early to fail fast if invalid
         cart_json = form_data.get("cart")
@@ -67,7 +67,7 @@ async def process_order(
         if not cart_items:
             return JSONResponse({"success": False, "error": "Cart is empty"}, status_code=400)
         
-        # Get form data for shipping address
+        # Get form data for shipping address - only needed if not using existing address
         address = {
             "name": form_data.get("name"),
             "address": form_data.get("address"),
@@ -94,16 +94,18 @@ async def process_order(
         order_no_task = asyncio.create_task(create_unique_order_number())
         
         # If user is logged in and selected an existing address, use that address ID
-        if current_user and selected_address_id:
+        if current_user and selected_address_id and selected_address_id != "":
             # Verify the address belongs to the user
             existing_address = await Address.find_one({
-                "id": selected_address_id,
+                "_id": int(selected_address_id),
                 "user_id": str(current_user.id)
             })
             
             if existing_address:
+                # Just store the address ID, don't create a new address
                 address_id = selected_address_id
-                # Create shipping address object directly from existing address
+                
+                # Create shipping address object from existing address for order record
                 shipping_address_obj = ShippingAddress(
                     street=existing_address.address,
                     city=existing_address.city,
@@ -167,7 +169,7 @@ async def process_order(
                         is_default=False
                     )
                     
-                    # Check if it should be default - fixed to not use projection parameter
+                    # Check if it should be default
                     existing_addresses = await Address.find(
                         {"user_id": str(current_user.id)}
                     ).to_list()
@@ -227,7 +229,7 @@ async def process_order(
                 },
                 shipping_address=shipping_address_obj,
                 items=order_items,
-                address_id=address_id,
+                address_id=address_id,  # This is now either the selected address ID or a newly created one
                 total_amount=float(total_amount),
                 payment_method=payment_method,
                 amount_paid=0,  # Default to 0 paid
@@ -264,7 +266,7 @@ async def process_order(
             {"success": False, "error": "An unexpected error occurred during checkout"},
             status_code=500
         )
-
+    
 async def update_product_stats(cart_items: List[Dict]):
     """
     Update product statistics in the background.

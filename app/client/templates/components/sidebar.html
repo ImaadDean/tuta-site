@@ -141,13 +141,27 @@
               <div class="ml-auto">
                 {% if product.stock > 0 %}
                 <button 
-                  @click="$store.cart.addToCart({ 
-                    id: '{{ product.id }}', 
-                    name: '{{ product.name }}', 
-                    price: {{ product.price }},
-                    image: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                    stock: {{ product.stock }}
-                  });"
+                  x-data
+                  @click="
+                    $store.cart.addToCart({ 
+                      id: '{{ product.id }}', 
+                      name: '{{ product.name }}', 
+                      price: {{ product.price }},
+                      image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+                      stock: {{ product.stock }},
+                      {% if product.variants and product.variants|length > 0 %}
+                      variants: {
+                        '{{ product.variants[0].type }}': {
+                          id: '{{ product.variants[0].id }}',
+                          value: '{{ product.variants[0].display_name }}',
+                          price: {{ product.variants[0].price or product.price }}
+                        }
+                      },
+                      variantId: '{{ product.variants[0].id }}',
+                      {% endif %}
+                      quantity: 1
+                    })
+                  "
                   class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs"
                   title="Add to cart"
                 >

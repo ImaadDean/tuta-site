@@ -1,133 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>P&M - eCommerce Website</title>
-    <link
-      rel="shortcut icon"
-      href="https://res.cloudinary.com/dqgbwjapm/image/upload/v1739606865/P_M_logo_zh0wqo.png"
-      type="image/x-icon"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P&M - eCommerce Website</title>
+  <link
+    rel="shortcut icon"
+    href="https://res.cloudinary.com/dqgbwjapm/image/upload/v1739606865/P_M_logo_zh0wqo.png"
+    type="image/x-icon"
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
 
-    <style>
-      body {
-        font-family: "Poppins", sans-serif;
-      }
-      .has-scrollbar {
-        overflow-x: auto;
-        scrollbar-width: thin;
-      }
-      .has-scrollbar::-webkit-scrollbar {
-        width: 12px;
-        height: 12px;
-      }
-      .has-scrollbar::-webkit-scrollbar-thumb {
-        background: transparent;
-        border: 3px solid white;
-        border-radius: 20px;
-      }
-      .has-scrollbar:hover::-webkit-scrollbar-thumb {
-        background: hsl(0, 0%, 90%);
-      }
-      .has-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: hsl(0, 0%, 80%);
-      }
-      .product-img.hover {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 2;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .showcase:hover .product-img.hover {
-        opacity: 1;
-      }
-      .showcase:hover .product-img.default {
-        opacity: 0;
-      }
-      .showcase-actions {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        transform: translateX(50px);
-        transition: transform 0.3s ease;
-        z-index: 3;
-      }
-      .showcase:hover .showcase-actions {
-        transform: translateX(0);
-      }
-      .showcase-status-bar {
-        position: relative;
-        height: 10px;
-        border-radius: 5px;
-        background: hsl(0, 0%, 93%);
-      }
-      .showcase-status-bar::before {
-        position: absolute;
-        content: "";
-        top: 3px;
-        left: 3px;
-        height: 4px;
-        width: 40%;
-        background: hsl(353, 100%, 78%);
-        border-radius: 4px;
-      }
-      [data-accordion] {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-in-out;
-      }
-      [data-accordion].active {
-        max-height: 500px;
-      }
-      .add-icon,
-      .remove-icon.active {
-        display: block;
-      }
-      .remove-icon,
-      .add-icon.active {
-        display: none;
-      }
-      [data-accordion-btn].active .add-icon {
-        display: none;
-      }
-      [data-accordion-btn].active .remove-icon {
-        display: block;
-      }
-    </style>
-  </head>
-  <body class="bg-white">
-    <div class="product-container">
-      <div class="container mx-auto px-4">
-        <div class="flex flex-col lg:flex-row gap-8">
-          <!-- SIDEBAR -->
-          {% include "components/sidebar.html" %}
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+    }
+    .has-scrollbar {
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .has-scrollbar::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    .has-scrollbar::-webkit-scrollbar-thumb {
+      background: transparent;
+      border: 3px solid white;
+      border-radius: 20px;
+    }
+    .has-scrollbar:hover::-webkit-scrollbar-thumb {
+      background: hsl(0, 0%, 90%);
+    }
+    .has-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: hsl(0, 0%, 80%);
+    }
+    .product-img.hover {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .showcase:hover .product-img.hover {
+      opacity: 1;
+    }
+    .showcase:hover .product-img.default {
+      opacity: 0;
+    }
+    .showcase-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      transform: translateX(50px);
+      transition: transform 0.3s ease;
+      z-index: 3;
+    }
+    .showcase:hover .showcase-actions {
+      transform: translateX(0);
+    }
+    .showcase-status-bar {
+      position: relative;
+      height: 10px;
+      border-radius: 5px;
+      background: hsl(0, 0%, 93%);
+    }
+    .showcase-status-bar::before {
+      position: absolute;
+      content: "";
+      top: 3px;
+      left: 3px;
+      height: 4px;
+      width: 40%;
+      background: hsl(353, 100%, 78%);
+      border-radius: 4px;
+    }
+    [data-accordion] {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-in-out;
+    }
+    [data-accordion].active {
+      max-height: 500px;
+    }
+    .add-icon,
+    .remove-icon.active {
+      display: block;
+    }
+    .remove-icon,
+    .add-icon.active {
+      display: none;
+    }
+    [data-accordion-btn].active .add-icon {
+      display: none;
+    }
+    [data-accordion-btn].active .remove-icon {
+      display: block;
+    }
+    .variant-list {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .variant-item {
+      display: block;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .variant-item:last-child {
+      border-bottom: none;
+    }
+    .variant-id {
+      color: #666;
+      font-size: 10px;
+      display: block;
+      margin-top: 2px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body class="bg-white">
+  <div class="product-container">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-col lg:flex-row gap-8">
+        <!-- SIDEBAR -->
+        {% include "components/sidebar.html" %}
 
-          <!-- PRODUCT MINIMAL -->
-          <div class="flex-1">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <!-- NEW ARRIVALS SECTION -->
-              <div class="w-full">
-                <h2
-                  class="text-lg font-semibold text-gray-800 pb-2.5 border-b border-gray-200 mb-6"
-                >
-                  New Arrivals
-                </h2>
+        <!-- PRODUCT MINIMAL -->
+        <div class="flex-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- NEW ARRIVALS SECTION -->
+            <div class="w-full">
+              <h2
+                class="text-lg font-semibold text-gray-800 pb-2.5 border-b border-gray-200 mb-6"
+              >
+                New Arrivals
+              </h2>
 
-                <div class="relative">
-                  <div class="grid grid-cols-1 gap-4 mb-4">
-                    {% for product in new_arrivals[:4] %}
-                    <div
-                    class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
-                  >
+              <div class="relative">
+                <div class="grid grid-cols-1 gap-4 mb-4">
+                  {% for product in new_arrivals[:4] %}
+                  <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow">
                     <a href="/product/{{ product.id }}" class="flex-shrink-0 relative">
                       <img
                         src="{{ product.image_urls[0] if product.image_urls and product.image_urls|length > 0 else '/static/images/product-placeholder.jpg' }}"
@@ -145,9 +165,7 @@
           
                     <div class="flex-1">
                       <a href="/product/{{ product.id }}" class="block mb-1">
-                        <h4
-                          class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
-                        >
+                        <h4 class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors">
                           {{ product.name }}
                         </h4>
                       </a>
@@ -158,15 +176,6 @@
                             {% if i < product.rating_avg|int %}
                             <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                            </svg>
-                            {% elif i < product.rating_avg|int + 0.5 and product.rating_avg|int != product.rating_avg %}
-                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" clipPath="url(#half-star-clip-{{loop.index}})" />
-                              <defs>
-                                <clipPath id="half-star-clip-{{loop.index}}">
-                                  <rect x="0" y="0" width="10" height="20" />
-                                </clipPath>
-                              </defs>
                             </svg>
                             {% else %}
                             <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
@@ -187,7 +196,7 @@
                           </svg>
                         </button>
                       </div>
-          
+
                       <div class="flex items-center gap-2">
                         {% if product.old_price and product.old_price > product.price %}
                         <del class="text-gray-500 text-sm">UGX {{ '{:,}'.format(product.old_price) }}</del>
@@ -196,263 +205,297 @@
                         <div class="ml-auto">
                           {% if product.stock > 0 %}
                           <button 
+                            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs" 
+                            title="Add to cart"
+                            x-data
                             @click="$store.cart.addToCart({ 
                               id: '{{ product.id }}', 
                               name: '{{ product.name }}', 
                               price: {{ product.price }},
                               image: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                              stock: {{ product.stock }}
-                            });"
-                            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs"
-                            title="Add to cart"
+                              stock: {{ product.stock }},
+                              {% if product.variants and product.variants|length > 0 %}
+                              variants: {
+                                '{{ product.variants[0].type }}': {
+                                  id: '{{ product.variants[0].id }}',
+                                  value: '{{ product.variants[0].display_name }}',
+                                  price: {{ product.variants[0].price or product.price }}
+                                }
+                              },
+                              variantId: '{{ product.variants[0].id }}',
+                              {% endif %}
+                              quantity: 1
+                            })"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                             <span class="md:hidden">Add</span>
                           </button>
-                          {% endif %}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                    {% endfor %}
-                  </div>
-
-                </div>
-              </div>
-
-              <!-- TRENDING SECTION -->
-              <div class="w-full">
-                <h2
-                  class="text-lg font-semibold text-gray-800 pb-2.5 border-b border-gray-200 mb-6"
-                >
-                  Trending
-                </h2>
-
-                <div class="relative">
-                  <div class="grid grid-cols-1 gap-4 mb-4">
-                    {% for product in trending_products[:4] %}
-                    <div
-                    class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
-                  >
-                    <a href="/product/{{ product.id }}" class="flex-shrink-0 relative">
-                      <img
-                        src="{{ product.image_urls[0] if product.image_urls and product.image_urls|length > 0 else '/static/images/product-placeholder.jpg' }}"
-                        alt="{{ product.name }}"
-                        class="w-[75px] h-[75px] object-cover rounded-md"
-                      />
-                      {% if product.stock <= 0 %}
-                      <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
-                        <div class="bg-white text-gray-800 font-medium px-1.5 py-0.5 rounded-full text-[10px]">
-                          Out of Stock
-                        </div>
-                      </div>
-                      {% endif %}
-                    </a>
-          
-                    <div class="flex-1">
-                      <a href="/product/{{ product.id }}" class="block mb-1">
-                        <h4
-                          class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
-                        >
-                          {{ product.name }}
-                        </h4>
-                      </a>
-          
-                      <div class="flex items-center justify-between mb-1">
-                        <div class="flex text-yellow-500">
-                          {% for i in range(5) %}
-                            {% if i < product.rating_avg|int %}
-                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                            </svg>
-                            {% elif i < product.rating_avg|int + 0.5 and product.rating_avg|int != product.rating_avg %}
-                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" clipPath="url(#half-star-clip-{{loop.index}})" />
-                              <defs>
-                                <clipPath id="half-star-clip-{{loop.index}}">
-                                  <rect x="0" y="0" width="10" height="20" />
-                                </clipPath>
-                              </defs>
-                            </svg>
-                            {% else %}
-                            <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                            </svg>
-                            {% endif %}
-                          {% endfor %}
-                        </div>
-                        
-                        <button
-                          @click="$store.favorites.toggleFavorite('{{ product.id }}');"
-                          class="p-1.5 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
-                          title="Add to favorites"
-                          :class="{ 'text-red-500 bg-red-50 hover:bg-red-100': $store.favorites.isFavorite('{{ product.id }}') }"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke="$store.favorites.isFavorite('{{ product.id }}') ? 'none' : 'currentColor'" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                        </button>
-                      </div>
-          
-                      <div class="flex items-center gap-2">
-                        {% if product.old_price and product.old_price > product.price %}
-                        <del class="text-gray-500 text-sm">UGX {{ '{:,}'.format(product.old_price) }}</del>
-                        {% endif %}
-                        <p class="text-sm font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</p>
-                        <div class="ml-auto">
-                          {% if product.stock > 0 %}
+                          {% else %}
                           <button 
-                            @click="$store.cart.addToCart({ 
-                              id: '{{ product.id }}', 
-                              name: '{{ product.name }}', 
-                              price: {{ product.price }},
-                              image: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                              stock: {{ product.stock }}
-                            });"
-                            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs"
-                            title="Add to cart"
+                            class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
+                            disabled
+                            title="Out of Stock"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span class="md:hidden">Add</span>
+                            <span class="md:hidden">Out of stock</span>
                           </button>
                           {% endif %}
                         </div>
                       </div>
                     </div>
                   </div>
-                    {% endfor %}
-                  </div>
-
-
+                  {% endfor %}
                 </div>
               </div>
-
-              <!-- TOP RATED SECTION -->
-              <div class="w-full">
-                <h2
-                  class="text-lg font-semibold text-gray-800 pb-2.5 border-b border-gray-200 mb-6"
-                >
-                  Top Rated
-                </h2>
-
-                <div class="relative">
-                  <div class="grid grid-cols-1 gap-4 mb-4">
-                    {% for product in top_rated_products[:4] %}
-                    <div
-                    class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow"
-                  >
-                    <a href="/product/{{ product.id }}" class="flex-shrink-0 relative">
-                      <img
-                        src="{{ product.image_urls[0] if product.image_urls and product.image_urls|length > 0 else '/static/images/product-placeholder.jpg' }}"
-                        alt="{{ product.name }}"
-                        class="w-[75px] h-[75px] object-cover rounded-md"
-                      />
-                      {% if product.stock <= 0 %}
-                      <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
-                        <div class="bg-white text-gray-800 font-medium px-1.5 py-0.5 rounded-full text-[10px]">
-                          Out of Stock
-                        </div>
-                      </div>
-                      {% endif %}
-                    </a>
-          
-                    <div class="flex-1">
-                      <a href="/product/{{ product.id }}" class="block mb-1">
-                        <h4
-                          class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
-                        >
-                          {{ product.name }}
-                        </h4>
-                      </a>
-          
-                      <div class="flex items-center justify-between mb-1">
-                        <div class="flex text-yellow-500">
-                          {% for i in range(5) %}
-                            {% if i < product.rating_avg|int %}
-                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                            </svg>
-                            {% elif i < product.rating_avg|int + 0.5 and product.rating_avg|int != product.rating_avg %}
-                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" clipPath="url(#half-star-clip-{{loop.index}})" />
-                              <defs>
-                                <clipPath id="half-star-clip-{{loop.index}}">
-                                  <rect x="0" y="0" width="10" height="20" />
-                                </clipPath>
-                              </defs>
-                            </svg>
-                            {% else %}
-                            <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                            </svg>
-                            {% endif %}
-                          {% endfor %}
-                        </div>
-                        
-                        <button
-                          @click="$store.favorites.toggleFavorite('{{ product.id }}');"
-                          class="p-1.5 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
-                          title="Add to favorites"
-                          :class="{ 'text-red-500 bg-red-50 hover:bg-red-100': $store.favorites.isFavorite('{{ product.id }}') }"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke="$store.favorites.isFavorite('{{ product.id }}') ? 'none' : 'currentColor'" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                        </button>
-                      </div>
-          
-                      <div class="flex items-center gap-2">
-                        {% if product.old_price and product.old_price > product.price %}
-                        <del class="text-gray-500 text-sm">UGX {{ '{:,}'.format(product.old_price) }}</del>
-                        {% endif %}
-                        <p class="text-sm font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</p>
-                        <div class="ml-auto">
-                          {% if product.stock > 0 %}
-                          <button 
-                            @click="$store.cart.addToCart({ 
-                              id: '{{ product.id }}', 
-                              name: '{{ product.name }}', 
-                              price: {{ product.price }},
-                              image: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                              stock: {{ product.stock }}
-                            });"
-                            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs"
-                            title="Add to cart"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <span class="md:hidden">Add</span>
-                          </button>
-                          {% endif %}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                    {% endfor %}
-                  </div>
-
-                </div>
-              </div>
-
-            
             </div>
-            <h2 class="text-2xl font-semibold text-gray-900 mb-6">Our Products</h2>
+
+            <!-- TRENDING SECTION -->
+            <div class="w-full">
+              <h2
+                class="text-lg font-semibold text-gray-800 pb-2.5 border-b border-gray-200 mb-6"
+              >
+                Trending
+              </h2>
+
+              <div class="relative">
+                <div class="grid grid-cols-1 gap-4 mb-4">
+                  {% for product in trending_products[:4] %}
+                  <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow">
+                    <a href="/product/{{ product.id }}" class="flex-shrink-0 relative">
+                      <img
+                        src="{{ product.image_urls[0] if product.image_urls and product.image_urls|length > 0 else '/static/images/product-placeholder.jpg' }}"
+                        alt="{{ product.name }}"
+                        class="w-[75px] h-[75px] object-cover rounded-md"
+                      />
+                      {% if product.stock <= 0 %}
+                      <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
+                        <div class="bg-white text-gray-800 font-medium px-1.5 py-0.5 rounded-full text-[10px]">
+                          Out of Stock
+                        </div>
+                      </div>
+                      {% endif %}
+                    </a>
+          
+                    <div class="flex-1">
+                      <a href="/product/{{ product.id }}" class="block mb-1">
+                        <h4 class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors">
+                          {{ product.name }}
+                        </h4>
+                      </a>
+          
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="flex text-yellow-500">
+                          {% for i in range(5) %}
+                            {% if i < product.rating_avg|int %}
+                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            {% else %}
+                            <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            {% endif %}
+                          {% endfor %}
+                        </div>
+                        
+                        <button
+                          @click="$store.favorites.toggleFavorite('{{ product.id }}');"
+                          class="p-1.5 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
+                          title="Add to favorites"
+                          :class="{ 'text-red-500 bg-red-50 hover:bg-red-100': $store.favorites.isFavorite('{{ product.id }}') }"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke="$store.favorites.isFavorite('{{ product.id }}') ? 'none' : 'currentColor'" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        {% if product.old_price and product.old_price > product.price %}
+                        <del class="text-gray-500 text-sm">UGX {{ '{:,}'.format(product.old_price) }}</del>
+                        {% endif %}
+                        <p class="text-sm font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</p>
+                        <div class="ml-auto">
+                          {% if product.stock > 0 %}
+                          <button 
+                            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs" 
+                            title="Add to cart"
+                            x-data
+                            @click="$store.cart.addToCart({ 
+                              id: '{{ product.id }}', 
+                              name: '{{ product.name }}', 
+                              price: {{ product.price }},
+                              image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+                              stock: {{ product.stock }},
+                              {% if product.variants and product.variants|length > 0 %}
+                              variants: {
+                                '{{ product.variants[0].type }}': {
+                                  id: '{{ product.variants[0].id }}',
+                                  value: '{{ product.variants[0].display_name }}',
+                                  price: {{ product.variants[0].price or product.price }}
+                                }
+                              },
+                              variantId: '{{ product.variants[0].id }}',
+                              {% endif %}
+                              quantity: 1
+                            })"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="md:hidden">Add</span>
+                          </button>
+                          {% else %}
+                          <button 
+                            class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
+                            disabled
+                            title="Out of Stock"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="md:hidden">Out of stock</span>
+                          </button>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- TOP RATED SECTION -->
+            <div class="w-full">
+              <h2
+                class="text-lg font-semibold text-gray-800 pb-2.5 border-b border-gray-200 mb-6"
+              >
+                Top Rated
+              </h2>
+
+              <div class="relative">
+                <div class="grid grid-cols-1 gap-4 mb-4">
+                  {% for product in top_rated_products[:4] %}
+                  <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow">
+                    <a href="/product/{{ product.id }}" class="flex-shrink-0 relative">
+                      <img
+                        src="{{ product.image_urls[0] if product.image_urls and product.image_urls|length > 0 else '/static/images/product-placeholder.jpg' }}"
+                        alt="{{ product.name }}"
+                        class="w-[75px] h-[75px] object-cover rounded-md"
+                      />
+                      {% if product.stock <= 0 %}
+                      <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
+                        <div class="bg-white text-gray-800 font-medium px-1.5 py-0.5 rounded-full text-[10px]">
+                          Out of Stock
+                        </div>
+                      </div>
+                      {% endif %}
+                    </a>
+          
+                    <div class="flex-1">
+                      <a href="/product/{{ product.id }}" class="block mb-1">
+                        <h4 class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors">
+                          {{ product.name }}
+                        </h4>
+                      </a>
+          
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="flex text-yellow-500">
+                          {% for i in range(5) %}
+                            {% if i < product.rating_avg|int %}
+                            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            {% else %}
+                            <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            {% endif %}
+                          {% endfor %}
+                        </div>
+                        
+                        <button
+                          @click="$store.favorites.toggleFavorite('{{ product.id }}');"
+                          class="p-1.5 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
+                          title="Add to favorites"
+                          :class="{ 'text-red-500 bg-red-50 hover:bg-red-100': $store.favorites.isFavorite('{{ product.id }}') }"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke="$store.favorites.isFavorite('{{ product.id }}') ? 'none' : 'currentColor'" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        {% if product.old_price and product.old_price > product.price %}
+                        <del class="text-gray-500 text-sm">UGX {{ '{:,}'.format(product.old_price) }}</del>
+                        {% endif %}
+                        <p class="text-sm font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</p>
+                        <div class="ml-auto">
+                          {% if product.stock > 0 %}
+                          <button 
+                            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs" 
+                            title="Add to cart"
+                            x-data
+                            @click="$store.cart.addToCart({ 
+                              id: '{{ product.id }}', 
+                              name: '{{ product.name }}', 
+                              price: {{ product.price }},
+                              image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+                              stock: {{ product.stock }},
+                              {% if product.variants and product.variants|length > 0 %}
+                              variants: {
+                                '{{ product.variants[0].type }}': {
+                                  id: '{{ product.variants[0].id }}',
+                                  value: '{{ product.variants[0].display_name }}',
+                                  price: {{ product.variants[0].price or product.price }}
+                                }
+                              },
+                              variantId: '{{ product.variants[0].id }}',
+                              {% endif %}
+                              quantity: 1
+                            })"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="md:hidden">Add</span>
+                          </button>
+                          {% else %}
+                          <button 
+                            class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
+                            disabled
+                            title="Out of Stock"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="md:hidden">Out of stock</span>
+                          </button>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- OUR PRODUCTS SECTION -->
+          <h2 class="text-2xl font-semibold text-gray-900 mb-6">Our Products</h2>
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mx-auto"
+          >
+            {% for product in products %}
             <div
-              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mx-auto"
-            >
-              {% for product in products %}
-              <div
               class="group bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
-                x-data="{ 
-                  currentImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                  defaultImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                  alternateImage: '{{ product.image_urls[1] if product.image_urls|length > 1 else product.image_urls[0] if product.image_urls else '' }}'
-                }"
               data-product-id="{{ product.id }}"
               data-product-name="{{ product.name }}"
             >
@@ -464,40 +507,36 @@
                 {% if product.bestseller %}
                 <span class="absolute top-2 {% if product.new %}right-2{% else %}left-2{% endif %} z-10 bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded">Bestseller</span>
                 {% endif %}
-                  </div>
-          
-                  <!-- Image section -->
+              </div>
+
+              <!-- Image section -->
               <a href="/product/{{ product.id }}" class="block relative overflow-hidden">
-                  <div
-                  class="h-64 overflow-hidden bg-gray-50"
-                    @mouseenter="currentImage = alternateImage"
-                    @mouseleave="currentImage = defaultImage"
-                  >
-                    {% if product.image_urls and product.image_urls|length > 0 %}
-                    <img
-                    :src="currentImage || '/static/images/product-placeholder.jpg'"
-                      alt="{{ product.name }}"
+                <div class="h-64 overflow-hidden bg-gray-50">
+                  {% if product.image_urls and product.image_urls|length > 0 %}
+                  <img
+                    src="{{ product.image_urls[0] }}"
+                    alt="{{ product.name }}"
                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    {% else %}
+                  />
+                  {% else %}
                   <div class="w-full h-full bg-gray-100 flex items-center justify-center">
                     <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    {% endif %}
-                  </div>
-                  
-                  <!-- Out of stock overlay -->
-                  {% if product.stock <= 0 %}
-                  <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div class="bg-white text-gray-800 font-medium px-2 py-1 rounded-full text-xs">
-                      Out of Stock
-                    </div>
+                    </svg>
                   </div>
                   {% endif %}
-                </a>
-          
+                </div>
+                
+                <!-- Out of stock overlay -->
+                {% if product.stock <= 0 %}
+                <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                  <div class="bg-white text-gray-800 font-medium px-2 py-1 rounded-full text-xs">
+                    Out of Stock
+                  </div>
+                </div>
+                {% endif %}
+              </a>
+
               <!-- Content section -->
               <div class="p-4">
                 <a href="/category/{{ product.category }}" class="text-xs text-blue-600 hover:underline">{{ product.category }}</a>
@@ -521,36 +560,48 @@
                   </div>
                   
                   <div class="flex gap-2">
-                  {% if product.stock > 0 %}
-                  <button
-                      @click="$store.cart.addToCart({ 
-                      id: '{{ product.id }}', 
-                      name: '{{ product.name }}', 
-                      price: {{ product.price }},
-                      image: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                      stock: {{ product.stock }}
-                    });"
+                    {% if product.stock > 0 %}
+                    <button
                       class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-2 md:w-9 md:h-9 md:justify-center px-2 py-1.5 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 text-xs"
                       title="Add to cart"
-                  >
+                      x-data
+                      @click="$store.cart.addToCart({ 
+                        id: '{{ product.id }}', 
+                        name: '{{ product.name }}', 
+                        price: {{ product.price }},
+                        image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+                        stock: {{ product.stock }},
+                        {% if product.variants and product.variants|length > 0 %}
+                        variants: {
+                          '{{ product.variants[0].type }}': {
+                            id: '{{ product.variants[0].id }}',
+                            value: '{{ product.variants[0].display_name }}',
+                            price: {{ product.variants[0].price or product.price }}
+                          }
+                        },
+                        variantId: '{{ product.variants[0].id }}',
+                        {% endif %}
+                        quantity: 1
+                      })"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                       <span class="md:hidden">Add to cart</span>
-                  </button>
-                  {% else %}
-                  <button 
-                    class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
-                    disabled
-                    title="Out of Stock"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span class="md:hidden">Out of stock</span>
-                  </button>
-                  {% endif %}
-                    
+                    </button>
+                    {% else %}
+                    <button 
+                      class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
+                      disabled
+                      title="Out of Stock"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span class="md:hidden">Out of stock</span>
+                    </button>
+                    {% endif %}
+                      
                     <button
                       @click="$store.favorites.toggleFavorite('{{ product.id }}');"
                       class="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
@@ -566,89 +617,89 @@
               </div>
             </div>
             {% endfor %}
-            </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <style>
-      /* Custom scrollbar styling */
-      .scrollbar-thin {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-      }
+  <style>
+    /* Custom scrollbar styling */
+    .scrollbar-thin {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+    }
 
-      .scrollbar-thin::-webkit-scrollbar {
-        height: 6px; /* For horizontal scrolling */
-        width: 6px;
-      }
+    .scrollbar-thin::-webkit-scrollbar {
+      height: 6px; /* For horizontal scrolling */
+      width: 6px;
+    }
 
-      .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-      }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-      .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.5);
-        border-radius: 3px;
-      }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.5);
+      border-radius: 3px;
+    }
 
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(156, 163, 175, 0.8);
-      }
-    </style>
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(156, 163, 175, 0.8);
+    }
+  </style>
 
-    <!-- Ionicons -->
-    <script
-      type="module"
-      src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"
-    ></script>
-    <script
-      nomodule
-      src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"
-    ></script>
+  <!-- Ionicons -->
+  <script
+    type="module"
+    src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"
+  ></script>
+  <script
+    nomodule
+    src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"
+  ></script>
 
-    <!-- Custom JS -->
-    <script>
-      // Accordion functionality
-      const accordionBtns = document.querySelectorAll("[data-accordion-btn]");
-      const accordions = document.querySelectorAll("[data-accordion]");
+  <!-- Custom JS -->
+  <script>
+    // Accordion functionality
+    const accordionBtns = document.querySelectorAll("[data-accordion-btn]");
+    const accordions = document.querySelectorAll("[data-accordion]");
 
-      accordionBtns.forEach((btn, index) => {
-        btn.addEventListener("click", function () {
-          this.classList.toggle("active");
-          accordions[index].classList.toggle("active");
-        });
+    accordionBtns.forEach((btn, index) => {
+      btn.addEventListener("click", function () {
+        this.classList.toggle("active");
+        accordions[index].classList.toggle("active");
       });
+    });
 
-      // Mobile menu functionality
-      const mobileMenuOpenBtn = document.querySelectorAll(
-        "[data-mobile-menu-open-btn]"
-      );
-      const mobileMenu = document.querySelectorAll("[data-mobile-menu]");
-      const mobileMenuCloseBtn = document.querySelectorAll(
-        "[data-mobile-menu-close-btn]"
-      );
-      const overlay = document.querySelector(".overlay");
+    // Mobile menu functionality
+    const mobileMenuOpenBtn = document.querySelectorAll(
+      "[data-mobile-menu-open-btn]"
+    );
+    const mobileMenu = document.querySelectorAll("[data-mobile-menu]");
+    const mobileMenuCloseBtn = document.querySelectorAll(
+      "[data-mobile-menu-close-btn]"
+    );
+    const overlay = document.querySelector(".overlay");
 
-      if (mobileMenuOpenBtn.length > 0) {
-        for (let i = 0; i < mobileMenuOpenBtn.length; i++) {
-          const mobileMenuCloseFunc = function () {
-            mobileMenu[i].classList.remove("active");
-            overlay.classList.remove("active");
-            document.body.classList.remove("overflow-hidden");
-          };
+    if (mobileMenuOpenBtn.length > 0) {
+      for (let i = 0; i < mobileMenuOpenBtn.length; i++) {
+        const mobileMenuCloseFunc = function () {
+          mobileMenu[i].classList.remove("active");
+          overlay.classList.remove("active");
+          document.body.classList.remove("overflow-hidden");
+        };
 
-          mobileMenuOpenBtn[i].addEventListener("click", function () {
-            mobileMenu[i].classList.add("active");
-            overlay.classList.add("active");
-            document.body.classList.add("overflow-hidden");
-          });
+        mobileMenuOpenBtn[i].addEventListener("click", function () {
+          mobileMenu[i].classList.add("active");
+          overlay.classList.add("active");
+          document.body.classList.add("overflow-hidden");
+        });
 
-          mobileMenuCloseBtn[i].addEventListener("click", mobileMenuCloseFunc);
-          overlay && overlay.addEventListener("click", mobileMenuCloseFunc);
-        }
+        mobileMenuCloseBtn[i].addEventListener("click", mobileMenuCloseFunc);
+        overlay && overlay.addEventListener("click", mobileMenuCloseFunc);
       }
-    </script>
-  </body>
+    }
+  </script>
+</body>
 </html>

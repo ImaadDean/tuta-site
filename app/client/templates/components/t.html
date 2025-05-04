@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P&M Store - About Us</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .animate-on-scroll {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.7s ease-out;
+      }
+      
+      .animate-active {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flex flex-col min-h-screen">
+      <!-- Header -->
+      <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-16">
+            <div class="flex items-center">
+              <a href="/" class="text-xl font-semibold text-gray-900">P&M Store</a>
+              <div class="hidden md:block ml-10">
+                <div class="flex items-baseline space-x-4">
+                  <a href="/" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Home</a>
+                  <a href="/products" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Products</a>
+                  <a href="/about" class="px-3 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">About</a>
+                  <a href="/contact" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Contact</a>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center">
+              <a href="/cart" class="relative p-2 text-gray-600 hover:text-gray-900">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full">0</span>
+              </a>
+
+              <div class="relative ml-3 hidden md:block">
+                <div class="flex items-center space-x-2">
+                  <a href="/login" class="text-sm font-medium text-gray-700 px-3 py-2 rounded-md hover:text-blue-600">Login</a>
+                  <a href="/register" class="text-sm font-medium bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">Register</a>
+                </div>
+              </div>
+
+              <button 
+                onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"
+                class="md:hidden ml-4 text-gray-600 hover:text-gray-900 focus:outline-none"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mobile menu -->
+          <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <a href="/" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Home</a>
+              <a href="/products" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Products</a>
+              <a href="/about" class="block px-3 py-2 text-base font-medium text-blue-600 bg-gray-50 rounded-md">About</a>
+              <a href="/contact" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Contact</a>
+            </div>
+            <div class="pt-4 pb-3 border-t border-gray-200">
+              <div class="flex items-center px-5">
+                <div class="flex items-center space-x-2">
+                  <a href="/login" class="text-sm font-medium text-gray-700 px-3 py-2 rounded-md hover:text-blue-600">Login</a>
+                  <a href="/register" class="text-sm font-medium bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">Register</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="relative py-20 md:py-28 bg-gradient-to-r from-blue-50 to-indigo-50 overflow-hidden">
+          <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-10 w-full h-full">
+              <img src="https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" alt="Background pattern" class="w-full h-full object-cover">
+            </div>
+          </div>
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="md:w-3/5">
+              <h1 class="font-extrabold text-4xl md:text-5xl lg:text-6xl tracking-tight text-gray-900 mb-6">
+                About <span class="text-blue-600">P&M Store</span>
+              </h1>
+              <p class="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
+                We are a premium e-commerce destination offering high-quality products 
+                curated for the discerning shopper. Our mission is to provide exceptional 
+                shopping experiences through thoughtful curation and outstanding service.
+              </p>
+              <div class="flex flex-wrap gap-4">
+                <a 
+                  href="/products" 
+                  class="px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors shadow-md"
+                >
+                  Browse Products
+                </a>
+                <a 
+                  href="/contact" 
+                  class="px-6 py-3 bg-white text-blue-600 font-medium rounded-md hover:bg-gray-50 transition-colors shadow-md border border-gray-200"
+                >
+                  Contact Us
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Our Story Section -->
+        <section class="py-16 md:py-24">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row gap-12 items-center">
+              <div class="lg:w-1/2 animate-on-scroll">
+                <img 
+                  src="https://images.pexels.com/photos/6214476/pexels-photo-6214476.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                  alt="Our store" 
+                  class="rounded-lg shadow-lg w-full h-auto object-cover"
+                />
+              </div>
+              <div class="lg:w-1/2 animate-on-scroll">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
+                <div class="space-y-4 text-gray-700">
+                  <p>
+                    Founded in 2019, P&M Store began as a small boutique focusing on handcrafted goods. 
+                    Our passion for exceptional craftsmanship and unique products quickly gained a dedicated following.
+                  </p>
+                  <p>
+                    As demand grew, we expanded our offerings while maintaining our commitment to quality. 
+                    Today, we've evolved into a comprehensive e-commerce platform featuring carefully curated 
+                    collections across multiple categories.
+                  </p>
+                  <p>
+                    Despite our growth, we remain true to our founding principles: exceptional products, 
+                    transparent business practices, and customer satisfaction above all else.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Our Values -->
+        <section class="py-16 bg-gray-50">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+              <h2 class="text-3xl font-bold text-gray-900 mb-4">Our Values</h2>
+              <p class="max-w-3xl mx-auto text-gray-700">
+                These core principles guide everything we do, from product selection to customer service.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <!-- Value 1 -->
+              <div class="bg-white p-8 rounded-lg shadow-md animate-on-scroll">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+                  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield-check.svg" alt="Quality icon" class="w-6 h-6 text-blue-600">
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-3">Quality Assurance</h3>
+                <p class="text-gray-700">
+                  Every product in our catalog undergoes rigorous quality testing. We stand behind 
+                  everything we sell with our satisfaction guarantee.
+                </p>
+              </div>
+
+              <!-- Value 2 -->
+              <div class="bg-white p-8 rounded-lg shadow-md animate-on-scroll">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+                  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/dollar-sign.svg" alt="Price icon" class="w-6 h-6 text-blue-600">
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-3">Fair Pricing</h3>
+                <p class="text-gray-700">
+                  We believe in transparent, fair pricing. No hidden fees or last-minute surcharges—just 
+                  honest value for exceptional products.
+                </p>
+              </div>
+
+              <!-- Value 3 -->
+              <div class="bg-white p-8 rounded-lg shadow-md animate-on-scroll">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+                  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/smile.svg" alt="Satisfaction icon" class="w-6 h-6 text-blue-600">
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-3">Customer Satisfaction</h3>
+                <p class="text-gray-700">
+                  Your happiness is our priority. Our dedicated support team is always ready to assist 
+                  with any questions or concerns.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Meet Our Team -->
+        <section class="py-16 md:py-24">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+              <h2 class="text-3xl font-bold text-gray-900 mb-4">Meet Our Team</h2>
+              <p class="max-w-3xl mx-auto text-gray-700">
+                The passionate individuals behind P&M Store who work tirelessly to bring you the best shopping experience.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <!-- Team Member 1 -->
+              <div class="animate-on-scroll">
+                <div class="bg-white rounded-lg overflow-hidden shadow-md group">
+                  <div class="relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                      alt="Team member" 
+                      class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Peter Morgan</h3>
+                    <p class="text-blue-600 mb-3">Co-Founder & CEO</p>
+                    <p class="text-gray-700 text-sm">
+                      With over 15 years in retail, Peter brings a wealth of industry experience to lead our vision.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Team Member 2 -->
+              <div class="animate-on-scroll">
+                <div class="bg-white rounded-lg overflow-hidden shadow-md group">
+                  <div class="relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                      alt="Team member" 
+                      class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Michelle Lee</h3>
+                    <p class="text-blue-600 mb-3">Co-Founder & COO</p>
+                    <p class="text-gray-700 text-sm">
+                      Michelle's background in logistics ensures that operations run smoothly and efficiently.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Team Member 3 -->
+              <div class="animate-on-scroll">
+                <div class="bg-white rounded-lg overflow-hidden shadow-md group">
+                  <div class="relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                      alt="Team member" 
+                      class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900">David Chen</h3>
+                    <p class="text-blue-600 mb-3">Head of Product</p>
+                    <p class="text-gray-700 text-sm">
+                      David's eye for quality and design guides our product selection and curation process.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Team Member 4 -->
+              <div class="animate-on-scroll">
+                <div class="bg-white rounded-lg overflow-hidden shadow-md group">
+                  <div class="relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                      alt="Team member" 
+                      class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Sarah Johnson</h3>
+                    <p class="text-blue-600 mb-3">Customer Experience</p>
+                    <p class="text-gray-700 text-sm">
+                      Sarah ensures every customer interaction exceeds expectations and builds loyalty.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Visit Us -->
+        <section class="py-16 bg-gray-50">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+              <h2 class="text-3xl font-bold text-gray-900 mb-4">Visit Our Flagship Store</h2>
+              <p class="max-w-3xl mx-auto text-gray-700">
+                While we're primarily an online retailer, you can also visit our flagship store to experience our products in person.
+              </p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8 items-start">
+              <div class="lg:w-1/2 animate-on-scroll">
+                <div class="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-lg">
+                  <img 
+                    src="https://images.pexels.com/photos/7149130/pexels-photo-7149130.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                    alt="Our physical store" 
+                    class="w-full h-full object-cover rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div class="lg:w-1/2 animate-on-scroll">
+                <div class="bg-white p-8 rounded-lg shadow-md h-full">
+                  <h3 class="text-xl font-semibold text-gray-900 mb-4">Store Location</h3>
+                  
+                  <div class="space-y-4 text-gray-700">
+                    <p class="flex items-start">
+                      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/map-pin.svg" alt="Location icon" class="w-5 h-5 text-blue-600 mr-3 mt-0.5">
+                      <span>123 Main Street, Anytown, ST 12345</span>
+                    </p>
+                    
+                    <p class="flex items-start">
+                      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/clock.svg" alt="Clock icon" class="w-5 h-5 text-blue-600 mr-3 mt-0.5">
+                      <span>
+                        <strong>Monday-Friday:</strong> 10:00 AM - 7:00 PM<br />
+                        <strong>Saturday:</strong> 10:00 AM - 5:00 PM<br />
+                        <strong>Sunday:</strong> 12:00 PM - 5:00 PM
+                      </span>
+                    </p>
+                    
+                    <p class="flex items-start">
+                      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/phone.svg" alt="Phone icon" class="w-5 h-5 text-blue-600 mr-3 mt-0.5">
+                      <span>(555) 123-4567</span>
+                    </p>
+                    
+                    <p class="flex items-start">
+                      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/mail.svg" alt="Email icon" class="w-5 h-5 text-blue-600 mr-3 mt-0.5">
+                      <span>contact@pmstore.com</span>
+                    </p>
+                  </div>
+                  
+                  <div class="mt-6">
+                    <a 
+                      href="/contact" 
+                      class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Contact Us
+                      <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/arrow-right.svg" alt="Arrow right" class="ml-2 w-4 h-4">
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-16 md:py-24 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready to Experience P&M Store?</h2>
+            <p class="max-w-2xl mx-auto text-lg mb-8 text-blue-100">
+              Join thousands of satisfied customers who've discovered the perfect blend of quality, service, and value.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+              <a 
+                href="/products" 
+                class="px-6 py-3 bg-white text-blue-600 font-medium rounded-md hover:bg-gray-100 transition-colors shadow-md"
+              >
+                Browse Products
+              </a>
+              <a 
+                href="/register" 
+                class="px-6 py-3 bg-transparent text-white font-medium rounded-md hover:bg-blue-700 transition-colors border border-white shadow-md"
+              >
+                Create Account
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="bg-white mt-8 py-4 border-t">
+        <div class="max-w-6xl mx-auto px-4 text-center text-gray-600">
+          <p>&copy; 2024 P&M Store. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      // Animation on scroll
+      function animateOnScroll() {
+        const elements = document.querySelectorAll('.animate-on-scroll');
+        
+        elements.forEach(el => {
+          const rect = el.getBoundingClientRect();
+          const isVisible = rect.top < window.innerHeight - 100;
+          
+          if (isVisible) {
+            el.classList.add('animate-active');
+          }
+        });
+      }
+      
+      window.addEventListener('scroll', animateOnScroll);
+      // Initial check
+      animateOnScroll();
+
+      // Mobile menu
+      const mobileMenuButton = document.querySelector('[onclick="document.getElementById(\'mobile-menu\').classList.toggle(\'hidden\')"]');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      document.addEventListener('click', (e) => {
+        if (!mobileMenuButton.contains(e.target) && !mobileMenu.contains(e.target)) {
+          mobileMenu.classList.add('hidden');
+        }
+      });
+    </script>
+  </body>
+</html>

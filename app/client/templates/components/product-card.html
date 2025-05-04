@@ -1,0 +1,163 @@
+<div
+  class="group bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
+  x-data="{ 
+    currentImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+    defaultImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
+    alternateImage: '{{ product.image_urls[1] if product.image_urls|length > 1 else product.image_urls[0] if product.image_urls else '' }}',
+    selectedVariant: null,
+    showVariants: false
+  }"
+  data-product-id="{{ product.id }}"
+  data-product-name="{{ product.name }}"
+>
+  <!-- Product badges -->
+  <div class="relative">
+    {% if product.new %}
+    <span class="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-xs font-medium px-2 py-1 rounded">New</span>
+    {% endif %}
+    {% if product.bestseller %}
+    <span class="absolute top-2 {% if product.new %}right-2{% else %}left-2{% endif %} z-10 bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded">Bestseller</span>
+    {% endif %}
+  </div>
+
+  <!-- Image section -->
+  <a href="/product/{{ product.id }}" class="block relative overflow-hidden">
+    <div
+      class="h-64 overflow-hidden bg-gray-50"
+      @mouseenter="currentImage = alternateImage"
+      @mouseleave="currentImage = defaultImage"
+    >
+      {% if product.image_urls and product.image_urls|length > 0 %}
+      <img
+        :src="currentImage || '/static/images/product-placeholder.jpg'"
+        alt="{{ product.name }}"
+        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
+      {% else %}
+      <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      {% endif %}
+    </div>
+    
+    <!-- Out of stock overlay -->
+    {% if product.stock <= 0 %}
+    <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div class="bg-white text-gray-800 font-medium px-2 py-1 rounded-full text-xs">
+        Out of Stock
+      </div>
+    </div>
+    {% endif %}
+  </a>
+
+  <!-- Content section -->
+  <div class="p-4">
+    <a href="/category/{{ product.category }}" class="text-xs text-blue-600 hover:underline">{{ product.category }}</a>
+    
+    <a href="/product/{{ product.id }}" class="block mt-2">
+      <h3 class="text-base font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+        {{ product.name }}
+      </h3>
+    </a>
+    
+    <p class="mt-1.5 text-sm text-gray-500 line-clamp-2">
+      {{ product.short_description or product.long_description }}
+    </p>
+    
+    <!-- Variants section -->
+    {% if product.has_variants %}
+    <div class="mt-2">
+      <button 
+        @click="showVariants = !showVariants" 
+        class="text-xs text-blue-600 hover:underline flex items-center"
+      >
+        <span x-text="showVariants ? 'Hide variants' : 'Show variants'"></span>
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          class="h-3 w-3 ml-1 transition-transform" 
+          :class="showVariants ? 'rotate-180' : ''" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      
+      <div x-show="showVariants" class="mt-2 space-y-2" x-transition>
+        <div class="text-xs font-medium text-gray-700">Select a variant:</div>
+        <div class="flex flex-wrap gap-1">
+          {% for variant in product.variants %}
+          <button 
+            @click="selectedVariant = selectedVariant === '{{ variant.id }}' ? null : '{{ variant.id }}'"
+            :class="selectedVariant === '{{ variant.id }}' ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-700'"
+            class="text-xs px-2 py-1 rounded border transition-colors"
+          >
+            {{ variant.display_name }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <div class="mt-3 flex items-center justify-between">
+      <div class="flex flex-col">
+        <span class="text-lg font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</span>
+        {% if product.old_price and product.old_price > product.price %}
+        <span class="text-xs text-gray-500 line-through">UGX {{ '{:,}'.format(product.old_price) }}</span>
+        {% endif %}
+      </div>
+      
+      <div class="flex gap-2">
+        {% if product.stock > 0 %}
+        <button
+          @click="
+            const variant = selectedVariant ? {{ product.variants|tojson }} .find(v => v.id === selectedVariant) : null;
+            $store.cart.addToCart({ 
+              id: '{{ product.id }}', 
+              name: '{{ product.name }}', 
+              price: variant ? variant.price : {{ product.price }},
+              image: '{{ product.image_urls[0] if product.image_urls else '' }}',
+              stock: {{ product.stock }},
+              variants: variant ? { [variant.type]: { id: variant.id, value: variant.value, price: variant.price } } : {},
+              variantId: variant ? variant.id : null
+            });
+          "
+          class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-2 md:w-9 md:h-9 md:justify-center px-2 py-1.5 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 text-xs"
+          title="Add to cart"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span class="md:hidden">Add to cart</span>
+        </button>
+        {% else %}
+        <button 
+          class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
+          disabled
+          title="Out of Stock"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span class="md:hidden">Out of stock</span>
+        </button>
+        {% endif %}
+          
+        <button
+          @click="$store.favorites.toggleFavorite('{{ product.id }}');"
+          class="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
+          title="Add to favorites"
+          :class="{ 'text-red-500 bg-red-50 hover:bg-red-100': $store.favorites.isFavorite('{{ product.id }}') }"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke="$store.favorites.isFavorite('{{ product.id }}') ? 'none' : 'currentColor'" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
