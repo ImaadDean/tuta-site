@@ -280,237 +280,237 @@ async def process_checkout(
             status_code=500
         )
 
-@router.post("/api/process-order")
-async def api_process_order(
-    request: Request,
-    current_user: Optional[User] = Depends(get_current_active_client)
-):
-    """
-    Process order via API endpoint, returning JSON response.
-    This endpoint is designed for AJAX requests.
-    Supports both authenticated users and guest checkout.
-    """
-    try:
-        form_data = await request.form()
+# @router.post("/api/process-order")
+# async def api_process_order(
+#     request: Request,
+#     current_user: Optional[User] = Depends(get_current_active_client)
+# ):
+#     """
+#     Process order via API endpoint, returning JSON response.
+#     This endpoint is designed for AJAX requests.
+#     Supports both authenticated users and guest checkout.
+#     """
+#     try:
+#         form_data = await request.form()
         
-        # Get form data
-        shipping_address = {
-            "name": form_data.get("name"),
-            "address": form_data.get("address"),
-            "city": form_data.get("city"),
-            "country": form_data.get("country", "Uganda"),  # Default to Uganda if not provided
-        }
+#         # Get form data
+#         shipping_address = {
+#             "name": form_data.get("name"),
+#             "address": form_data.get("address"),
+#             "city": form_data.get("city"),
+#             "country": form_data.get("country", "Uganda"),  # Default to Uganda if not provided
+#         }
         
-        # Validate that required address fields are present
-        required_fields = ["address", "city"]
-        for field in required_fields:
-            if not shipping_address.get(field):
-                return JSONResponse(
-                    {"success": False, "error": f"Missing required field: {field}"},
-                    status_code=400
-                )
+#         # Validate that required address fields are present
+#         required_fields = ["address", "city"]
+#         for field in required_fields:
+#             if not shipping_address.get(field):
+#                 return JSONResponse(
+#                     {"success": False, "error": f"Missing required field: {field}"},
+#                     status_code=400
+#                 )
         
-        # Get customer info for guest users
-        customer_name = form_data.get("name", "")
-        customer_email = form_data.get("email", "")
-        customer_phone = form_data.get("phone", "")
+#         # Get customer info for guest users
+#         customer_name = form_data.get("name", "")
+#         customer_email = form_data.get("email", "")
+#         customer_phone = form_data.get("phone", "")
         
-        # Parse cart data
-        cart_json = form_data.get("cart")
-        if not cart_json:
-            return JSONResponse({"success": False, "error": "Cart is empty"}, status_code=400)
+#         # Parse cart data
+#         cart_json = form_data.get("cart")
+#         if not cart_json:
+#             return JSONResponse({"success": False, "error": "Cart is empty"}, status_code=400)
         
-        try:
-            cart_items = json.loads(cart_json)
-        except json.JSONDecodeError:
-            return JSONResponse({"success": False, "error": "Invalid cart data"}, status_code=400)
+#         try:
+#             cart_items = json.loads(cart_json)
+#         except json.JSONDecodeError:
+#             return JSONResponse({"success": False, "error": "Invalid cart data"}, status_code=400)
         
-        if not cart_items:
-            return JSONResponse({"success": False, "error": "Cart is empty"}, status_code=400)
+#         if not cart_items:
+#             return JSONResponse({"success": False, "error": "Cart is empty"}, status_code=400)
         
-        # Calculate total amount
-        total_amount = sum(item["price"] * item["quantity"] for item in cart_items)
+#         # Calculate total amount
+#         total_amount = sum(item["price"] * item["quantity"] for item in cart_items)
         
-        # Get selected payment method
-        payment_method = form_data.get("payment_method", "cash")
+#         # Get selected payment method
+#         payment_method = form_data.get("payment_method", "cash")
         
-        # Create an address entry for this order
-        address_id = None
-        save_address = form_data.get("save_address") == "on"
-        address_name = form_data.get("address_name", "Order Address")
+#         # Create an address entry for this order
+#         address_id = None
+#         save_address = form_data.get("save_address") == "on"
+#         address_name = form_data.get("address_name", "Order Address")
         
-        # If address_name is not provided, use a default name
-        if not address_name:
-            address_name = "Default Address" if save_address else "Order Address"
+#         # If address_name is not provided, use a default name
+#         if not address_name:
+#             address_name = "Default Address" if save_address else "Order Address"
         
-        # Make save_address always False for guest users
-        if not current_user:
-            save_address = False
+#         # Make save_address always False for guest users
+#         if not current_user:
+#             save_address = False
         
-        try:
-            # Log the address data for debugging
-            logger.info(f"Creating address with data: {shipping_address}")
+#         try:
+#             # Log the address data for debugging
+#             logger.info(f"Creating address with data: {shipping_address}")
             
-            # Ensure database is initialized
-            await initialize_mongodb()
+#             # Ensure database is initialized
+#             await initialize_mongodb()
             
-            # Create a new address
-            new_address = Address(
-                id=str(uuid4()),
-                # Only link to user if they want to save it and are logged in
-                user_id=str(current_user.id) if save_address and current_user else None,
-                name=address_name if save_address else "Order Address",
-                address=shipping_address.get("address", ""),
-                city=shipping_address.get("city", ""),
-                country=shipping_address.get("country", "Uganda"),
-                is_default=False
-            )
+#             # Create a new address
+#             new_address = Address(
+#                 id=str(uuid4()),
+#                 # Only link to user if they want to save it and are logged in
+#                 user_id=str(current_user.id) if save_address and current_user else None,
+#                 name=address_name if save_address else "Order Address",
+#                 address=shipping_address.get("address", ""),
+#                 city=shipping_address.get("city", ""),
+#                 country=shipping_address.get("country", "Uganda"),
+#                 is_default=False
+#             )
             
-            # If we're saving to the user's account, check if it should be default
-            if save_address and current_user:
-                existing_addresses = await Address.find({"user_id": str(current_user.id)}).to_list()
+#             # If we're saving to the user's account, check if it should be default
+#             if save_address and current_user:
+#                 existing_addresses = await Address.find({"user_id": str(current_user.id)}).to_list()
                 
-                if not existing_addresses:
-                    new_address.is_default = True
+#                 if not existing_addresses:
+#                     new_address.is_default = True
             
-            # Log that we're about to save the address
-            logger.info(f"About to save address: {new_address.id}")
-            await new_address.save()
-            address_id = str(new_address.id)
-            logger.info(f"Address saved successfully with ID: {address_id}")
+#             # Log that we're about to save the address
+#             logger.info(f"About to save address: {new_address.id}")
+#             await new_address.save()
+#             address_id = str(new_address.id)
+#             logger.info(f"Address saved successfully with ID: {address_id}")
             
-        except Exception as e:
-            import traceback
-            logger.error(f"Error saving address: {e}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return JSONResponse(
-                {"success": False, "error": f"Error saving address: {str(e)}"},
-                status_code=500
-            )
+#         except Exception as e:
+#             import traceback
+#             logger.error(f"Error saving address: {e}")
+#             logger.error(f"Traceback: {traceback.format_exc()}")
+#             return JSONResponse(
+#                 {"success": False, "error": f"Error saving address: {str(e)}"},
+#                 status_code=500
+#             )
         
-        # Create the order directly
-        max_retries = 3
+#         # Create the order directly
+#         max_retries = 3
         
-        for attempt in range(max_retries):
-            try:
-                # Get a unique order number
-                order_no = await create_unique_order_number()
-                if not order_no:
-                    return JSONResponse(
-                        {"success": False, "error": "Unable to generate unique order number"},
-                        status_code=500
-                    )
+#         for attempt in range(max_retries):
+#             try:
+#                 # Get a unique order number
+#                 order_no = await create_unique_order_number()
+#                 if not order_no:
+#                     return JSONResponse(
+#                         {"success": False, "error": "Unable to generate unique order number"},
+#                         status_code=500
+#                     )
                 
-                # Get current time
-                current_time = get_eat_time()
+#                 # Get current time
+#                 current_time = get_eat_time()
                 
-                # Create the order
-                db_order = Order(
-                    id=str(uuid4()),
-                    order_no=order_no,
-                    # Use None for user_id if guest checkout
-                    user_id=str(current_user.id) if current_user else None,
-                    # Store guest user email if provided
-                    guest_email=None if current_user else customer_email,
-                    # Store guest user data
-                    guest_data=None if current_user else {
-                        "name": customer_name,
-                        "email": customer_email,
-                        "phone": customer_phone
-                    },
-                    # Create shipping address object
-                    shipping_address=ShippingAddress(
-                        street=shipping_address.get("address", ""),
-                        city=shipping_address.get("city", ""),
-                        state="",  # Optional field
-                        postal_code="",  # Optional field
-                        country=shipping_address.get("country", "Uganda"),
-                        phone=customer_phone
-                    ),
-                    # Create order items list
-                    items=[
-                        OrderItem(
-                            product_id=item["id"],
-                            product_name=item.get("name", "Product"),
-                            quantity=item["quantity"],
-                            unit_price=float(item["price"]),
-                            total_price=float(item["price"] * item["quantity"])
-                        )
-                        for item in cart_items
-                    ],
-                    address_id=address_id,
-                    total_amount=float(total_amount),
-                    payment_method=payment_method,
-                    amount_paid=0,  # Default to 0 paid
-                    status=OrderStatus.PENDING,
-                    payment_status=PaymentStatus.PENDING,
-                    created_at=current_time.replace(tzinfo=None),
-                    updated_at=current_time.replace(tzinfo=None)
-                )
+#                 # Create the order
+#                 db_order = Order(
+#                     id=str(uuid4()),
+#                     order_no=order_no,
+#                     # Use None for user_id if guest checkout
+#                     user_id=str(current_user.id) if current_user else None,
+#                     # Store guest user email if provided
+#                     guest_email=None if current_user else customer_email,
+#                     # Store guest user data
+#                     guest_data=None if current_user else {
+#                         "name": customer_name,
+#                         "email": customer_email,
+#                         "phone": customer_phone
+#                     },
+#                     # Create shipping address object
+#                     shipping_address=ShippingAddress(
+#                         street=shipping_address.get("address", ""),
+#                         city=shipping_address.get("city", ""),
+#                         state="",  # Optional field
+#                         postal_code="",  # Optional field
+#                         country=shipping_address.get("country", "Uganda"),
+#                         phone=customer_phone
+#                     ),
+#                     # Create order items list
+#                     items=[
+#                         OrderItem(
+#                             product_id=item["id"],
+#                             product_name=item.get("name", "Product"),
+#                             quantity=item["quantity"],
+#                             unit_price=float(item["price"]),
+#                             total_price=float(item["price"] * item["quantity"])
+#                         )
+#                         for item in cart_items
+#                     ],
+#                     address_id=address_id,
+#                     total_amount=float(total_amount),
+#                     payment_method=payment_method,
+#                     amount_paid=0,  # Default to 0 paid
+#                     status=OrderStatus.PENDING,
+#                     payment_status=PaymentStatus.PENDING,
+#                     created_at=current_time.replace(tzinfo=None),
+#                     updated_at=current_time.replace(tzinfo=None)
+#                 )
                 
-                await db_order.save()
+#                 await db_order.save()
                 
-                # Add order items
-                for item in cart_items:
-                    try:
-                        # Check if product exists first
-                        product = await Product.find_one({"id": item["id"]})
+#                 # Add order items
+#                 for item in cart_items:
+#                     try:
+#                         # Check if product exists first
+#                         product = await Product.find_one({"id": item["id"]})
                         
-                        # Only add item if product exists
-                        if product:
-                            db_item = OrderItem(
-                                id=str(uuid4()),
-                                order_id=str(db_order.id),
-                                product_id=item["id"],
-                                quantity=item["quantity"]
-                            )
-                            await db_item.save()
+#                         # Only add item if product exists
+#                         if product:
+#                             db_item = OrderItem(
+#                                 id=str(uuid4()),
+#                                 order_id=str(db_order.id),
+#                                 product_id=item["id"],
+#                                 quantity=item["quantity"]
+#                             )
+#                             await db_item.save()
                             
-                            # Increment view_count for the product
-                            if not hasattr(product, 'view_count') or product.view_count is None:
-                                product.view_count = 0
-                            product.view_count += 1
+#                             # Increment view_count for the product
+#                             if not hasattr(product, 'view_count') or product.view_count is None:
+#                                 product.view_count = 0
+#                             product.view_count += 1
                             
-                            # Increment sales_count for the product
-                            if not hasattr(product, 'sales_count') or product.sales_count is None:
-                                product.sales_count = 0
-                            product.sales_count += item["quantity"]
+#                             # Increment sales_count for the product
+#                             if not hasattr(product, 'sales_count') or product.sales_count is None:
+#                                 product.sales_count = 0
+#                             product.sales_count += item["quantity"]
                             
-                            await product.save()
-                        else:
-                            # Product doesn't exist, log the error
-                            logger.warning(f"Product with ID {item['id']} not found, skipping item")
-                    except Exception as item_error:
-                        logger.error(f"Error adding order item: {item_error}")
-                        # Continue with other items instead of failing the entire order
+#                             await product.save()
+#                         else:
+#                             # Product doesn't exist, log the error
+#                             logger.warning(f"Product with ID {item['id']} not found, skipping item")
+#                     except Exception as item_error:
+#                         logger.error(f"Error adding order item: {item_error}")
+#                         # Continue with other items instead of failing the entire order
                 
-                # Return success response
-                return JSONResponse({
-                    "success": True,
-                    "order_id": str(db_order.id),
-                    "order_no": order_no,
-                    "total_amount": total_amount
-                })
+#                 # Return success response
+#                 return JSONResponse({
+#                     "success": True,
+#                     "order_id": str(db_order.id),
+#                     "order_no": order_no,
+#                     "total_amount": total_amount
+#                 })
                 
-            except Exception as e:
-                logger.error(f"Error creating order (attempt {attempt+1}/{max_retries}): {e}")
-                if attempt == max_retries - 1:
-                    return JSONResponse(
-                        {"success": False, "error": f"Error creating order: {str(e)}"},
-                        status_code=500
-                    )
+#             except Exception as e:
+#                 logger.error(f"Error creating order (attempt {attempt+1}/{max_retries}): {e}")
+#                 if attempt == max_retries - 1:
+#                     return JSONResponse(
+#                         {"success": False, "error": f"Error creating order: {str(e)}"},
+#                         status_code=500
+#                     )
         
-        # If we get here, all retries failed
-        return JSONResponse(
-            {"success": False, "error": "Unable to create order after multiple attempts"},
-            status_code=500
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error in API process order: {e}")
-        return JSONResponse(
-            {"success": False, "error": "An unexpected error occurred during checkout"},
-            status_code=500
-        )
+#         # If we get here, all retries failed
+#         return JSONResponse(
+#             {"success": False, "error": "Unable to create order after multiple attempts"},
+#             status_code=500
+#         )
+#     except Exception as e:
+#         logger.error(f"Unexpected error in API process order: {e}")
+#         return JSONResponse(
+#             {"success": False, "error": "An unexpected error occurred during checkout"},
+#             status_code=500
+#         )
 
 @router.post("/api/checkout")
 async def api_checkout(

@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Order Viewer</title>
-    <meta name="description" content="Track your orders" />
-    
-    <!-- Tailwind CSS CDN -->
+{% extends "base.html" %}
+
+{% block title %}My Orders{% endblock %}
+
+{% block content %}
     <script src="https://cdn.tailwindcss.com"></script>
     {% include "shared/styles.html" %}
     <script>
@@ -103,12 +99,26 @@
         --background: #f8fafc;
         --foreground: #0f172a;
       }
+      
+      .loading-spinner {
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top: 3px solid var(--primary);
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
     </style>
   </head>
 
   <body class="bg-background text-foreground font-sans">
-    <div class="min-h-screen">
-      <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div class="">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-8 flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-semibold sm:text-3xl">Your Orders</h1>
@@ -124,16 +134,6 @@
               Track Order
             </a>
           </div>
-          <a 
-            href="/" 
-            class="text-sm text-primary flex items-center gap-1 hover:underline"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-              <path d="m12 19-7-7 7-7"></path>
-              <path d="M19 12H5"></path>
-            </svg>
-            Back to shop
-          </a>
         </div>
 
         <!-- Search Box -->
@@ -157,24 +157,48 @@
 
         <!-- Filter Options -->
         <div class="mb-8 flex flex-wrap justify-center gap-2">
-          <a href="/my-orders" class="px-4 py-2 rounded-full text-sm {% if not current_status %}bg-primary text-primary-foreground font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+          <button 
+            data-status=""
+            class="filter-btn px-4 py-2 rounded-full text-sm bg-primary text-primary-foreground font-medium transition-colors"
+          >
             All Orders
-          </a>
-          <a href="/orders/filter?status=pending" class="px-4 py-2 rounded-full text-sm {% if current_status == 'pending' %}bg-[#FBBF24] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+          </button>
+          <button 
+            data-status="pending"
+            class="filter-btn px-4 py-2 rounded-full text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
+          >
             Pending
-          </a>
-          <a href="/orders/filter?status=processing" class="px-4 py-2 rounded-full text-sm {% if current_status == 'processing' %}bg-[#60A5FA] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+          </button>
+          <button 
+            data-status="processing"
+            class="filter-btn px-4 py-2 rounded-full text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
+          >
             Processing
-          </a>
-          <a href="/orders/filter?status=delivering" class="px-4 py-2 rounded-full text-sm {% if current_status == 'delivering' %}bg-indigo-500 text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+          </button>
+          <button 
+            data-status="delivering"
+            class="filter-btn px-4 py-2 rounded-full text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
+          >
             Delivering
-          </a>
-          <a href="/orders/filter?status=delivered" class="px-4 py-2 rounded-full text-sm {% if current_status == 'delivered' %}bg-[#34D399] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+          </button>
+          <button 
+            data-status="delivered"
+            class="filter-btn px-4 py-2 rounded-full text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
+          >
             Delivered
-          </a>
-          <a href="/orders/filter?status=cancelled" class="px-4 py-2 rounded-full text-sm {% if current_status == 'cancelled' %}bg-[#F87171] text-white font-medium{% else %}bg-muted text-foreground hover:bg-muted/80{% endif %} transition-colors">
+          </button>
+          <button 
+            data-status="cancelled"
+            class="filter-btn px-4 py-2 rounded-full text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
+          >
             Cancelled
-          </a>
+          </button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="flex justify-center items-center py-12 hidden">
+          <div class="loading-spinner mr-3"></div>
+          <p class="text-muted-foreground">Loading orders...</p>
         </div>
 
         <!-- Desktop Table View -->
@@ -192,187 +216,41 @@
                 </tr>
               </thead>
               <tbody class="bg-card divide-y divide-border" id="orderTableBody">
-                {% for order in orders %}
-                <tr class="hover:bg-muted/30 transition-colors">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ order.order_no }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    {% if order.order_items|length > 0 %}
-                      {% if order.order_items[0].product %}
-                        {{ order.order_items[0].product.name }}
-                        {% if order.order_items|length > 1 %}
-                          <span class="text-muted-foreground">+{{ order.order_items|length - 1 }} more</span>
-                        {% endif %}
-                      {% else %}
-                        Product information unavailable
-                      {% endif %}
-                    {% else %}
-                      No products
-                    {% endif %}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">UGX {{ order.total_amount }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">{{ order.created_at.strftime('%b %d, %Y') }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    {% if order.status == 'delivered' %}
-                      <span class="status-badge bg-green-100 text-green-800 border border-green-200">Delivered</span>
-                    {% elif order.status == 'processing' %}
-                      <span class="status-badge bg-blue-100 text-blue-800 border border-blue-200">Processing</span>
-                    {% elif order.status == 'pending' %}
-                      <span class="status-badge bg-yellow-100 text-yellow-800 border border-yellow-200">Pending</span>
-                    {% elif order.status == 'delivering' %}
-                      <span class="status-badge bg-indigo-100 text-indigo-800 border border-indigo-200">Delivering</span>
-                    {% elif order.status == 'cancelled' %}
-                      <span class="status-badge bg-red-100 text-red-800 border border-red-200">Cancelled</span>
-                    {% else %}
-                      <span class="status-badge bg-gray-100 text-gray-800 border border-gray-200">{{ order.status|capitalize }}</span>
-                    {% endif %}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <a href="/order/{{ order.id }}" class="text-primary hover:text-primary/80 font-medium">
-                      View Details
-                    </a>
-                  </td>
-                </tr>
-                {% endfor %}
+                <!-- Orders will be dynamically inserted here -->
               </tbody>
             </table>
             
-            {% if orders|length == 0 %}
-            <div id="noOrdersDesktop" class="py-12 text-center">
+            <div id="noOrdersDesktop" class="py-12 text-center hidden">
               <p class="text-muted-foreground">No orders found matching your search.</p>
             </div>
-            {% endif %}
           </div>
         </div>
 
         <!-- Mobile Card View -->
         <div class="space-y-4" id="mobileOrderCards">
-          {% for order in orders %}
-          <div class="mobile-card bg-card shadow-sm rounded-lg border p-4 animate-slide-up delay-{{ loop.index0 % 10 }}">
-            <div class="flex justify-between items-start mb-3">
-              <div>
-                <span class="font-medium">{{ order.order_no }}</span>
-                <div class="text-sm text-muted-foreground mt-1">{{ order.created_at.strftime('%b %d, %Y') }}</div>
-              </div>
-              {% if order.status == 'delivered' %}
-                <span class="status-badge bg-green-100 text-green-800 border border-green-200">Delivered</span>
-              {% elif order.status == 'processing' %}
-                <span class="status-badge bg-blue-100 text-blue-800 border border-blue-200">Processing</span>
-              {% elif order.status == 'pending' %}
-                <span class="status-badge bg-yellow-100 text-yellow-800 border border-yellow-200">Pending</span>
-              {% elif order.status == 'delivering' %}
-                <span class="status-badge bg-indigo-100 text-indigo-800 border border-indigo-200">Delivering</span>
-              {% elif order.status == 'cancelled' %}
-                <span class="status-badge bg-red-100 text-red-800 border border-red-200">Cancelled</span>
-              {% else %}
-                <span class="status-badge bg-gray-100 text-gray-800 border border-gray-200">{{ order.status|capitalize }}</span>
-              {% endif %}
-            </div>
-            
-            {% for item in order.order_items %}
-            <div class="flex items-center justify-between text-sm mt-2">
-              <div class="flex items-center gap-2">
-                {% if item.product and item.product.image_urls and item.product.image_urls|length > 0 %}
-                <div class="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
-                  <img 
-                    src="{{ item.product.image_urls[0] }}" 
-                    alt="{{ item.product.name }}" 
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                {% endif %}
-                <span>
-                  {% if item.product %}
-                    {{ item.product.name }} × {{ item.quantity }}
-                  {% else %}
-                    Product unavailable × {{ item.quantity }}
-                  {% endif %}
-                </span>
-              </div>
-              <div class="text-right">
-                <p class="font-medium">UGX {{ item.product.price * item.quantity }}</p>
-              </div>
-            </div>
-            {% endfor %}
-            
-            <div class="flex justify-between pt-2 border-t border-gray-200">
-              <span class="font-medium">Total</span>
-              <span>UGX {{ order.total_amount }}</span>
-            </div>
-            <div class="mt-3">
-              <a href="/order/{{ order.id }}" class="inline-block text-primary hover:text-primary/80 text-sm font-medium">
-                View Order Details →
-              </a>
-            </div>
-          </div>
-          {% endfor %}
+          <!-- Orders will be dynamically inserted here -->
         </div>
         
-        {% if orders|length == 0 %}
-        <div id="noOrdersMobile" class="py-8 text-center mobile-card">
+        <div id="noOrdersMobile" class="py-8 text-center mobile-card hidden">
           <p class="text-muted-foreground">No orders found matching your search.</p>
         </div>
-        {% endif %}
         
         <!-- Pagination -->
-        {% if pagination and pagination.total_pages > 1 %}
-        <div class="mt-8 flex justify-center">
-          <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-            {% if pagination.has_prev %}
-            <a href="?page={{ pagination.current_page - 1 }}{% if current_status %}&status={{ current_status }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
-              <span class="sr-only">Previous</span>
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-              </svg>
-            </a>
-            {% else %}
-            <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-muted text-sm font-medium text-muted-foreground">
-              <span class="sr-only">Previous</span>
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-              </svg>
-            </span>
-            {% endif %}
-            
-            {% for page_num in range(1, pagination.total_pages + 1) %}
-              {% if page_num == pagination.current_page %}
-              <span class="relative inline-flex items-center px-4 py-2 border border-primary bg-primary/10 text-sm font-medium text-primary">
-                {{ page_num }}
-              </span>
-              {% else %}
-              <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-border bg-card text-sm font-medium text-foreground hover:bg-muted transition-colors">
-                {{ page_num }}
-              </a>
-              {% endif %}
-            {% endfor %}
-            
-            {% if pagination.has_next %}
-            <a href="?page={{ pagination.current_page + 1 }}{% if current_status %}&status={{ current_status }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
-              <span class="sr-only">Next</span>
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-              </svg>
-            </a>
-            {% else %}
-            <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-muted text-sm font-medium text-muted-foreground">
-              <span class="sr-only">Next</span>
-              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-              </svg>
-            </span>
-            {% endif %}
+        <div id="paginationContainer" class="mt-8 flex justify-center">
+          <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="paginationNav">
+            <!-- Pagination will be dynamically inserted here -->
           </nav>
         </div>
-        {% endif %}
         
         <!-- Order Count Summary -->
-        <div class="mt-8 text-center text-sm text-muted-foreground">
-          Showing {{ orders|length }} {% if pagination %}of {{ pagination.total_items }}{% endif %} orders
+        <div class="mt-8 text-center text-sm text-muted-foreground" id="orderCountSummary">
+          Showing 0 of 0 orders
         </div>
       </div>
       
-      <footer class="py-6 border-t mt-12">
+      <footer class="py-6 border-t mt-12 hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p class="text-center text-sm text-muted-foreground">
+          <p class="text-center text-sm text-muted-foreground hidden">
             &copy; <span id="current-year"></span> Your Store. All rights reserved.
           </p>
         </div>
@@ -384,43 +262,386 @@
         // Set the current year in the footer
         document.getElementById('current-year').textContent = new Date().getFullYear();
         
-        // Setup search functionality
-        const searchInput = document.getElementById('searchInput');
-        const tableRows = document.querySelectorAll('.hover\\:bg-muted\\/30');
-        const mobileCards = document.querySelectorAll('.mobile-card');
+        // State variables
+        let currentPage = 1;
+        let currentStatus = '';
+        let allOrders = [];
+        let filteredOrders = [];
+        
+        // DOM elements
+        const orderTableBody = document.getElementById('orderTableBody');
+        const mobileOrderCards = document.getElementById('mobileOrderCards');
         const noOrdersDesktop = document.getElementById('noOrdersDesktop');
         const noOrdersMobile = document.getElementById('noOrdersMobile');
+        const paginationNav = document.getElementById('paginationNav');
+        const orderCountSummary = document.getElementById('orderCountSummary');
+        const searchInput = document.getElementById('searchInput');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const filterButtons = document.querySelectorAll('.filter-btn');
         
-        searchInput.addEventListener('input', function() {
-          const query = this.value.toLowerCase();
-          let visibleCount = 0;
+        // Fetch orders from API
+        async function fetchOrders(page = 1, status = '') {
+          try {
+            showLoading(true);
+            
+            // Build API URL with query parameters
+            let url = `/api/v1/orders?page=${page}&page_size=6`;
+            if (status) {
+              url += `&status=${status}`;
+            }
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+              throw new Error(`API request failed with status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              return data.data;
+            } else {
+              throw new Error(data.error || 'Failed to fetch orders');
+            }
+          } catch (error) {
+            console.error('Error fetching orders:', error);
+            showError('Failed to load orders. Please try again later.');
+            return { orders: [], pagination: { total_items: 0, total_pages: 0 } };
+          } finally {
+            showLoading(false);
+          }
+        }
+        
+        // Format date string
+        function formatDate(dateString) {
+          const date = new Date(dateString);
+          const options = { month: 'short', day: 'numeric', year: 'numeric' };
+          return date.toLocaleDateString('en-US', options);
+        }
+        
+        // Get status badge HTML
+        function getStatusBadgeHTML(status) {
+          let badgeClass = '';
           
-          // Filter desktop table rows
-          tableRows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            const isVisible = text.includes(query);
-            row.style.display = isVisible ? '' : 'none';
-            if (isVisible) visibleCount++;
-          });
-          
-          // Filter mobile cards
-          mobileCards.forEach(card => {
-            const text = card.textContent.toLowerCase();
-            const isVisible = text.includes(query);
-            card.style.display = isVisible ? '' : 'none';
-          });
-          
-          // Show/hide "no orders" message
-          if (noOrdersDesktop) {
-            noOrdersDesktop.style.display = visibleCount === 0 ? 'block' : 'none';
+          switch(status) {
+            case 'delivered':
+              badgeClass = 'bg-green-100 text-green-800 border border-green-200';
+              break;
+            case 'processing':
+              badgeClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+              break;
+            case 'pending':
+              badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+              break;
+            case 'delivering':
+              badgeClass = 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+              break;
+            case 'cancelled':
+              badgeClass = 'bg-red-100 text-red-800 border border-red-200';
+              break;
+            default:
+              badgeClass = 'bg-gray-100 text-gray-800 border border-gray-200';
           }
           
-          if (noOrdersMobile) {
-            noOrdersMobile.style.display = visibleCount === 0 ? 'block' : 'none';
+          return `<span class="status-badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+        }
+        
+        // Render orders in desktop table
+        function renderDesktopOrders(orders) {
+          orderTableBody.innerHTML = '';
+          
+          if (!orders || orders.length === 0) {
+            noOrdersDesktop.classList.remove('hidden');
+            return;
           }
+          
+          noOrdersDesktop.classList.add('hidden');
+          
+          orders.forEach(order => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-muted/30 transition-colors';
+            
+            // Get product info
+            let productInfo = 'No products';
+            if (order.items && order.items.length > 0) {
+              productInfo = order.items[0].product_name || 'Product';
+              if (order.items.length > 1) {
+                productInfo += ` <span class="text-muted-foreground">+${order.items.length - 1} more</span>`;
+              }
+            }
+            
+            // Format date
+            const formattedDate = formatDate(order.created_at);
+            
+            // Get status badge
+            const statusBadge = getStatusBadgeHTML(order.status);
+            
+            row.innerHTML = `
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${order.order_no}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">${productInfo}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">UGX ${order.total_amount}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">${formattedDate}</td>
+              <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <a href="/order/${order.id}" class="text-primary hover:text-primary/80 font-medium">
+                  View Details
+                </a>
+              </td>
+            `;
+            
+            orderTableBody.appendChild(row);
+          });
+        }
+        
+        // Render orders in mobile cards
+        function renderMobileOrders(orders) {
+          mobileOrderCards.innerHTML = '';
+          
+          if (!orders || orders.length === 0) {
+            noOrdersMobile.classList.remove('hidden');
+            return;
+          }
+          
+          noOrdersMobile.classList.add('hidden');
+          
+          orders.forEach((order, index) => {
+            const card = document.createElement('div');
+            card.className = `mobile-card bg-card shadow-sm rounded-lg border p-4 animate-slide-up delay-${index % 10}`;
+            
+            // Format date
+            const formattedDate = formatDate(order.created_at);
+            
+            // Get status badge
+            const statusBadge = getStatusBadgeHTML(order.status);
+            
+            // Start building card HTML
+            let cardHTML = `
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <span class="font-medium">${order.order_no}</span>
+                  <div class="text-sm text-muted-foreground mt-1">${formattedDate}</div>
+                </div>
+                ${statusBadge}
+              </div>
+            `;
+            
+            // Add items if available
+            if (order.items && order.items.length > 0) {
+              order.items.forEach(item => {
+                cardHTML += `
+                  <div class="flex items-center justify-between text-sm mt-2">
+                    <div class="flex items-center gap-2">
+                      <span>${item.product_name || 'Product'} × ${item.quantity}</span>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-medium">UGX ${item.total_price || (item.unit_price * item.quantity)}</p>
+                    </div>
+                  </div>
+                `;
+              });
+            }
+            
+            // Add total and action link
+            cardHTML += `
+              <div class="flex justify-between pt-2 border-t border-gray-200">
+                <span class="font-medium">Total</span>
+                <span>UGX ${order.total_amount}</span>
+              </div>
+              <div class="mt-3">
+                <a href="/order/${order.id}" class="inline-block text-primary hover:text-primary/80 text-sm font-medium">
+                  View Order Details →
+                </a>
+              </div>
+            `;
+            
+            card.innerHTML = cardHTML;
+            mobileOrderCards.appendChild(card);
+          });
+        }
+        
+        // Render pagination
+        function renderPagination(pagination) {
+          paginationNav.innerHTML = '';
+          
+          if (!pagination || pagination.total_pages <= 1) {
+            paginationContainer.classList.add('hidden');
+            return;
+          }
+          
+          paginationContainer.classList.remove('hidden');
+          
+          // Previous button
+          const prevButton = document.createElement('button');
+          if (pagination.has_prev) {
+            prevButton.className = 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted transition-colors';
+            prevButton.onclick = () => loadPage(pagination.current_page - 1);
+          } else {
+            prevButton.className = 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-muted text-sm font-medium text-muted-foreground';
+            prevButton.disabled = true;
+          }
+          
+          prevButton.innerHTML = `
+            <span class="sr-only">Previous</span>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+            </svg>
+          `;
+          
+          paginationNav.appendChild(prevButton);
+          
+          // Page numbers
+          for (let i = 1; i <= pagination.total_pages; i++) {
+            const pageButton = document.createElement(i === pagination.current_page ? 'span' : 'button');
+            
+            if (i === pagination.current_page) {
+              pageButton.className = 'relative inline-flex items-center px-4 py-2 border border-primary bg-primary/10 text-sm font-medium text-primary';
+              pageButton.textContent = i;
+            } else {
+              pageButton.className = 'relative inline-flex items-center px-4 py-2 border border-border bg-card text-sm font-medium text-foreground hover:bg-muted transition-colors';
+              pageButton.textContent = i;
+              pageButton.onclick = () => loadPage(i);
+            }
+            
+            paginationNav.appendChild(pageButton);
+          }
+          
+          // Next button
+          const nextButton = document.createElement('button');
+          if (pagination.has_next) {
+            nextButton.className = 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted transition-colors';
+            nextButton.onclick = () => loadPage(pagination.current_page + 1);
+          } else {
+            nextButton.className = 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-muted text-sm font-medium text-muted-foreground';
+            nextButton.disabled = true;
+          }
+          
+          nextButton.innerHTML = `
+            <span class="sr-only">Next</span>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          `;
+          
+          paginationNav.appendChild(nextButton);
+        }
+        
+        // Update order count summary
+        function updateOrderCountSummary(count, total) {
+          orderCountSummary.textContent = `Showing ${count} of ${total} orders`;
+        }
+        
+        // Show/hide loading indicator
+        function showLoading(show) {
+          if (show) {
+            loadingIndicator.classList.remove('hidden');
+          } else {
+            loadingIndicator.classList.add('hidden');
+          }
+        }
+        
+        // Show error message
+        function showError(message) {
+          // You could implement a toast notification here
+          console.error(message);
+        }
+        
+        // Load orders for a specific page
+        async function loadPage(page) {
+          currentPage = page;
+          const data = await fetchOrders(page, currentStatus);
+          
+          if (data && data.orders) {
+            renderDesktopOrders(data.orders);
+            renderMobileOrders(data.orders);
+            renderPagination(data.pagination);
+            updateOrderCountSummary(data.orders.length, data.pagination.total_items);
+            
+            // Store all orders for client-side filtering
+            allOrders = data.orders;
+            filteredOrders = [...allOrders];
+          }
+        }
+        
+        // Filter orders by status
+        function filterByStatus(status) {
+          currentStatus = status;
+          
+          // Update filter button styles
+          filterButtons.forEach(btn => {
+            if (btn.dataset.status === status) {
+              btn.classList.add('bg-primary', 'text-primary-foreground', 'font-medium');
+              btn.classList.remove('bg-muted', 'text-foreground', 'hover:bg-muted/80');
+            } else {
+              btn.classList.remove('bg-primary', 'text-primary-foreground', 'font-medium');
+              btn.classList.add('bg-muted', 'text-foreground', 'hover:bg-muted/80');
+            }
+          });
+          
+          // Reset to page 1 and load orders with the new status filter
+          currentPage = 1;
+          loadPage(currentPage);
+        }
+        
+        // Filter orders by search query
+        function filterBySearch(query) {
+          if (!query) {
+            // If search is cleared, show all orders
+            renderDesktopOrders(filteredOrders);
+            renderMobileOrders(filteredOrders);
+            updateOrderCountSummary(filteredOrders.length, filteredOrders.length);
+            return;
+          }
+          
+          // Convert query to lowercase for case-insensitive search
+          const lowerQuery = query.toLowerCase();
+          
+          // Filter orders that match the query
+          const searchResults = filteredOrders.filter(order => {
+            // Check order number
+            if (order.order_no.toLowerCase().includes(lowerQuery)) {
+              return true;
+            }
+            
+            // Check status
+            if (order.status.toLowerCase().includes(lowerQuery)) {
+              return true;
+            }
+            
+            // Check items
+            if (order.items && order.items.some(item => 
+              (item.product_name && item.product_name.toLowerCase().includes(lowerQuery))
+            )) {
+              return true;
+            }
+            
+            return false;
+          });
+          
+          // Render filtered results
+          renderDesktopOrders(searchResults);
+          renderMobileOrders(searchResults);
+          
+          // Update count summary
+          updateOrderCountSummary(searchResults.length, filteredOrders.length);
+        }
+        
+        // Set up event listeners
+        
+        // Filter buttons
+        filterButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            filterByStatus(btn.dataset.status);
+          });
         });
+        
+        // Search input
+        searchInput.addEventListener('input', () => {
+          filterBySearch(searchInput.value);
+        });
+        
+        // Initial load
+        loadPage(currentPage);
       });
     </script>
   </body>
-</html>
-
+  {% endblock %}

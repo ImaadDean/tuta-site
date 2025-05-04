@@ -320,23 +320,29 @@
         <h3 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
         
         <div class="space-y-4" x-data="{ cart: JSON.parse(localStorage.getItem('cart') || '[]') }">
-          <template x-for="item in cart" :key="item.id">
-            <div class="flex justify-between items-center">
-              <div class="flex items-center gap-3">
-                <img :src="item.image || '/placeholder.svg'" :alt="item.name" class="w-16 h-16 object-cover rounded-md">
-                <div>
-                  <p class="text-sm font-medium text-gray-900" x-text="item.name"></p>
-                  <p class="text-sm text-gray-500">Quantity: <span x-text="item.quantity"></span></p>
-                </div>
-              </div>
-              <p class="text-sm font-medium text-gray-900" x-text="'UGX ' + (item.price * item.quantity)"></p>
-            </div>
-          </template>
+  <template x-for="item in cart" :key="item.productKey || item.id">
+  <div class="flex justify-between items-start py-3 border-b border-gray-100">
+    <div class="flex items-center gap-3">
+      <img :src="item.image || '/placeholder.svg'" :alt="item.name" class="w-16 h-16 object-cover rounded-md">
+      <div>
+        <p class="text-sm font-medium text-gray-900" x-text="item.name"></p>
+        <!-- Display variant information if available -->
+        <template x-if="item.variantDisplay">
+          <p class="text-xs text-gray-500 mt-1" x-text="item.variantDisplay"></p>
+        </template>
+        <p class="text-sm text-gray-500 mt-1">
+          <span x-text="'UGX ' + new Intl.NumberFormat().format(item.price)"></span> × <span x-text="item.quantity"></span>
+        </p>
+      </div>
+    </div>
+    <p class="text-sm font-medium text-gray-900" x-text="'UGX ' + new Intl.NumberFormat().format(item.price * item.quantity)"></p>
+  </div>
+</template>
           
           <div class="border-t border-gray-200 pt-4">
             <div class="flex justify-between text-lg">
               <span class="font-medium text-gray-900">Total</span>
-              <span class="font-medium text-gray-900" x-text="'UGX ' + cart.reduce((total, item) => total + item.price * item.quantity, 0)"></span>
+              <span class="font-medium text-gray-900" x-text="'UGX ' + new Intl.NumberFormat().format(cart.reduce((total, item) => total + item.price * item.quantity, 0))"></span>
                 </div>
               </div>
               
@@ -627,4 +633,3 @@
   }
     </script>
 {% endblock %}
-

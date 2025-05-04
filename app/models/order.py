@@ -37,6 +37,7 @@ class ShippingAddress(BaseModel):
 class Order(Document):
     """MongoDB Order document model using Beanie ODM"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_no: str
     user_id: Optional[str] = None  # Reference to User id, optional for guest checkout
     items: List[OrderItem]
     shipping_address: ShippingAddress
@@ -55,6 +56,7 @@ class Order(Document):
     class Settings:
         name = "orders"
         indexes = [
+            "order_no",  
             "user_id",
             "status",
             "payment_status",

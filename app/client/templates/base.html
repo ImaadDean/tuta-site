@@ -1,480 +1,556 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}E-Commerce Store{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}Discover luxury fragrances and perfumes crafted by master perfumers.{% endblock %}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              "spanish-gray": "hsl(0, 0%, 60%)",
-              "sonic-silver": "hsl(0, 0%, 47%)",
-              "eerie-black": "hsl(0, 0%, 13%)",
-              "salmon-pink": "hsl(353, 100%, 78%)",
-              "sandy-brown": "hsl(29, 90%, 65%)",
-              bittersweet: "hsl(0, 100%, 70%)",
-              "ocean-green": "hsl(152, 51%, 52%)",
-              "davys-gray": "hsl(0, 0%, 33%)",
-              cultured: "hsl(0, 0%, 93%)",
-              onyx: "hsl(0, 0%, 27%)",
-            },
-            fontFamily: {
-              poppins: ["Poppins", "sans-serif"],
-            },
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}E-Commerce Store{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Discover luxury fragrances and perfumes crafted by master perfumers.{% endblock %}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "spanish-gray": "hsl(0, 0%, 60%)",
+            "sonic-silver": "hsl(0, 0%, 47%)",
+            "eerie-black": "hsl(0, 0%, 13%)",
+            "salmon-pink": "hsl(353, 100%, 78%)",
+            "sandy-brown": "hsl(29, 90%, 65%)",
+            bittersweet: "hsl(0, 100%, 70%)",
+            "ocean-green": "hsl(152, 51%, 52%)",
+            "davys-gray": "hsl(0, 0%, 33%)",
+            cultured: "hsl(0, 0%, 93%)",
+            onyx: "hsl(0, 0%, 27%)",
+          },
+          fontFamily: {
+            poppins: ["Poppins", "sans-serif"],
           },
         },
-      };
-    </script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-      
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-      
-      .text-gradient {
-        background: linear-gradient(90deg, #3B82F6, #8B5CF6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      .cart-overlay {
-        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-      }
-      .cart-panel {
-        transition: transform 0.3s ease-in-out;
-      }
-      [x-cloak] {
-        display: none !important;
-      }
-    </style>
-    {% block extra_css %}{% endblock %}
-    <script>
-      document.addEventListener('alpine:init', () => {
-        // Define cart as a global Alpine store
-        Alpine.store('cart', {
-          items: [],
-          open: false,
-          count: 0,
-          total: 0,
-          uniqueCount: 0,
+      },
+    };
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .text-gradient {
+      background: linear-gradient(90deg, #3B82F6, #8B5CF6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .cart-overlay {
+      transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    .cart-panel {
+      transition: transform 0.3s ease-in-out;
+    }
+    [x-cloak] {
+      display: none !important;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+  <script>
+    document.addEventListener('alpine:init', () => {
+      // Define cart as a global Alpine store
+      Alpine.store('cart', {
+        items: [],
+        open: false,
+        count: 0,
+        total: 0,
+        uniqueCount: 0,
 
-          init() {
-            this.loadCart();
-            this.updateCartCounts();
+        init() {
+          this.loadCart();
+          this.updateCartCounts();
 
-            // Listen for storage events to update cart across tabs
-            window.addEventListener('storage', (e) => {
-              if (e.key === 'cart') {
-                this.loadCart();
-                this.updateCartCounts();
-              }
-            });
-          },
-
-          loadCart() {
-            this.items = JSON.parse(localStorage.getItem('cart') || '[]');
-          },
-
-          updateCartCounts() {
-            // Count total quantity
-            this.count = this.items.reduce((sum, item) => sum + parseInt(item.quantity), 0);
-            
-            // Count unique products (this is what we'll display in the badge)
-            this.uniqueCount = this.items.length;
-            
-            // Calculate total price
-            this.total = this.items.reduce((sum, item) => sum + (item.price * parseInt(item.quantity)), 0);
-          },
-
-          addToCart(product) {
-            // First load the latest cart from localStorage
-            this.loadCart();
-            
-            // Generate a unique identifier for this product + variant combination
-            let productKey = product.id;
-            let variantNames = [];
-            
-            // If the product has variants, create a unique key
-            if (product.variants && Object.keys(product.variants).length > 0) {
-              // Sort the variant types to ensure consistent keys
-              const sortedVariantTypes = Object.keys(product.variants).sort();
-              
-              // Create an array of variant values for the unique key
-              variantNames = sortedVariantTypes.map(type => {
-                const variantId = product.variants[type];
-                return `${type}:${variantId}`;
-              });
-              
-              // Append the variant string to the product ID
-              if (variantNames.length > 0) {
-                productKey = `${product.id}|${variantNames.join('|')}`;
-              }
+          // Listen for storage events to update cart across tabs
+          window.addEventListener('storage', (e) => {
+            if (e.key === 'cart') {
+              this.loadCart();
+              this.updateCartCounts();
             }
+          });
+        },
+
+        loadCart() {
+          this.items = JSON.parse(localStorage.getItem('cart') || '[]');
+        },
+
+        updateCartCounts() {
+          // Count total quantity
+          this.count = this.items.reduce((sum, item) => sum + parseInt(item.quantity), 0);
+          
+          // Count unique products (this is what we'll display in the badge)
+          this.uniqueCount = this.items.length;
+          
+          // Calculate total price
+          this.total = this.items.reduce((sum, item) => sum + (item.price * parseInt(item.quantity)), 0);
+        },
+
+        // Create a unique identifier for a product + variant combination
+        createProductVariantKey(product) {
+          const productId = product.productId || product.id;
+          
+          // If no variants, just use the product ID
+          if (!product.variants || Object.keys(product.variants).length === 0) {
+            return productId;
+          }
+          
+          // Create a sorted string of variant IDs to ensure consistent keys
+          const variantParts = [];
+          const variantTypes = Object.keys(product.variants).sort();
+          
+          for (const type of variantTypes) {
+            const variant = product.variants[type];
+            variantParts.push(`${type}-${variant.id}`);
+          }
+          
+          return `${productId}-${variantParts.join('-')}`;
+        },
+
+        addToCart(product) {
+          // First load the latest cart from localStorage
+          this.loadCart();
+          
+          // Check if product has variants
+          const hasVariants = product.variants && Object.keys(product.variants).length > 0;
+          
+          // Create variant details for display and price calculation
+          let variantDetails = [];
+          let productId = product.productId || product.id;
+          let variantId = product.variantId || null;
+
+          if (hasVariants) {
+            // Create an array to store variant details for display
+            const variantTypes = Object.keys(product.variants);
             
-            // Check if item with the same product ID and variants already exists
-            const existingItem = this.items.find(item => {
-              if (!item.productKey && !productKey) {
-                // Both items have no variants, just check the product ID
-                return item.id === product.id;
+            // Build variant details array with type, value and price
+            variantDetails = variantTypes.map(type => {
+              const variant = product.variants[type];
+              // Store the variant ID for the first variant (or use provided variantId)
+              if (!variantId) {
+                variantId = variant.id;
               }
-              return item.productKey === productKey;
+              // If this is the first variant and it has a price, use it as the product price
+              if (!variantId && variant.price) {
+                product.price = variant.price;
+              }
+              return {
+                type: type,
+                value: variant.value,
+                price: variant.price
+              };
             });
-            
-            if (existingItem) {
-              // If the same product with the same variants exists, increase quantity
-              existingItem.quantity = parseInt(existingItem.quantity) + parseInt(product.quantity || 1);
-            } else {
-              // Add the productKey to identify this unique product + variant combo
-              product.productKey = productKey;
-              
-              // Ensure quantity is set
-              product.quantity = parseInt(product.quantity || 1);
-              
-              // Store the readable variant information for display
-              product.variantNames = variantNames;
-              
-              this.items.push(product);
+          }
+
+          // Store the explicit variantId if provided
+          if (product.variantId) {
+            variantId = product.variantId;
+          }
+
+          // Create a unique key for this product + variant combination
+          const productVariantKey = this.createProductVariantKey(product);
+          
+          // Check if this product + variant combination already exists in the cart
+          const existingItemIndex = this.items.findIndex(item => {
+            const itemKey = this.createProductVariantKey(item);
+            return itemKey === productVariantKey;
+          });
+          
+          // If we have variants, make sure we're using the variant price
+          if (hasVariants && variantDetails.length > 0) {
+            // Find the first variant with a price
+            const variantWithPrice = variantDetails.find(v => v.price);
+            if (variantWithPrice) {
+              product.price = variantWithPrice.price;
             }
+          }
+          
+          // Store the variant details
+          if (hasVariants) {
+            product.variantDetails = variantDetails;
             
-            // Update localStorage
+            // Create a display string for the cart
+            product.variantDisplay = variantDetails
+              .map(v => `${v.type}: ${v.value}`)
+              .join(', ');
+          }
+          
+          // Ensure quantity is set
+          product.quantity = parseInt(product.quantity || 1);
+          
+          // Store the product ID and variant ID for backend processing
+          product.productId = productId;
+          product.variantId = variantId;
+          
+          if (existingItemIndex !== -1) {
+            // If the product + variant already exists, increase the quantity
+            this.items[existingItemIndex].quantity += product.quantity;
+            
+            // Make sure quantity doesn't exceed stock
+            if (product.stock) {
+              this.items[existingItemIndex].quantity = Math.min(
+                this.items[existingItemIndex].quantity, 
+                product.stock
+              );
+            }
+          } else {
+            // Add a unique productKey for identification
+            product.productKey = productVariantKey + '-' + new Date().getTime();
+            
+            // Add as a new item
+            this.items.push(product);
+          }
+          
+          // Update localStorage
+          localStorage.setItem('cart', JSON.stringify(this.items));
+          
+          // Update counts
+          this.updateCartCounts();
+          
+          // Dispatch event for toast notification
+          window.dispatchEvent(new CustomEvent('show-notification', { 
+            detail: { 
+              message: product.name + ' added to cart',
+              type: 'success'
+            } 
+          }));
+          
+          // Dispatch a storage event so other tabs update
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'cart'
+          }));
+        },
+
+        removeItem(id) {
+          // Find the item by productKey (for variants) or id (for non-variants)
+          const index = this.items.findIndex(item => item.productKey === id || item.id === id);
+          if (index !== -1) {
+            this.items.splice(index, 1);
             localStorage.setItem('cart', JSON.stringify(this.items));
-            
-            // Update counts
             this.updateCartCounts();
-            
-            // Don't open the cart panel
-            // this.open = true;
-            
-            // Dispatch event for toast notification
-            window.dispatchEvent(new CustomEvent('show-notification', { 
-              detail: { 
-                message: product.name + ' added to cart',
-                type: 'success'
-              } 
-            }));
             
             // Dispatch a storage event so other tabs update
             window.dispatchEvent(new StorageEvent('storage', {
               key: 'cart'
             }));
-          },
-
-          removeItem(id) {
-            const index = this.items.findIndex(item => item.productKey === id || item.id === id);
-            if (index !== -1) {
-              this.items.splice(index, 1);
-              localStorage.setItem('cart', JSON.stringify(this.items));
-              this.updateCartCounts();
-              
-              // Dispatch a storage event so other tabs update
-              window.dispatchEvent(new StorageEvent('storage', {
-                key: 'cart'
-              }));
-            }
-          },
-
-          updateQuantity(id, qty) {
-            const item = this.items.find(item => item.productKey === id || item.id === id);
-            if (item) {
-              // Make sure quantity doesn't exceed stock
-              qty = Math.min(qty, item.stock);
-              
-              // Make sure quantity is at least 1
-              qty = Math.max(1, qty);
-              
-              item.quantity = qty;
-              localStorage.setItem('cart', JSON.stringify(this.items));
-              this.updateCartCounts();
-              
-              // Dispatch a storage event so other tabs update
-              window.dispatchEvent(new StorageEvent('storage', {
-                key: 'cart'
-              }));
-            }
-          },
-          
-          formatPrice(price) {
-            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
           }
-        });
-        
-        // Define favorites as a global Alpine store
-        Alpine.store('favorites', {
-          items: [],
-          
-          init() {
-            this.loadFavorites();
+        },
+
+        updateQuantity(id, qty) {
+          // Find the item by productKey (for variants) or id (for non-variants)
+          const item = this.items.find(item => item.productKey === id || item.id === id);
+          if (item) {
+            // Make sure quantity doesn't exceed stock
+            qty = Math.min(qty, item.stock);
             
-            // Listen for storage events to update favorites across tabs
-            window.addEventListener('storage', (e) => {
-              if (e.key === 'favorites') {
-                this.loadFavorites();
-              }
-            });
-          },
-          
-          loadFavorites() {
-            this.items = JSON.parse(localStorage.getItem('favorites') || '[]');
-          },
-          
-          toggleFavorite(productId) {
-            this.loadFavorites();
-            const index = this.items.indexOf(productId);
+            // Make sure quantity is at least 1
+            qty = Math.max(1, qty);
             
-            if (index === -1) {
-              // Add to favorites
-              this.items.push(productId);
-              
-              // Dispatch event for toast notification (added to favorites)
-              window.dispatchEvent(new CustomEvent('show-notification', { 
-                detail: { 
-                  message: 'Added to favorites',
-                  type: 'success'
-                } 
-              }));
-            } else {
-              // Remove from favorites
-              this.items.splice(index, 1);
-              
-              // Dispatch event for toast notification (removed from favorites)
-              window.dispatchEvent(new CustomEvent('show-notification', { 
-                detail: { 
-                  message: 'Removed from favorites',
-                  type: 'info'
-                } 
-              }));
-            }
-            
-            // Save to localStorage
-            localStorage.setItem('favorites', JSON.stringify(this.items));
+            item.quantity = qty;
+            localStorage.setItem('cart', JSON.stringify(this.items));
+            this.updateCartCounts();
             
             // Dispatch a storage event so other tabs update
             window.dispatchEvent(new StorageEvent('storage', {
-              key: 'favorites'
+              key: 'cart'
             }));
-          },
-          
-          isFavorite(productId) {
-            return this.items.includes(productId);
           }
-        });
+        },
         
-        // Initialize stores immediately
-        Alpine.store('cart').init();
-        Alpine.store('favorites').init();
+        formatPrice(price) {
+          return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
       });
-    </script>
-  </head>
-  <body class="flex flex-col min-h-screen">
-    <div
-      x-data="{ 
-        mobileMenuOpen: false,
-      }"
-    >
-      <nav class="bg-white shadow-sm">
-        <div class="max-w-6xl mx-auto px-4">
-          <div class="flex items-center justify-between h-16">
-            <div class="flex items-center">
-              <a href="/" class="text-xl font-semibold text-gray-900">P&M Store</a>
-              <div class="hidden md:block ml-10">
-                <div class="flex items-baseline space-x-4">
-                  <a href="/" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Home</a>
-                  <a href="/products" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Products</a>
-                  <a href="/about" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">About</a>
-                  <a href="/contact" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Contact</a>
-                </div>
+      
+      // Define favorites as a global Alpine store
+      Alpine.store('favorites', {
+        items: [],
+        
+        init() {
+          this.loadFavorites();
+          
+          // Listen for storage events to update favorites across tabs
+          window.addEventListener('storage', (e) => {
+            if (e.key === 'favorites') {
+              this.loadFavorites();
+            }
+          });
+        },
+        
+        loadFavorites() {
+          this.items = JSON.parse(localStorage.getItem('favorites') || '[]');
+        },
+        
+        toggleFavorite(productId) {
+          this.loadFavorites();
+          const index = this.items.indexOf(productId);
+          
+          if (index === -1) {
+            // Add to favorites
+            this.items.push(productId);
+            
+            // Dispatch event for toast notification (added to favorites)
+            window.dispatchEvent(new CustomEvent('show-notification', { 
+              detail: { 
+                message: 'Added to favorites',
+                type: 'success'
+              } 
+            }));
+          } else {
+            // Remove from favorites
+            this.items.splice(index, 1);
+            
+            // Dispatch event for toast notification (removed from favorites)
+            window.dispatchEvent(new CustomEvent('show-notification', { 
+              detail: { 
+                message: 'Removed from favorites',
+                type: 'info'
+              } 
+            }));
+          }
+          
+          // Save to localStorage
+          localStorage.setItem('favorites', JSON.stringify(this.items));
+          
+          // Dispatch a storage event so other tabs update
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'favorites'
+          }));
+        },
+        
+        isFavorite(productId) {
+          return this.items.includes(productId);
+        }
+      });
+      
+      // Initialize stores immediately
+      Alpine.store('cart').init();
+      Alpine.store('favorites').init();
+    });
+  </script>
+</head>
+<body class="flex flex-col min-h-screen">
+  <div
+    x-data="{ 
+      mobileMenuOpen: false,
+    }"
+  >
+    <nav class="bg-white shadow-sm">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+            <a href="/" class="text-xl font-semibold text-gray-900">P&M Store</a>
+            <div class="hidden md:block ml-10">
+              <div class="flex items-baseline space-x-4">
+                <a href="/" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Home</a>
+                <a href="/products" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Products</a>
+                <a href="/about" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">About</a>
+                <a href="/contact" class="px-3 py-2 text-sm font-medium text-gray-900 hover:text-blue-600">Contact</a>
               </div>
-            </div>
-            <div class="flex items-center">
-              <button
-                @click="$store.cart.open = true"
-                id="cartButton"
-                class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md"
-                x-effect="$watch('$store.cart.uniqueCount', () => { anime({targets: '#cartButton', scale: [1, 1.2, 1], duration: 300, easing: 'easeInOutQuad'}) })"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                <span
-                  x-show="$store.cart.uniqueCount > 0"
-                  x-text="$store.cart.uniqueCount"
-                  class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full"
-                >
-                </span>
-              </button>
-
-              <!-- User dropdown menu -->
-              <div class="relative ml-3" x-data="{ userMenuOpen: false }">
-                {% if current_user %}
-                <button 
-                  @click="userMenuOpen = !userMenuOpen" 
-                  type="button" 
-                  class="flex items-center text-sm px-3 py-2 text-gray-700 rounded-md hover:text-blue-600"
-                  id="user-menu-button"
-                >
-                  <span class="mr-1">{{ current_user.username }}</span>
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                <div 
-                  x-show="userMenuOpen" 
-                  @click.away="userMenuOpen = false" 
-                  class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" 
-                  role="menu" 
-                  aria-orientation="vertical" 
-                  aria-labelledby="user-menu-button" 
-                  tabindex="-1"
-                  x-transition:enter="transition ease-out duration-100"
-                  x-transition:enter-start="transform opacity-0 scale-95"
-                  x-transition:enter-end="transform opacity-100 scale-100"
-                  x-transition:leave="transition ease-in duration-75"
-                  x-transition:leave-start="transform opacity-100 scale-100"
-                  x-transition:leave-end="transform opacity-0 scale-95"
-                >
-                  <a href="/account" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Account</a>
-                  <a href="/my-orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Orders</a>
-                  <a href="/auth/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Logout</a>
-                </div>
-                {% else %}
-                <div class="flex items-center space-x-2">
-                  <a href="/auth/login" class="text-sm font-medium text-gray-700 px-3 py-2 rounded-md hover:text-blue-600">Login</a>
-                  <a href="/auth/register" class="text-sm font-medium bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">Register</a>
-                </div>
-                {% endif %}
-              </div>
-
-              <button 
-                @click="mobileMenuOpen = !mobileMenuOpen"
-                class="md:hidden ml-4 text-gray-600 hover:text-gray-900 focus:outline-none"
-              >
-                <svg 
-                  class="h-6 w-6" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round" 
-                    stroke-width="2" 
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
-          <!-- Mobile menu -->
-          <div 
-            x-show="mobileMenuOpen" 
-            x-cloak
-            class="md:hidden"
-          >
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <a href="/" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Home</a>
-              <a href="/products" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Products</a>
-              <a href="/about" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">About</a>
-              <a href="/contact" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Contact</a>
-              
+          <div class="flex items-center">
+            <button
+              @click="$store.cart.open = true"
+              id="cartButton"
+              class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md"
+              x-effect="$watch('$store.cart.uniqueCount', () => { anime({targets: '#cartButton', scale: [1, 1.2, 1], duration: 300, easing: 'easeInOutQuad'}) })"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              <span
+                x-show="$store.cart.uniqueCount > 0"
+                x-text="$store.cart.uniqueCount"
+                class="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full"
+              >
+              </span>
+            </button>
+
+            <!-- User dropdown menu -->
+            <div class="relative ml-3" x-data="{ userMenuOpen: false }">
               {% if current_user %}
-              <div class="border-t border-gray-200 my-2 pt-2">
-                <div class="px-3 py-2 text-sm font-medium text-gray-500">Logged in as {{ current_user.username }}</div>
-                <a href="/account" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">My Account</a>
-                <a href="/account/orders" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">My Orders</a>
-                <a href="/auth/logout" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Logout</a>
+              <button 
+                @click="userMenuOpen = !userMenuOpen" 
+                type="button" 
+                class="flex items-center text-sm px-3 py-2 text-gray-700 rounded-md hover:text-blue-600"
+                id="user-menu-button"
+              >
+                <span class="mr-1">{{ current_user.username }}</span>
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <div 
+                x-show="userMenuOpen" 
+                @click.away="userMenuOpen = false" 
+                class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" 
+                role="menu" 
+                aria-orientation="vertical" 
+                aria-labelledby="user-menu-button" 
+                tabindex="-1"
+                x-transition:enter="transition ease-out duration-100"
+                x-transition:enter-start="transform opacity-0 scale-95"
+                x-transition:enter-end="transform opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-75"
+                x-transition:leave-start="transform opacity-100 scale-100"
+                x-transition:leave-end="transform opacity-0 scale-95"
+              >
+                <a href="/account" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Account</a>
+                <a href="/my-orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Orders</a>
+                <a href="/auth/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Logout</a>
               </div>
               {% else %}
-              <div class="border-t border-gray-200 my-2 pt-2">
-                <a href="/auth/login" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Login</a>
-                <a href="/auth/register" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Register</a>
+              <div class="flex items-center space-x-2">
+                <a href="/auth/login" class="text-sm font-medium text-gray-700 px-3 py-2 rounded-md hover:text-blue-600">Login</a>
+                <a href="/auth/register" class="text-sm font-medium bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">Register</a>
               </div>
               {% endif %}
             </div>
+
+            <button 
+              @click="mobileMenuOpen = !mobileMenuOpen"
+              class="md:hidden ml-4 text-gray-600 hover:text-gray-900 focus:outline-none"
+            >
+              <svg 
+                class="h-6 w-6" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  stroke-width="2" 
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
           </div>
         </div>
-      </nav>
-
-      <!-- Cart Sidebar -->
-      <div
-        x-show="$store.cart.open"
-        x-cloak
-        @click.away="$store.cart.open = false"
-        class="cart-overlay fixed inset-0 bg-black bg-opacity-50 z-40"
-      >
-        <div
-          class="cart-panel fixed right-0 top-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300"
-          :class="$store.cart.open ? 'translate-x-0' : 'translate-x-full'"
+        <!-- Mobile menu -->
+        <div 
+          x-show="mobileMenuOpen" 
+          x-cloak
+          class="md:hidden"
         >
-          <div class="flex flex-col h-full">
-            <div class="flex items-center justify-between p-4 border-b">
-              <h2 class="text-lg font-semibold text-gray-900">Shopping Cart</h2>
-              <button
-                @click="$store.cart.open = false"
-                class="p-2 text-gray-600 hover:text-gray-900 rounded-md"
+          <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <a href="/" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Home</a>
+            <a href="/products" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Products</a>
+            <a href="/about" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">About</a>
+            <a href="/contact" class="block px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-blue-600 rounded-md">Contact</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Cart Sidebar -->
+    <div
+      x-show="$store.cart.open"
+      x-cloak
+      @click.away="$store.cart.open = false"
+      class="cart-overlay fixed inset-0 bg-black bg-opacity-50 z-40"
+    >
+      <div
+        class="cart-panel fixed right-0 top-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300"
+        :class="$store.cart.open ? 'translate-x-0' : 'translate-x-full'"
+      >
+        <div class="flex flex-col h-full">
+          <div class="flex items-center justify-between p-4 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">Shopping Cart</h2>
+            <button
+              @click="$store.cart.open = false"
+              class="p-2 text-gray-600 hover:text-gray-900 rounded-md"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  class="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4">
+            <template x-if="$store.cart.items.length === 0">
+              <div class="text-center py-8 text-gray-500">Your cart is empty</div>
+            </template>
+
+            <!-- Important: Use productKey as the key for the x-for loop to ensure each variant is displayed separately -->
+            <template x-for="item in $store.cart.items" :key="item.productKey || item.id">
+              <div class="flex flex-col space-y-3 py-4 border-b">
+                <div class="flex items-center space-x-3">
+                  <img
+                    :src="item.image || '/static/images/product-placeholder.jpg'"
+                    :alt="item.name"
+                    class="w-16 h-16 object-cover rounded-md bg-gray-100"
                   />
-                </svg>
-              </button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-4">
-              <template x-if="$store.cart.items.length === 0">
-                <div class="text-center py-8 text-gray-500">Your cart is empty</div>
-              </template>
-
-              <template x-for="item in $store.cart.items" :key="item.id">
-                <div class="flex flex-col space-y-3 py-4 border-b">
+                  <div class="flex-1">
+                    <h3
+                      x-text="item.name"
+                      class="text-sm font-medium text-gray-900"
+                    ></h3>
+                    <p
+                      class="text-sm text-gray-500"
+                      x-text="'UGX ' + $store.cart.formatPrice(item.price)"
+                    ></p>
+                    <!-- Display variant information if available -->
+                    <template x-if="item.variantDisplay">
+                      <p class="text-xs text-gray-400 mt-1" x-text="item.variantDisplay"></p>
+                    </template>
+                  </div>
+                  <button
+                    @click="$store.cart.removeItem(item.productKey || item.id)"
+                    class="text-gray-400 hover:text-red-500"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-3">
-                    <img
-                      :src="item.image || '/static/images/product-placeholder.jpg'"
-                      :alt="item.name"
-                      class="w-16 h-16 object-cover rounded-md bg-gray-100"
-                    />
-                    <div class="flex-1">
-                      <h3
-                        x-text="item.name"
-                        class="text-sm font-medium text-gray-900"
-                      ></h3>
-                      <p
-                        class="text-sm text-gray-500"
-                        x-text="'UGX ' + $store.cart.formatPrice(item.price)"
-                      ></p>
-                    </div>
                     <button
-                      @click="$store.cart.removeItem(item.id)"
-                      class="text-gray-400 hover:text-red-500"
+                      @click="$store.cart.updateQuantity(item.productKey || item.id, parseInt(item.quantity) - 1)"
+                      class="text-gray-500 hover:text-gray-600"
                     >
                       <svg
-                        class="w-5 h-5"
+                        class="w-4 h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -483,93 +559,72 @@
                           stroke-linecap="round"
                           stroke-linejoin="round"
                           stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          d="M20 12H4"
+                        />
+                      </svg>
+                    </button>
+                    <span x-text="item.quantity" class="text-gray-600"></span>
+                    <button
+                      @click="$store.cart.updateQuantity(item.productKey || item.id, parseInt(item.quantity) + 1)"
+                      class="text-gray-500 hover:text-gray-600"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 4v16m8-8H4"
                         />
                       </svg>
                     </button>
                   </div>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <button
-                        @click="$store.cart.updateQuantity(item.id, parseInt(item.quantity) - 1)"
-                        class="text-gray-500 hover:text-gray-600"
-                      >
-                        <svg
-                          class="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M20 12H4"
-                          />
-                        </svg>
-                      </button>
-                      <span x-text="item.quantity" class="text-gray-600"></span>
-                      <button
-                        @click="$store.cart.updateQuantity(item.id, parseInt(item.quantity) + 1)"
-                        class="text-gray-500 hover:text-gray-600"
-                      >
-                        <svg
-                          class="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 4v16m8-8H4"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                    <span
-                      class="font-medium text-gray-900"
-                      x-text="'UGX ' + $store.cart.formatPrice(item.price * item.quantity)"
-                    ></span>
-                  </div>
+                  <span
+                    class="font-medium text-gray-900"
+                    x-text="'UGX ' + $store.cart.formatPrice(item.price * item.quantity)"
+                  ></span>
                 </div>
-              </template>
-            </div>
-
-            <div class="border-t p-4">
-              <div class="flex items-center justify-between mb-4">
-                <span class="text-base font-medium text-gray-900">Total</span>
-                <span
-                  class="text-lg font-semibold text-gray-900"
-                  x-text="'UGX ' + $store.cart.formatPrice($store.cart.total)"
-                ></span>
               </div>
-              <button
-                @click="window.location.href='/checkout'"
-                class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                :disabled="$store.cart.items.length === 0"
-                :class="{ 'opacity-50 cursor-not-allowed': $store.cart.items.length === 0 }"
-              >
-                Proceed to Checkout
-              </button>
+            </template>
+          </div>
+
+          <div class="border-t p-4">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-base font-medium text-gray-900">Total</span>
+              <span
+                class="text-lg font-semibold text-gray-900"
+                x-text="'UGX ' + $store.cart.formatPrice($store.cart.total)"
+              ></span>
             </div>
+            <button
+              @click="window.location.href='/checkout'"
+              class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              :disabled="$store.cart.items.length === 0"
+              :class="{ 'opacity-50 cursor-not-allowed': $store.cart.items.length === 0 }"
+            >
+              Proceed to Checkout
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- Updated main element with more spacing -->
-      <main class="flex-grow py-6 md:py-8 lg:py-10 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        {% block content %}{% endblock %}
-      </main>
     </div>
 
-    <footer class="bg-white mt-8 py-4 border-t">
-      <div class="max-w-6xl mx-auto px-4 text-center text-gray-600">
-        <p>&copy; 2024 P&M Store. All rights reserved.</p>
-      </div>
-    </footer>
+    <!-- Updated main element with more spacing -->
+    <main class="flex-grow py-6 md:py-8 lg:py-10 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
 
-    {% block extra_js %}{% endblock %}
-  </body>
+  <footer class="bg-white mt-8 py-4 border-t">
+    <div class="max-w-6xl mx-auto px-4 text-center text-gray-600">
+      <p>&copy; 2024 P&M Store. All rights reserved.</p>
+    </div>
+  </footer>
+
+  {% block extra_js %}{% endblock %}
+</body>
 </html>

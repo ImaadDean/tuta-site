@@ -1,183 +1,190 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Details</title>
-  <meta name="description" content="View your order details" />
+{% extends "base.html" %}
+
+{% block title %}Order Details{% endblock %}
   
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  {% include "shared/styles.html" %}
+{% block content %}
+{% include "shared/styles.html" %}
+  <style>
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(209, 213, 219, 0.3);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .animate-fade-up {
+      animation: fadeUp 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .track-input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.375rem;
+      background-color: #f8fafc;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .track-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid #3b82f6;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+  </style>
 </head>
 
 <body class="bg-gradient-to-b from-blue-50 to-white text-foreground font-sans">
-  <div class="min-h-screen">
-    <div class="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+  <div class="">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-semibold sm:text-3xl">Order Details</h1>
           <p class="text-muted-foreground mt-1">View your order information</p>
         </div>
-        <a 
-          href="/my-orders" 
-          class="text-sm text-primary flex items-center gap-1 hover:underline"
+      </div>
+      
+      <!-- Loading State -->
+      <div id="loadingState" class="text-center py-20">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-muted-foreground">Loading order details...</p>
+      </div>
+      
+      <!-- Error State -->
+      <div id="errorState" class="text-center py-20 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4 text-red-500">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <h2 class="text-xl font-medium mb-2">Error Loading Order</h2>
+        <p id="errorMessage" class="text-muted-foreground">Unable to load order details. Please try again later.</p>
+        <button 
+          id="retryButton"
+          class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-            <path d="m12 19-7-7 7-7"></path>
-            <path d="M19 12H5"></path>
-          </svg>
-          Back to orders
-        </a>
+          Retry
+        </button>
       </div>
       
-      <div class="text-center mb-8">
-        <h2 class="text-3xl font-light mb-2">Order #{{ order.order_no }}</h2>
-        <p class="text-muted-foreground">
-          Placed on {{ order.created_at.strftime('%B %d, %Y') }}
-        </p>
-      </div>
+      <!-- Order Content (Hidden until loaded) -->
+      <div id="orderContent" class="hidden">
+        <div class="text-center mb-8">
+          <h2 class="text-3xl font-light mb-2">Order #<span id="orderNumber"></span></h2>
+          <p class="text-muted-foreground">
+            Placed on <span id="orderDate"></span>
+          </p>
+        </div>
 
-      <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-medium">Order Summary</h3>
-          <div>
-            {% if order.status == 'delivered' %}
-              <span class="status-badge bg-green-100 text-green-800 border border-green-200">Delivered</span>
-            {% elif order.status == 'processing' %}
-              <span class="status-badge bg-blue-100 text-blue-800 border border-blue-200">Processing</span>
-            {% elif order.status == 'pending' %}
-              <span class="status-badge bg-yellow-100 text-yellow-800 border border-yellow-200">Pending</span>
-            {% elif order.status == 'delivering' %}
-              <span class="status-badge bg-indigo-100 text-indigo-800 border border-indigo-200">Delivering</span>
-            {% elif order.status == 'cancelled' %}
-              <span class="status-badge bg-red-100 text-red-800 border border-red-200">Cancelled</span>
-            {% else %}
-              <span class="status-badge bg-gray-100 text-gray-800 border border-gray-200">{{ order.status|capitalize }}</span>
-            {% endif %}
+        <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium">Order Summary</h3>
+            <div id="orderStatusBadge">
+              <!-- Status badge will be inserted here -->
+            </div>
+          </div>
+          
+          <div class="border-t border-border pt-4">
+            <div id="orderItems" class="space-y-4 mb-6">
+              <!-- Order items will be inserted here -->
+            </div>
+            
+            <div class="border-t border-border pt-4 mt-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-muted-foreground">Subtotal</span>
+                <span id="subtotal" class="font-medium"></span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-muted-foreground">Shipping</span>
+                <span class="font-medium">UGX 8.24</span>
+              </div>
+              <div class="flex justify-between pt-4 border-t">
+                <span class="font-semibold">Total</span>
+                <span id="totalAmount" class="font-bold"></span>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="border-t border-border pt-4">
-          <div class="space-y-4 mb-6">
-            {% for item in order.order_items %}
-            <div class="flex items-center gap-3 pt-3 first:pt-0">
-              <div class="relative h-16 w-16 overflow-hidden rounded-md bg-muted flex-shrink-0">
-                <img
-                  src="{{ item.product.image_urls[0] if item.product and item.product.image_urls and item.product.image_urls|length > 0 else '/placeholder.svg?height=64&width=64' }}"
-                  alt="{% if item.product %}{{ item.product.name }}{% else %}Product image{% endif %}"
-                  class="object-cover w-full h-full"
-                  loading="lazy"
-                  onerror="this.src='/placeholder.svg?height=64&width=64'; this.onerror=null;"
-                />
-              </div>
-              
-              <div class="flex-1 min-w-0">
-                <p class="font-medium truncate">
-                  {% if item.product %}
-                    {{ item.product.name }}
-                  {% else %}
-                    Product unavailable
-                  {% endif %}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  Qty: {{ item.quantity }}
-                </p>
-              </div>
-              
-              <div class="text-right">
-                {% if item.product %}
-                  <div class="flex justify-between py-3 border-t border-dashed">
-                    <p class="font-medium">UGX {{ item.product.price * item.quantity }}</p>
-                    <p class="text-sm text-muted-foreground">UGX {{ item.product.price }} each</p>
-                  </div>
-                {% else %}
-                  <p class="font-medium">Price unavailable</p>
-                {% endif %}
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          
-          <div class="border-t border-border pt-4 mt-4">
-            <div class="flex justify-between text-sm">
-              <span class="text-muted-foreground">Subtotal</span>
-              <span class="font-medium">UGX {{ order.total_amount - 8.24 }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted-foreground">Shipping</span>
-              <span class="font-medium">UGX 8.24</span>
-            </div>
-            <div class="flex justify-between pt-4 border-t">
-              <span class="font-semibold">Total</span>
-              <span class="font-bold">UGX {{ order.total_amount }}</span>
-            </div>
+        <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up" style="animation-delay: 0.1s;">
+          <h3 class="text-lg font-medium mb-4">Shipping Information</h3>
+          <div id="shippingInfo" class="text-muted-foreground">
+            <!-- Shipping information will be inserted here -->
           </div>
         </div>
-      </div>
-      
-      <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up" style="animation-delay: 0.1s;">
-        <h3 class="text-lg font-medium mb-4">Shipping Information</h3>
-        <div class="text-muted-foreground">
-          {% if order.address %}
-            {% if order.guest_data %}
-              <p class="mb-1">{{ order.guest_data.name }}</p>
-              <p class="mb-1">{{ order.guest_data.email }}</p>
-              <p class="mb-1">{{ order.guest_data.phone }}</p>
-            {% else %}
-              <p class="mb-1">{{ user.username }}</p>
-            {% endif %}
-            <p class="mb-1">{{ order.address.address }}</p>
-            <p class="mb-1">{{ order.address.city }}</p>
-            <p>{{ order.address.country }}</p>
-          {% else %}
-            <p>Shipping information unavailable</p>
-          {% endif %}
-        </div>
-      </div>
 
-      <!-- Order Actions -->
-      <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up" style="animation-delay: 0.2s;">
-        <h3 class="text-lg font-medium mb-4">Order Actions</h3>
-        
-        <div class="space-y-4">
-          {% if order.status == 'pending' %}
-          <form action="/cancel-order/{{ order.id }}" method="post" class="inline-block">
-            <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-              Cancel Order
-            </button>
-          </form>
-          {% endif %}
+        <!-- Order Actions -->
+        <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up" style="animation-delay: 0.2s;">
+          <h3 class="text-lg font-medium mb-4">Order Actions</h3>
           
-          <a href="/track-order/{{ order.id }}" class="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-            Track Order
-          </a>
+          <div id="orderActions" class="space-y-4">
+            <!-- Order actions will be inserted here -->
+          </div>
           
-          {% if order.status == 'delivered' and order.payment_status != 'refunded' %}
-          <button type="button" id="refundBtn" class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors">
-            Request Refund
-          </button>
-          {% endif %}
+          <div id="actionMessages">
+            <!-- Success/error messages will be inserted here -->
+          </div>
         </div>
-        
-        {% if error %}
-        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-          {{ error }}
+
+        <!-- Order Timeline -->
+        <div class="glass-card rounded-lg p-6 mb-8 animate-fade-up" style="animation-delay: 0.3s;">
+          <h3 class="text-lg font-medium mb-4">Order Timeline</h3>
+          <div id="orderTimeline" class="space-y-6">
+            <!-- Timeline will be inserted here -->
+          </div>
         </div>
-        {% endif %}
-        
-        {% if success %}
-        <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-green-600 text-sm">
-          {{ success }}
-        </div>
-        {% endif %}
       </div>
 
       <!-- Refund Modal -->
       <div id="refundModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-card rounded-lg max-w-md w-full p-6 animate-slide-up">
           <h3 class="text-lg font-medium mb-4">Request a Refund</h3>
-          <form action="/request-refund/{{ order.id }}" method="post">
+          <form id="refundForm">
             <div class="mb-4">
               <label for="reason" class="block text-sm font-medium text-foreground mb-1">Reason for refund</label>
               <textarea 
@@ -199,63 +206,9 @@
           </form>
         </div>
       </div>
-
-      <!-- Order Actions -->
-      <div class="mt-8 flex flex-wrap gap-3">
-        <a 
-          href="/track-order-by-number/{{ order.order_no }}" 
-          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          Track Order
-        </a>
-        
-        {% if order.status == 'DELIVERED' %}
-        <form id="complete-order-form" action="/close-order/{{ order.id }}" method="POST" class="inline-block">
-          <button 
-            type="submit"
-            class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            onclick="return confirm('Are you sure you want to mark this order as completed? This action cannot be undone.')"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            Mark as Completed
-          </button>
-        </form>
-        {% endif %}
-        
-        {% if order.status == 'PENDING' or order.status == 'PROCESSING' %}
-        <form id="cancel-order-form" action="/cancel-order/{{ order.id }}" method="POST" class="inline-block">
-          <button 
-            type="submit"
-            class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            onclick="return confirm('Are you sure you want to cancel this order? This action cannot be undone.')"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="15" y1="9" x2="9" y2="15"></line>
-              <line x1="9" y1="9" x2="15" y2="15"></line>
-            </svg>
-            Cancel Order
-          </button>
-        </form>
-        {% endif %}
-      </div>
-      
-      <!-- Order Success Message -->
-      {% if request.query_params.message %}
-      <div class="mt-4 p-4 bg-green-50 text-green-800 rounded-md">
-        {{ request.query_params.message }}
-      </div>
-      {% endif %}
     </div>
     
-    <footer class="py-6 border-t mt-12">
+    <footer class="py-6 border-t mt-12 hidden">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-center text-sm text-muted-foreground">
           &copy; <span id="current-year"></span> Your Store. All rights reserved.
@@ -269,16 +222,362 @@
       // Set the current year in the footer
       document.getElementById('current-year').textContent = new Date().getFullYear();
       
-      // Refund modal functionality
-      const refundBtn = document.getElementById('refundBtn');
+      // Get order ID from URL
+      const pathParts = window.location.pathname.split('/');
+      const orderId = pathParts[pathParts.length - 1];
+      
+      // Elements
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const orderContent = document.getElementById('orderContent');
+      const errorMessage = document.getElementById('errorMessage');
+      const retryButton = document.getElementById('retryButton');
+      
+      // Refund modal elements
       const refundModal = document.getElementById('refundModal');
       const cancelRefundBtn = document.getElementById('cancelRefundBtn');
+      const refundForm = document.getElementById('refundForm');
       
-      if (refundBtn && refundModal && cancelRefundBtn) {
-        refundBtn.addEventListener('click', function() {
-          refundModal.classList.remove('hidden');
-        });
+      // Format date
+      function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString(undefined, options);
+      }
+      
+      // Format currency
+      function formatCurrency(amount) {
+        return `UGX ${amount.toLocaleString()}`;
+      }
+      
+      // Get status badge HTML
+      function getStatusBadgeHTML(status) {
+        let badgeClass = '';
         
+        switch(status.toLowerCase()) {
+          case 'delivered':
+          case 'completed':
+            badgeClass = 'bg-green-100 text-green-800 border border-green-200';
+            break;
+          case 'processing':
+            badgeClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+            break;
+          case 'pending':
+            badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+            break;
+          case 'delivering':
+            badgeClass = 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+            break;
+          case 'cancelled':
+            badgeClass = 'bg-red-100 text-red-800 border border-red-200';
+            break;
+          default:
+            badgeClass = 'bg-gray-100 text-gray-800 border border-gray-200';
+        }
+        
+        return `<span class="status-badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+      }
+      
+      // Fetch order details
+      async function fetchOrderDetails() {
+        try {
+          // Show loading state
+          loadingState.classList.remove('hidden');
+          errorState.classList.add('hidden');
+          orderContent.classList.add('hidden');
+          
+          // Fetch order details from API
+          const response = await fetch(`/api/v1/orders/${orderId}`);
+          
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          
+          const result = await response.json();
+          
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to fetch order details');
+          }
+          
+          // Render order details
+          renderOrderDetails(result.data);
+          
+          // Hide loading state, show order content
+          loadingState.classList.add('hidden');
+          orderContent.classList.remove('hidden');
+        } catch (error) {
+          console.error('Error fetching order details:', error);
+          
+          // Show error state
+          loadingState.classList.add('hidden');
+          errorState.classList.remove('hidden');
+          orderContent.classList.add('hidden');
+          
+          // Update error message
+          errorMessage.textContent = error.message || 'Failed to load order details. Please try again later.';
+        }
+      }
+      
+      // Render order details
+      function renderOrderDetails(order) {
+        // Set order number and date
+        document.getElementById('orderNumber').textContent = order.order_no;
+        document.getElementById('orderDate').textContent = formatDate(order.created_at);
+        
+        // Set order status badge
+        document.getElementById('orderStatusBadge').innerHTML = getStatusBadgeHTML(order.status);
+        
+        // Render order items
+        renderOrderItems(order.items);
+        
+        // Set subtotal and total
+        const shippingCost = 8.24;
+        const subtotal = order.total_amount - shippingCost;
+        document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('totalAmount').textContent = formatCurrency(order.total_amount);
+        
+        // Render shipping information
+        renderShippingInfo(order);
+        
+        // Render order actions
+        renderOrderActions(order);
+        
+        // Render order timeline
+        renderOrderTimeline(order.timeline);
+      }
+      
+      // Render order items
+      function renderOrderItems(items) {
+        const orderItemsContainer = document.getElementById('orderItems');
+        orderItemsContainer.innerHTML = '';
+        
+        if (!items || items.length === 0) {
+          orderItemsContainer.innerHTML = '<p class="text-muted-foreground">No items in this order</p>';
+          return;
+        }
+        
+        items.forEach(item => {
+          const itemElement = document.createElement('div');
+          itemElement.className = 'flex items-center gap-3 pt-3 first:pt-0';
+          
+          let imageUrl = '/placeholder.svg?height=64&width=64';
+          let productName = 'Product unavailable';
+          
+          if (item.product) {
+            productName = item.product.name;
+            if (item.product.image_url) {
+              imageUrl = item.product.image_url;
+            }
+          } else {
+            productName = item.product_name || 'Product unavailable';
+          }
+          
+          itemElement.innerHTML = `
+            <div class="relative h-16 w-16 overflow-hidden rounded-md bg-muted flex-shrink-0">
+              <img
+                src="${imageUrl}"
+                alt="${productName}"
+                class="object-cover w-full h-full"
+                loading="lazy"
+                onerror="this.src='/placeholder.svg?height=64&width=64'; this.onerror=null;"
+              />
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">${productName}</p>
+              <p class="text-sm text-muted-foreground">
+                Qty: ${item.quantity}
+              </p>
+            </div>
+            
+            <div class="text-right">
+              <div class="flex justify-between py-3">
+                <p class="font-medium">${formatCurrency(item.total_price || (item.unit_price * item.quantity))}</p>
+                <p class="text-sm text-muted-foreground">${formatCurrency(item.unit_price)} each</p>
+              </div>
+            </div>
+          `;
+          
+          orderItemsContainer.appendChild(itemElement);
+        });
+      }
+      
+      // Render shipping information
+      function renderShippingInfo(order) {
+        const shippingInfoContainer = document.getElementById('shippingInfo');
+        
+        if (order.shipping_address) {
+          let shippingHTML = '';
+          
+          // Add customer info if available
+          if (order.guest_data) {
+            shippingHTML += `
+              <p class="mb-1">${order.guest_data.name}</p>
+              <p class="mb-1">${order.guest_data.email}</p>
+              <p class="mb-1">${order.guest_data.phone}</p>
+            `;
+          }
+          
+          // Add address info
+          shippingHTML += `
+            <p class="mb-1">${order.shipping_address.street}</p>
+            <p class="mb-1">${order.shipping_address.city}</p>
+            <p>${order.shipping_address.country}</p>
+          `;
+          
+          shippingInfoContainer.innerHTML = shippingHTML;
+        } else {
+          shippingInfoContainer.innerHTML = '<p>Shipping information unavailable</p>';
+        }
+      }
+      
+      // Render order actions
+      function renderOrderActions(order) {
+        const orderActionsContainer = document.getElementById('orderActions');
+        orderActionsContainer.innerHTML = '';
+        
+        // Track order button (always available)
+        const trackButton = document.createElement('a');
+        trackButton.href = `/track-order/${order.id}`;
+        trackButton.className = 'inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors';
+        trackButton.innerHTML = `
+          <span class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Track Order
+          </span>
+        `;
+        orderActionsContainer.appendChild(trackButton);
+        
+        // Cancel order button (only for pending orders)
+        if (order.status.toLowerCase() === 'pending') {
+          const cancelButton = document.createElement('form');
+          cancelButton.action = `/cancel-order/${order.id}`;
+          cancelButton.method = 'post';
+          cancelButton.className = 'inline-block';
+          cancelButton.innerHTML = `
+            <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+              Cancel Order
+            </button>
+          `;
+          orderActionsContainer.appendChild(cancelButton);
+        }
+        
+        // Request refund button (only for delivered orders that aren't refunded)
+        if (order.status.toLowerCase() === 'delivered' && order.payment_status.toLowerCase() !== 'refunded') {
+          const refundButton = document.createElement('button');
+          refundButton.type = 'button';
+          refundButton.id = 'refundBtn';
+          refundButton.className = 'px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors flex items-center';
+          refundButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            Request Refund
+          `;
+          orderActionsContainer.appendChild(refundButton);
+          
+          // Add event listener for refund button
+          refundButton.addEventListener('click', function() {
+            refundModal.classList.remove('hidden');
+          });
+        }
+      }
+      
+      // Render order timeline
+      function renderOrderTimeline(timeline) {
+        const timelineContainer = document.getElementById('orderTimeline');
+        timelineContainer.innerHTML = '';
+        
+        if (!timeline || timeline.length === 0) {
+          timelineContainer.innerHTML = '<p class="text-muted-foreground">No timeline available</p>';
+          return;
+        }
+        
+        timeline.forEach((event, index) => {
+          const timelineItem = document.createElement('div');
+          timelineItem.className = 'flex';
+          
+          // Determine if this is the last item
+          const isLast = index === timeline.length - 1;
+          
+          timelineItem.innerHTML = `
+            <div class="flex flex-col items-center mr-4">
+              <div class="rounded-full h-8 w-8 flex items-center justify-center ${event.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}">
+                ${event.completed ? 
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : 
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>'
+                }
+              </div>
+              ${!isLast ? `<div class="h-full w-0.5 bg-gray-200 mt-2"></div>` : ''}
+            </div>
+            <div class="pb-8">
+              <div class="flex items-baseline">
+                <h4 class="font-medium">${event.status}</h4>
+                ${event.date ? `<span class="ml-2 text-sm text-muted-foreground">${formatDate(event.date)}</span>` : ''}
+              </div>
+              <p class="text-muted-foreground mt-1">${event.description}</p>
+            </div>
+          `;
+          
+          timelineContainer.appendChild(timelineItem);
+        });
+      }
+      
+      // Handle refund form submission
+      if (refundForm) {
+        refundForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const reason = document.getElementById('reason').value;
+          
+          try {
+            const response = await fetch(`/request-refund/${orderId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: `reason=${encodeURIComponent(reason)}`
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+              // Hide modal
+              refundModal.classList.add('hidden');
+              
+              // Show success message
+              const successMessage = document.createElement('div');
+              successMessage.className = 'mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-green-600 text-sm';
+              successMessage.textContent = 'Your refund request has been submitted successfully';
+              document.getElementById('actionMessages').appendChild(successMessage);
+              
+              // Refresh order details
+              fetchOrderDetails();
+            } else {
+              throw new Error(result.error || 'Failed to submit refund request');
+            }
+          } catch (error) {
+            console.error('Error submitting refund request:', error);
+            
+            // Show error message
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm';
+            errorMessage.textContent = error.message || 'An error occurred while submitting your refund request';
+            document.getElementById('actionMessages').appendChild(errorMessage);
+          }
+        });
+      }
+      
+      // Handle refund modal close
+      if (cancelRefundBtn && refundModal) {
         cancelRefundBtn.addEventListener('click', function() {
           refundModal.classList.add('hidden');
         });
@@ -290,7 +589,15 @@
           }
         });
       }
+      
+      // Handle retry button click
+      if (retryButton) {
+        retryButton.addEventListener('click', fetchOrderDetails);
+      }
+      
+      // Initial fetch
+      fetchOrderDetails();
     });
   </script>
 </body>
-</html>
+{% endblock %}

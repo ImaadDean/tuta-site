@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.order import Order, OrderStatus, OrderItem, PaymentStatus
 from app.models.user import User
 from app.models.product import Product
-from app.auth.jwt import get_current_user, get_current_user_optional
+from app.auth.jwt import get_current_user, get_current_active_client, get_current_user_optional
 from app.client.orders import router, templates
 from typing import Optional, List
 from datetime import datetime, timedelta
@@ -16,168 +16,70 @@ import logging
 # Set up logger
 logger = logging.getLogger(__name__)
 
-@router.get("/my-orders", response_class=HTMLResponse)
-async def get_client_orders(
-  request: Request,
-  page: int = Query(1, ge=1),
-  page_size: int = Query(10, ge=5, le=100),
-  current_user: User = Depends(get_current_user)
-):
-  """
-  Retrieve all orders associated with the authenticated client with pagination.
-  Renders a template with the list of orders.
-  """
-  try:
-    # Calculate offset for pagination
-    skip = (page - 1) * page_size
-    
-    # Get total count for pagination
-    total_count = await Order.find({"user_id": str(current_user.id)}).count()
-    
-    # Calculate total pages
-    total_pages = math.ceil(total_count / page_size)
-    
-    # Query orders with pagination
-    orders = await Order.find({"user_id": str(current_user.id)}).sort("-created_at").skip(skip).limit(page_size).to_list()
-    
-    # For each order, use the items field directly instead of fetching OrderItems separately
-    for order in orders:
-      # The items are already in the order document as a list of OrderItem objects
-      # No need to fetch them separately with OrderItem.find()
-      order.order_items = order.items if hasattr(order, 'items') else []
-      
-      # Fetch products for each order item
-      for item in order.order_items:
-        product_id = item.product_id if hasattr(item, 'product_id') else None
-        if product_id:
-          item.product = await Product.find_one({"id": product_id})
-    
-    return templates.TemplateResponse(
-        "orders/my_orders.html", 
-        {
-            "request": request, 
-            "orders": orders,
-            "current_user": current_user,
-            "pagination": {
-                "current_page": page,
-                "total_pages": total_pages,
-                "has_next": page < total_pages,
-                "has_prev": page > 1,
-                "total_items": total_count
-            }
-        }
-    )
-  except Exception as e:
-    logger.error(f"Error retrieving orders: {e}")
-    return templates.TemplateResponse(
-        "orders/error.html",
-        {
-            "request": request,
-            "current_user": current_user,
-            "error": f"An error occurred while retrieving your orders: {str(e)}"
-        }
-    )
+# @router.get("/my-orders", response_class=HTMLResponse)
+# async def get_client_orders(
+#     request: Request,
+#     page: int = Query(1, ge=1),
+#     page_size: int = Query(10, ge=5, le=100),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     try:
+#         skip = (page - 1) * page_size
 
-@router.get("/orders/filter", response_class=HTMLResponse)
-async def filter_client_orders(
-  request: Request,
-  status: Optional[str] = None,
-  payment_status: Optional[str] = None,
-  date_from: Optional[str] = None,
-  date_to: Optional[str] = None,
-  page: int = Query(1, ge=1),
-  page_size: int = Query(10, ge=5, le=100),
-  current_user: User = Depends(get_current_user)
-):
-  """
-  Filter orders by status, payment status, and date range with pagination.
-  """
-  try:
-    # Build the query with filters
-    query = {"user_id": str(current_user.id)}
-    
-    # Apply status filter if provided
-    if status:
-        query["status"] = status
-    
-    # Apply payment status filter if provided
-    if payment_status:
-        query["payment_status"] = payment_status
-    
-    # Apply date range filters if provided
-    if date_from:
-        try:
-            from_date = datetime.strptime(date_from, "%Y-%m-%d")
-            query["created_at"] = {"$gte": from_date}
-        except ValueError:
-            # Invalid date format, ignore this filter
-            pass
-    
-    if date_to:
-        try:
-            to_date = datetime.strptime(date_to, "%Y-%m-%d")
-            # Add one day to include the end date fully
-            to_date = to_date + timedelta(days=1)
-            if "created_at" in query:
-                query["created_at"]["$lt"] = to_date
-            else:
-                query["created_at"] = {"$lt": to_date}
-        except ValueError:
-            # Invalid date format, ignore this filter
-            pass
-    
-    # Calculate offset for pagination
-    skip = (page - 1) * page_size
-    
-    # Get total count for pagination
-    total_count = await Order.find(query).count()
-    
-    # Calculate total pages
-    total_pages = math.ceil(total_count / page_size)
-    
-    # Query orders with pagination
-    orders = await Order.find(query).sort("-created_at").skip(skip).limit(page_size).to_list()
-    
-    # For each order, use the items field directly
-    for order in orders:
-      # The items are already in the order document
-      order.order_items = order.items if hasattr(order, 'items') else []
-      
-      # Fetch products for each order item
-      for item in order.order_items:
-        product_id = item.product_id if hasattr(item, 'product_id') else None
-        if product_id:
-          item.product = await Product.find_one({"id": product_id})
-    
-    return templates.TemplateResponse(
-        "orders/my_orders.html", 
-        {
-            "request": request, 
-            "orders": orders,
-            "current_user": current_user,
-            "current_status": status,
-            "current_payment_status": payment_status,
-            "date_from": date_from,
-            "date_to": date_to,
-            "pagination": {
-                "current_page": page,
-                "total_pages": total_pages,
-                "has_next": page < total_pages,
-                "has_prev": page > 1,
-                "total_items": total_count
-            }
-        }
-    )
-  except Exception as e:
-    logger.error(f"Error filtering orders: {e}")
-    return templates.TemplateResponse(
-        "orders/error.html",
-        {
-            "request": request,
-            "current_user": current_user,
-            "error": f"An error occurred while filtering your orders: {str(e)}"
-        }
-    )
+#         total_count = await Order.find({"user_id": str(current_user.id)}).count()
+#         total_pages = math.ceil(total_count / page_size)
+
+#         # Get raw orders from MongoDB
+#         db = Order.get_motor_collection()
+#         raw_orders = await db.find({"user_id": str(current_user.id)}).sort("created_at", -1).skip(skip).limit(page_size).to_list(length=None)
+
+#         logger.info(f"Found {len(raw_orders)} raw orders for user {current_user.id}")
+
+#         # Process orders for template
+#         orders = []
+#         for raw_order in raw_orders:
+#             try:
+#                 # Create an Order object from the raw MongoDB document
+#                 order = Order.parse_obj(raw_order)
+                
+#                 # Ensure order has an order_no
+#                 if not hasattr(order, "order_no") or not order.order_no:
+#                     order.order_no = str(order.id)
+                
+#                 # Add the order to our list
+#                 orders.append(order)
+                
+#                 logger.info(f"Successfully processed order {order.order_no}")
+#             except Exception as e:
+#                 logger.error(f"Error processing order: {e}")
+#                 continue
+
+#         return templates.TemplateResponse(
+#             "orders/my_orders.html",
+#             {
+#                 "request": request,
+#                 "orders": orders,
+#                 "current_user": current_user,
+#                 "pagination": {
+#                     "current_page": page,
+#                     "total_pages": total_pages,
+#                     "has_next": page < total_pages,
+#                     "has_prev": page > 1,
+#                     "total_items": total_count
+#                 }
+#             }
+#         )
+#     except Exception as e:
+#         logger.error(f"Error retrieving orders: {e}")
+#         return templates.TemplateResponse(
+#             "orders/error.html",
+#             {
+#                 "request": request,
+#                 "current_user": current_user,
+#                 "error": f"An error occurred while retrieving your orders: {str(e)}"
+#             }
+#         )
+
 
 @router.get("/order/{order_id}", response_class=HTMLResponse)
 async def get_order_details(
@@ -186,56 +88,72 @@ async def get_order_details(
   current_user: User = Depends(get_current_user)
 ):
   """
-  Retrieve details of a specific order by ID.
+  Render the order details page. The actual order data will be fetched client-side via API.
   """
   try:
-    # Find the order
-    order = await Order.find_one({"id": order_id, "user_id": str(current_user.id)})
-    
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    # Use the items field directly
-    order.order_items = order.items if hasattr(order, 'items') else []
-    
-    # Get products for each order item
-    for item in order.order_items:
-        product_id = item.product_id if hasattr(item, 'product_id') else None
-        if product_id:
-            item.product = await Product.find_one({"id": product_id})
-            
-            # If product exists, increment its view_count
-            if item.product:
-                # Initialize view_count if it doesn't exist
-                if not hasattr(item.product, 'view_count') or item.product.view_count is None:
-                    item.product.view_count = 0
-                
-                # Increment view count (viewing product in order details also counts as a view)
-                item.product.view_count += 1
-                await item.product.save()
-    
-    # Get the address from the shipping_address field
-    order.address = order.shipping_address if hasattr(order, 'shipping_address') else None
-    
+    # Just render the template - data will be fetched via API
     return templates.TemplateResponse(
         "orders/order_view.html", 
         {
-            "request": request, 
-            "order": order, 
+            "request": request,
+            "order_id": order_id,
             "current_user": current_user
         }
     )
-  except HTTPException:
-    # Re-raise HTTP exceptions
-    raise
   except Exception as e:
-    logger.error(f"Error retrieving order details: {e}")
+    logger.error(f"Error rendering order details page: {e}")
     return templates.TemplateResponse(
         "orders/error.html",
         {
             "request": request,
             "current_user": current_user,
-            "error": f"An error occurred while retrieving order details: {str(e)}"
+            "error": f"An error occurred while loading the order details page: {str(e)}"
+        }
+    )
+
+@router.get("/my-orders", response_class=HTMLResponse)
+async def get_client_orders_api(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Render the orders page that uses the API endpoints to fetch and display orders.
+    This version uses client-side JavaScript to fetch data from the API.
+    """
+    try:
+        return templates.TemplateResponse(
+            "orders/my_orders.html",
+            {
+                "request": request,
+                "current_user": current_user
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering API orders page: {e}")
+        return templates.TemplateResponse(
+            "orders/error.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "error": f"An error occurred while loading the orders page: {str(e)}"
+            }
+        )
+
+
+
+@router.get("/track", response_class=HTMLResponse)
+async def track_order_form(
+    request: Request, 
+    current_user: Optional[User] = Depends(get_current_active_client)
+):
+    """
+    Display a unified form for tracking orders by order number.
+    """
+    return templates.TemplateResponse(
+        "orders/track_order.html", 
+        {
+            "request": request, 
+            "current_user": current_user
         }
     )
 
@@ -654,17 +572,16 @@ async def track_order_by_number_get(
               detail="This order belongs to a registered user. Please log in to view details."
           )
       
-      # Use the items field directly
-      order.order_items = order.items if hasattr(order, 'items') else []
+      # Create a dictionary to store products by their ID
+      products = {}
       
-      # Get products for each order item
-      for item in order.order_items:
-          product_id = item.product_id if hasattr(item, 'product_id') else None
-          if product_id:
-              item.product = await Product.find_one({"id": product_id})
-      
-      # Get the address from the shipping_address field
-      order.address = order.shipping_address if hasattr(order, 'shipping_address') else None
+      # Fetch products for each order item
+      for item in order.items:
+          product_id = item.product_id
+          if product_id and product_id not in products:
+              product = await Product.find_one({"id": product_id})
+              if product:
+                  products[product_id] = product
       
       # Create a timeline based on order status
       timeline = []
@@ -720,6 +637,7 @@ async def track_order_by_number_get(
           {
               "request": request, 
               "order": order,
+              "products": products,  # Pass the products dictionary
               "timeline": timeline,
               "current_user": current_user
           }
