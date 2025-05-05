@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}About Us - P&M Store{% endblock %}
+{% block meta_description %}Learn about P&M Store, our mission, values, and the team behind our luxury fragrances and perfumes.{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">About P&M Store</h1>
+  
+  <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Our Story</h2>
+    <p class="text-gray-600 mb-4">
+      Founded in 2023, P&M Store was born from a passion for quality products and exceptional customer service. What started as a small family business has grown into a trusted online destination for shoppers across Uganda and beyond.
+    </p>
+    <p class="text-gray-600 mb-4">
+      Our journey began when our founders, Paul and Mary, recognized the need for a reliable online shopping platform that offers quality products at fair prices with reliable delivery. Today, we're proud to serve thousands of customers, bringing the best products directly to your doorstep.
+    </p>
+    
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+      <img src="https://res.cloudinary.com/dqgbwjapm/image/upload/v1739606865/P_M_logo_zh0wqo.png" alt="P&M Store" class="w-full h-auto rounded-lg shadow-md">
+      <div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Our Mission</h3>
+        <p class="text-gray-600 mb-4">
+          At P&M Store, our mission is to provide our customers with a seamless online shopping experience, offering high-quality products, competitive prices, and exceptional customer service.
+        </p>
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Our Vision</h3>
+        <p class="text-gray-600">
+          To become the leading e-commerce platform in Uganda, recognized for our reliability, product quality, and customer satisfaction.
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Our Values</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="p-4 border border-gray-100 rounded-lg hover:shadow-md transition-shadow">
+        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-800 mb-2">Quality</h3>
+        <p class="text-gray-600">
+          We are committed to offering only the highest quality products to our customers, carefully selecting each item in our inventory.
+        </p>
+      </div>
+      
+      <div class="p-4 border border-gray-100 rounded-lg hover:shadow-md transition-shadow">
+        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-800 mb-2">Customer Service</h3>
+        <p class="text-gray-600">
+          We believe in putting our customers first, providing responsive support and addressing all inquiries and concerns promptly.
+        </p>
+      </div>
+      
+      <div class="p-4 border border-gray-100 rounded-lg hover:shadow-md transition-shadow">
+        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-800 mb-2">Reliability</h3>
+        <p class="text-gray-600">
+          We pride ourselves on reliable service, from accurate product descriptions to timely delivery and transparent policies.
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white rounded-lg shadow-sm p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Our Team</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="text-center">
+        <div class="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4">
+          <img src="https://res.cloudinary.com/dqgbwjapm/image/upload/v1739606865/team-1_jvfkh2.jpg" alt="Paul Mukasa" class="w-full h-full object-cover">
+        </div>
+        <h3 class="text-lg font-medium text-gray-800">Paul Mukasa</h3>
+        <p class="text-gray-600">Co-founder & CEO</p>
+      </div>
+      
+      <div class="text-center">
+        <div class="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4">
+          <img src="https://res.cloudinary.com/dqgbwjapm/image/upload/v1739606865/team-2_wdmfqh.jpg" alt="Mary Nakato" class="w-full h-full object-cover">
+        </div>
+        <h3 class="text-lg font-medium text-gray-800">Mary Nakato</h3>
+        <p class="text-gray-600">Co-founder & COO</p>
+      </div>
+      
+      <div class="text-center">
+        <div class="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4">
+          <img src="https://res.cloudinary.com/dqgbwjapm/image/upload/v1739606865/team-3_bfwjlc.jpg" alt="David Okello" class="w-full h-full object-cover">
+        </div>
+        <h3 class="text-lg font-medium text-gray-800">David Okello</h3>
+        <p class="text-gray-600">Head of Customer Service</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

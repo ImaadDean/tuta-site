@@ -446,7 +446,7 @@
           </div>
         
         <div class="mt-4 text-center">
-          <a id="track-order-link" href="#" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 inline-flex items-center justify-center">
+          <a id="track-order-link" href="/track?order_no=" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 inline-flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
             </svg>
@@ -466,8 +466,8 @@
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>
     <span class="text-gray-700">Processing your order...</span>
-  </div>
-    </div>
+              </div>
+            </div>
     
 <!-- Add JavaScript at the end of the content block -->
     <script>
@@ -544,7 +544,7 @@
             document.getElementById('success-order-number').textContent = data.order_no;
             document.getElementById('view-order-link').href = `/order/by-number/${data.order_no}`;
             document.getElementById('success-view-order-link').href = `/order/by-number/${data.order_no}`;
-            document.getElementById('track-order-link').href = `/track-order-by-number/${data.order_no}`;
+            document.getElementById('track-order-link').href = `/track?order_no=${data.order_no}`;
             
             // Clear cart in localStorage
             localStorage.setItem('cart', '[]');

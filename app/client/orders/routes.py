@@ -16,71 +16,6 @@ import logging
 # Set up logger
 logger = logging.getLogger(__name__)
 
-# @router.get("/my-orders", response_class=HTMLResponse)
-# async def get_client_orders(
-#     request: Request,
-#     page: int = Query(1, ge=1),
-#     page_size: int = Query(10, ge=5, le=100),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     try:
-#         skip = (page - 1) * page_size
-
-#         total_count = await Order.find({"user_id": str(current_user.id)}).count()
-#         total_pages = math.ceil(total_count / page_size)
-
-#         # Get raw orders from MongoDB
-#         db = Order.get_motor_collection()
-#         raw_orders = await db.find({"user_id": str(current_user.id)}).sort("created_at", -1).skip(skip).limit(page_size).to_list(length=None)
-
-#         logger.info(f"Found {len(raw_orders)} raw orders for user {current_user.id}")
-
-#         # Process orders for template
-#         orders = []
-#         for raw_order in raw_orders:
-#             try:
-#                 # Create an Order object from the raw MongoDB document
-#                 order = Order.parse_obj(raw_order)
-                
-#                 # Ensure order has an order_no
-#                 if not hasattr(order, "order_no") or not order.order_no:
-#                     order.order_no = str(order.id)
-                
-#                 # Add the order to our list
-#                 orders.append(order)
-                
-#                 logger.info(f"Successfully processed order {order.order_no}")
-#             except Exception as e:
-#                 logger.error(f"Error processing order: {e}")
-#                 continue
-
-#         return templates.TemplateResponse(
-#             "orders/my_orders.html",
-#             {
-#                 "request": request,
-#                 "orders": orders,
-#                 "current_user": current_user,
-#                 "pagination": {
-#                     "current_page": page,
-#                     "total_pages": total_pages,
-#                     "has_next": page < total_pages,
-#                     "has_prev": page > 1,
-#                     "total_items": total_count
-#                 }
-#             }
-#         )
-#     except Exception as e:
-#         logger.error(f"Error retrieving orders: {e}")
-#         return templates.TemplateResponse(
-#             "orders/error.html",
-#             {
-#                 "request": request,
-#                 "current_user": current_user,
-#                 "error": f"An error occurred while retrieving your orders: {str(e)}"
-#             }
-#         )
-
-
 @router.get("/order/{order_id}", response_class=HTMLResponse)
 async def get_order_details(
   request: Request,
@@ -139,8 +74,6 @@ async def get_client_orders_api(
             }
         )
 
-
-
 @router.get("/track", response_class=HTMLResponse)
 async def track_order_form(
     request: Request, 
@@ -157,105 +90,88 @@ async def track_order_form(
         }
     )
 
-@router.get("/track-order/{order_id}", response_class=HTMLResponse)
-async def track_order(
-  request: Request,
-  order_id: str,
-  current_user: User = Depends(get_current_user)
+@router.get("/order/by-number/{order_no}", response_class=HTMLResponse)
+async def view_order_by_number(
+    request: Request,
+    order_no: str,
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-  """
-  Track the status of a specific order with detailed timeline.
-  """
-  try:
-    # Find the order
-    order = await Order.find_one({"id": order_id, "user_id": str(current_user.id)})
-    
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    # Use the items field directly
-    order.order_items = order.items if hasattr(order, 'items') else []
-    
-    # Get products for each order item
-    for item in order.order_items:
-        product_id = item.product_id if hasattr(item, 'product_id') else None
-        if product_id:
-            item.product = await Product.find_one({"id": product_id})
-    
-    # Get the address from the shipping_address field
-    order.address = order.shipping_address if hasattr(order, 'shipping_address') else None
-    
-    # Create a timeline based on order status
-    timeline = []
-    
-    # Order placed (always included)
-    timeline.append({
-        "status": "Order Placed",
-        "completed": True,
-        "date": order.created_at,
-        "description": f"Order #{order.order_no if hasattr(order, 'order_no') else order.id} has been placed successfully."
-    })
-    
-    # Processing
-    timeline.append({
-        "status": "Processing",
-        "completed": order.status in [OrderStatus.PROCESSING, OrderStatus.DELIVERING, OrderStatus.COMPLETED],
-        "date": order.updated_at if order.status != OrderStatus.PENDING else None,
-        "description": "Your order is being processed and prepared for shipping."
-    })
-    
-    # Delivering
-    timeline.append({
-        "status": "Out for Delivery",
-        "completed": order.status in [OrderStatus.DELIVERING, OrderStatus.COMPLETED],
-        "date": order.updated_at if order.status in [OrderStatus.DELIVERING, OrderStatus.COMPLETED] else None,
-        "description": "Your order is on its way to you."
-    })
-    
-    # Delivered
-    timeline.append({
-        "status": "Delivered",
-        "completed": order.status == OrderStatus.COMPLETED,
-        "date": order.updated_at if order.status == OrderStatus.COMPLETED else None,
-        "description": "Your order has been delivered successfully."
-    })
-    
-    # If cancelled, replace the timeline with a cancelled status
-    if order.status == OrderStatus.CANCELLED:
-        timeline = [{
-            "status": "Order Placed",
-            "completed": True,
-            "date": order.created_at,
-            "description": f"Order #{order.order_no if hasattr(order, 'order_no') else order.id} has been placed successfully."
-        }, {
-            "status": "Order Cancelled",
-            "completed": True,
-            "date": order.updated_at,
-            "description": "This order has been cancelled."
-        }]
-    
-    return templates.TemplateResponse(
-        "orders/track_order.html", 
-        {
-            "request": request, 
-            "order": order,
-            "timeline": timeline,
-            "current_user": current_user
-        }
-    )
-  except HTTPException:
-    # Re-raise HTTP exceptions
-    raise
-  except Exception as e:
-    logger.error(f"Error tracking order: {e}")
-    return templates.TemplateResponse(
-        "orders/error.html",
-        {
-            "request": request,
-            "current_user": current_user,
-            "error": f"An error occurred while tracking your order: {str(e)}"
-        }
-    )
+    """
+    View order details by order number.
+    Works for both logged-in users and guests.
+    """
+    try:
+      # Find the order by order number
+      query = {"order_no": order_no.upper()}
+      
+      # For logged-in users, we show only their orders
+      if current_user:
+          query["user_id"] = str(current_user.id)
+      
+      # Find the order
+      order = await Order.find_one(query)
+      
+      if not order:
+          raise HTTPException(
+              status_code=status.HTTP_404_NOT_FOUND,
+              detail="Order not found. Please check the order number."
+          )
+      
+      # Additional security check for guest users - if order belongs to a registered user, don't show details
+      if not current_user and order.user_id:
+          raise HTTPException(
+              status_code=status.HTTP_403_FORBIDDEN,
+              detail="This order belongs to a registered user. Please log in to view details."
+          )
+      
+      # For logged-in users, redirect to the standard order details page
+      if current_user:
+          return RedirectResponse(url=f"/order/{order.id}", status_code=status.HTTP_303_SEE_OTHER)
+      
+      # Use the items field directly
+      order.order_items = order.items if hasattr(order, 'items') else []
+      
+      # Get products for each order item
+      for item in order.order_items:
+          product_id = item.product_id if hasattr(item, 'product_id') else None
+          if product_id:
+              item.product = await Product.find_one({"id": product_id})
+              
+              # Increment view count for each product in the order
+              if item.product:
+                  # Initialize view_count if it doesn't exist
+                  if not hasattr(item.product, 'view_count') or item.product.view_count is None:
+                      item.product.view_count = 0
+                  
+                  # Increment view count
+                  item.product.view_count += 1
+                  await item.product.save()
+      
+      # Get the address from the shipping_address field
+      order.address = order.shipping_address if hasattr(order, 'shipping_address') else None
+      
+      # For guests, render the order view directly
+      return templates.TemplateResponse(
+          "checkout/order_view.html", 
+          {
+              "request": request, 
+              "order": order,
+              "current_user": current_user
+          }
+      )
+    except HTTPException:
+      # Re-raise HTTP exceptions
+      raise
+    except Exception as e:
+      logger.error(f"Error viewing order by number: {e}")
+      return templates.TemplateResponse(
+          "orders/error.html",
+          {
+              "request": request,
+              "current_user": current_user,
+              "error": f"An error occurred while viewing your order: {str(e)}"
+          }
+      )
 
 @router.post("/cancel-order/{order_id}")
 async def cancel_order(
@@ -460,284 +376,6 @@ async def get_orders_api(
     return JSONResponse({
         "error": f"An error occurred while retrieving orders: {str(e)}"
     }, status_code=500)
-
-@router.get("/track", response_class=HTMLResponse)
-async def track_order_form(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
-    """
-    Display a form for tracking orders by order number.
-    """
-    return templates.TemplateResponse(
-        "orders/track_order_form.html", 
-        {"request": request, "current_user": current_user}
-    )
-
-@router.post("/track", response_class=HTMLResponse)
-async def track_order_by_number(
-    request: Request,
-    order_no: str = Form(...),
-    current_user: Optional[User] = Depends(get_current_user_optional)
-):
-    """
-    Track an order by its order number.
-    This works for both logged-in users and guests.
-    """
-    try:
-      # Validate input - make sure it's a valid order number format
-      if not order_no or len(order_no) < 3:
-          return templates.TemplateResponse(
-              "orders/track_order_form.html",
-              {
-                  "request": request,
-                  "current_user": current_user,
-                  "error": "Please enter a valid order number",
-                  "order_no": order_no
-              }
-          )
-      
-      # Build query to find the order
-      query = {"order_no": order_no.upper()}
-      
-      # For logged-in users, we show only their orders
-      if current_user:
-          query["user_id"] = str(current_user.id)
-      
-      # Find the order
-      order = await Order.find_one(query)
-      
-      if not order:
-          return templates.TemplateResponse(
-              "orders/track_order_form.html",
-              {
-                  "request": request,
-                  "current_user": current_user,
-                  "error": "Order not found. Please check the order number and try again.",
-                  "order_no": order_no
-              }
-          )
-      
-      # Additional security check for guest users - if order belongs to a registered user, don't show details
-      if not current_user and order.user_id:
-          return templates.TemplateResponse(
-              "orders/track_order_form.html",
-              {
-                  "request": request,
-                  "current_user": current_user,
-                  "error": "This order belongs to a registered user. Please log in to view details.",
-                  "order_no": order_no
-              }
-          )
-      
-      # If found, redirect to the order tracking page
-      return RedirectResponse(url=f"/track-order-by-number/{order.order_no if hasattr(order, 'order_no') else order.id}", status_code=status.HTTP_303_SEE_OTHER)
-    except Exception as e:
-      logger.error(f"Error tracking order by number: {e}")
-      return templates.TemplateResponse(
-          "orders/track_order_form.html",
-          {
-              "request": request,
-              "current_user": current_user,
-              "error": f"An error occurred while tracking your order: {str(e)}",
-              "order_no": order_no
-          }
-      )
-
-@router.get("/track-order-by-number/{order_no}", response_class=HTMLResponse)
-async def track_order_by_number_get(
-    request: Request,
-    order_no: str,
-    current_user: Optional[User] = Depends(get_current_user_optional)
-):
-    """
-    Track the status of a specific order with detailed timeline using the order number.
-    Works for both logged-in users and guests.
-    """
-    try:
-      # Build query to find the order
-      query = {"order_no": order_no.upper()}
-      
-      # For logged-in users, we show only their orders
-      if current_user:
-          query["user_id"] = str(current_user.id)
-      
-      # Find the order
-      order = await Order.find_one(query)
-      
-      if not order:
-          raise HTTPException(status_code=404, detail="Order not found")
-      
-      # Additional security check for guest users - if order belongs to a registered user, don't show details
-      if not current_user and order.user_id:
-          raise HTTPException(
-              status_code=status.HTTP_403_FORBIDDEN,
-              detail="This order belongs to a registered user. Please log in to view details."
-          )
-      
-      # Create a dictionary to store products by their ID
-      products = {}
-      
-      # Fetch products for each order item
-      for item in order.items:
-          product_id = item.product_id
-          if product_id and product_id not in products:
-              product = await Product.find_one({"id": product_id})
-              if product:
-                  products[product_id] = product
-      
-      # Create a timeline based on order status
-      timeline = []
-      
-      # Order placed (always included)
-      timeline.append({
-          "status": "Order Placed",
-          "completed": True,
-          "date": order.created_at,
-          "description": f"Order #{order.order_no if hasattr(order, 'order_no') else order.id} has been placed successfully."
-      })
-      
-      # Processing
-      timeline.append({
-          "status": "Processing",
-          "completed": order.status in [OrderStatus.PROCESSING, OrderStatus.DELIVERING, OrderStatus.COMPLETED],
-          "date": order.updated_at if order.status != OrderStatus.PENDING else None,
-          "description": "Your order is being processed and prepared for shipping."
-      })
-      
-      # Delivering
-      timeline.append({
-          "status": "Out for Delivery",
-          "completed": order.status in [OrderStatus.DELIVERING, OrderStatus.COMPLETED],
-          "date": order.updated_at if order.status in [OrderStatus.DELIVERING, OrderStatus.COMPLETED] else None,
-          "description": "Your order is on its way to you."
-      })
-      
-      # Delivered
-      timeline.append({
-          "status": "Delivered",
-          "completed": order.status == OrderStatus.COMPLETED,
-          "date": order.updated_at if order.status == OrderStatus.COMPLETED else None,
-          "description": "Your order has been delivered successfully."
-      })
-      
-      # If cancelled, replace the timeline with a cancelled status
-      if order.status == OrderStatus.CANCELLED:
-          timeline = [{
-              "status": "Order Placed",
-              "completed": True,
-              "date": order.created_at,
-              "description": f"Order #{order.order_no if hasattr(order, 'order_no') else order.id} has been placed successfully."
-          }, {
-              "status": "Order Cancelled",
-              "completed": True,
-              "date": order.updated_at,
-              "description": "This order has been cancelled."
-          }]
-      
-      return templates.TemplateResponse(
-          "orders/track_order.html", 
-          {
-              "request": request, 
-              "order": order,
-              "products": products,  # Pass the products dictionary
-              "timeline": timeline,
-              "current_user": current_user
-          }
-      )
-    except HTTPException:
-      # Re-raise HTTP exceptions
-      raise
-    except Exception as e:
-      logger.error(f"Error tracking order by number: {e}")
-      return templates.TemplateResponse(
-          "orders/error.html",
-          {
-              "request": request,
-              "current_user": current_user,
-              "error": f"An error occurred while tracking your order: {str(e)}"
-          }
-      )
-
-@router.get("/order/by-number/{order_no}", response_class=HTMLResponse)
-async def view_order_by_number(
-    request: Request,
-    order_no: str,
-    current_user: Optional[User] = Depends(get_current_user_optional)
-):
-    """
-    View order details by order number.
-    Works for both logged-in users and guests.
-    """
-    try:
-      # Find the order by order number
-      query = {"order_no": order_no.upper()}
-      
-      # For logged-in users, we show only their orders
-      if current_user:
-          query["user_id"] = str(current_user.id)
-      
-      # Find the order
-      order = await Order.find_one(query)
-      
-      if not order:
-          raise HTTPException(
-              status_code=status.HTTP_404_NOT_FOUND,
-              detail="Order not found. Please check the order number."
-          )
-      
-      # Additional security check for guest users - if order belongs to a registered user, don't show details
-      if not current_user and order.user_id:
-          raise HTTPException(
-              status_code=status.HTTP_403_FORBIDDEN,
-              detail="This order belongs to a registered user. Please log in to view details."
-          )
-      
-      # For logged-in users, redirect to the standard order details page
-      if current_user:
-          return RedirectResponse(url=f"/order/{order.id}", status_code=status.HTTP_303_SEE_OTHER)
-      
-      # Use the items field directly
-      order.order_items = order.items if hasattr(order, 'items') else []
-      
-      # Get products for each order item
-      for item in order.order_items:
-          product_id = item.product_id if hasattr(item, 'product_id') else None
-          if product_id:
-              item.product = await Product.find_one({"id": product_id})
-              
-              # Increment view count for each product in the order
-              if item.product:
-                  # Initialize view_count if it doesn't exist
-                  if not hasattr(item.product, 'view_count') or item.product.view_count is None:
-                      item.product.view_count = 0
-                  
-                  # Increment view count
-                  item.product.view_count += 1
-                  await item.product.save()
-      
-      # Get the address from the shipping_address field
-      order.address = order.shipping_address if hasattr(order, 'shipping_address') else None
-      
-      # For guests, render the order view directly
-      return templates.TemplateResponse(
-          "checkout/order_view.html", 
-          {
-              "request": request, 
-              "order": order,
-              "current_user": current_user
-          }
-      )
-    except HTTPException:
-      # Re-raise HTTP exceptions
-      raise
-    except Exception as e:
-      logger.error(f"Error viewing order by number: {e}")
-      return templates.TemplateResponse(
-          "orders/error.html",
-          {
-              "request": request,
-              "current_user": current_user,
-              "error": f"An error occurred while viewing your order: {str(e)}"
-          }
-      )
 
 @router.post("/close-order/{order_id}")
 async def close_order(

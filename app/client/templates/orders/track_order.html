@@ -256,6 +256,12 @@
     const trackingErrorMessage = document.getElementById('trackingErrorMessage');
     const deliveredMessage = document.getElementById('deliveredMessage');
     
+    // Check for order_no in URL query parameters
+    function getOrderNoFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('order_no');
+    }
+    
     // Format date
     function formatDate(dateString) {
       const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -523,9 +529,8 @@
     }
     
     // Handle retry button click
-    // Handle retry button click
     if (retryButton) {
-    retryButton.addEventListener('click', function() {
+      retryButton.addEventListener('click', function() {
         // Always go back to the form when retry is clicked
         trackingForm.classList.remove('hidden');
         orderResults.classList.add('hidden');
@@ -536,7 +541,19 @@
         
         // Focus on the order number input for better UX
         orderNoInput.focus();
-    });
+      });
+    }
+    
+    // Check for order_no in URL and auto-track if present
+    const orderNoFromUrl = getOrderNoFromUrl();
+    if (orderNoFromUrl) {
+      // If order number is in URL, auto-fill the input field
+      if (orderNoInput) {
+        orderNoInput.value = orderNoFromUrl;
+      }
+      
+      // Auto-track the order
+      fetchOrderByNumber(orderNoFromUrl);
     }
   });
 </script>

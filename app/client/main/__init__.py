@@ -5,3 +5,4 @@ router = APIRouter(tags=["Clients_main"])
 templates = Jinja2Templates(directory="app/client/templates")
 
 from app.client.main.routes import router
+from app.client.main.api import router

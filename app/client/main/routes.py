@@ -217,3 +217,139 @@ async def home(
                     "current_user": current_user
                 }
             )
+
+@router.get("/about", response_class=HTMLResponse)
+async def about_page(
+    request: Request, 
+    current_user: Optional[User] = Depends(get_current_active_client)
+):
+    """About page with company information"""
+    try:
+        # Get categories and collections for sidebar
+        categories = await safe_db_operation(
+            Category.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch categories"
+        )
+        
+        # Get collections
+        collections = await safe_db_operation(
+            Collection.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch collections"
+        )
+        
+        # Get bestseller products for sidebar
+        bestseller_products = await safe_db_operation(
+            Product.get_bestsellers(limit=4),
+            fallback_value=[],
+            error_message="Failed to fetch bestseller products"
+        )
+        
+        # Format bestseller products
+        formatted_bestsellers = []
+        for product in bestseller_products:
+            # Ensure we have at least one image
+            image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
+            
+            formatted_bestsellers.append({
+                "id": product.id,
+                "name": product.name,
+                "price": product.base_price,
+                "image_urls": image_urls,
+                "rating_avg": getattr(product, 'rating_avg', 0),
+                "stock": getattr(product, 'stock', 0),
+                "variants": getattr(product, 'variants', [])
+            })
+        
+        return templates.TemplateResponse(
+            "about.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "categories": categories,
+                "collections": collections,
+                "best_sellers_sidebar": formatted_bestsellers
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering about page: {str(e)}")
+        return templates.TemplateResponse(
+            "about.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "categories": [],
+                "collections": [],
+                "best_sellers_sidebar": [],
+                "error_message": "Failed to load some content. Please refresh the page."
+            }
+        )
+
+@router.get("/contact", response_class=HTMLResponse)
+async def contact_page(
+    request: Request, 
+    current_user: Optional[User] = Depends(get_current_active_client)
+):
+    """Contact page with contact form and information"""
+    try:
+        # Get categories and collections for sidebar
+        categories = await safe_db_operation(
+            Category.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch categories"
+        )
+        
+        # Get collections
+        collections = await safe_db_operation(
+            Collection.find({"is_active": True}).to_list(),
+            fallback_value=[],
+            error_message="Failed to fetch collections"
+        )
+        
+        # Get bestseller products for sidebar
+        bestseller_products = await safe_db_operation(
+            Product.get_bestsellers(limit=4),
+            fallback_value=[],
+            error_message="Failed to fetch bestseller products"
+        )
+        
+        # Format bestseller products
+        formatted_bestsellers = []
+        for product in bestseller_products:
+            # Ensure we have at least one image
+            image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
+            
+            formatted_bestsellers.append({
+                "id": product.id,
+                "name": product.name,
+                "price": product.base_price,
+                "image_urls": image_urls,
+                "rating_avg": getattr(product, 'rating_avg', 0),
+                "stock": getattr(product, 'stock', 0),
+                "variants": getattr(product, 'variants', [])
+            })
+        
+        return templates.TemplateResponse(
+            "contact.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "categories": categories,
+                "collections": collections,
+                "best_sellers_sidebar": formatted_bestsellers
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering contact page: {str(e)}")
+        return templates.TemplateResponse(
+            "contact.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "categories": [],
+                "collections": [],
+                "best_sellers_sidebar": [],
+                "error_message": "Failed to load some content. Please refresh the page."
+            }
+        )

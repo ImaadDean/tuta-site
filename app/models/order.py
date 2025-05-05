@@ -19,12 +19,20 @@ class PaymentStatus(str, Enum):
     REFUNDED = "refunded"
     PARTIALLY_REFUNDED = "partially_refunded"
 
+class VariantInfo(BaseModel):
+    """Information about a product variant in an order"""
+    id: str
+    value: str
+    price: int
+    discount_percentage: Optional[float] = None
+
 class OrderItem(BaseModel):
     product_id: str
     product_name: str
     quantity: int
     unit_price: float
     total_price: float
+    variant: Optional[VariantInfo] = None
 
 class ShippingAddress(BaseModel):
     street: str
@@ -39,10 +47,14 @@ class Order(Document):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     order_no: str
     user_id: Optional[str] = None  # Reference to User id, optional for guest checkout
+    guest_email: Optional[str] = None  # For guest checkout
+    guest_data: Optional[Dict[str, Any]] = None  # Additional guest user data
     items: List[OrderItem]
     shipping_address: ShippingAddress
+    address_id: Optional[str] = None  # Reference to saved address if applicable
     total_amount: float
     payment_method: str
+    amount_paid: float = 0
     payment_status: PaymentStatus = PaymentStatus.PENDING
     status: OrderStatus = OrderStatus.PENDING
     tracking_number: Optional[str] = None

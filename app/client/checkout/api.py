@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from app.database import initialize_mongodb
-from app.models.order import Order, OrderStatus, OrderItem, ShippingAddress, PaymentStatus
+from app.models.order import Order, OrderStatus, OrderItem, ShippingAddress, PaymentStatus, VariantInfo
 from app.models.user import User
 from app.models.address import Address
 from app.models.product import Product
@@ -198,21 +198,30 @@ async def process_order(
         # Get current time
         current_time = get_eat_time()
         
-        # Prepare order items
-        order_items = [
-            OrderItem(
+        # Prepare order items with variant information
+        order_items = []
+        for item in cart_items:
+            # Create the order item
+            order_item = OrderItem(
                 product_id=item["id"],
                 product_name=item.get("name", "Product"),
                 quantity=item["quantity"],
                 unit_price=float(item["price"]),
-                total_price=float(item["price"] * item["quantity"]),
-                # Add variant information
-                variant_id=item.get("variantId"),
-                variant_details=item.get("variantDetails", []),
-                variant_display=item.get("variantDisplay", "")
+                total_price=float(item["price"] * item["quantity"])
             )
-            for item in cart_items
-        ]
+            
+            # Add variant information if present
+            if item.get("variantId"):
+                # Create VariantInfo object directly from cart data
+                variant_info = VariantInfo(
+                    id=item["variantId"],
+                    value=item.get("variantDisplay", ""),
+                    price=float(item["price"]),
+                    discount_percentage=None
+                )
+                order_item.variant = variant_info
+            
+            order_items.append(order_item)
         
         # Create the order
         try:
@@ -266,7 +275,7 @@ async def process_order(
             {"success": False, "error": "An unexpected error occurred during checkout"},
             status_code=500
         )
-    
+
 async def update_product_stats(cart_items: List[Dict]):
     """
     Update product statistics in the background.
