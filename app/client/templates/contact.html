@@ -5,37 +5,39 @@
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold text-gray-900 mb-6">Contact Us</h1>
-  
+
   <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
     <div class="bg-white rounded-lg shadow-sm p-6">
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Get In Touch</h2>
-      
+
       <form id="contactForm" class="space-y-4">
+        <input type="hidden" id="userId" name="userId" value="{{ current_user.id if current_user else '' }}">
+
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-          <input type="text" id="name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          <input type="text" id="name" name="name" value="{{ current_user.username if current_user else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
         </div>
-        
+
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-          <input type="email" id="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          <input type="email" id="email" name="email" value="{{ current_user.email if current_user else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
         </div>
-        
+
         <div>
           <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-          <input type="tel" id="phone" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <input type="tel" id="phone" name="phone" value="{{ current_user.phone_number if current_user and current_user.phone_number else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
-        
+
         <div>
           <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
           <input type="text" id="subject" name="subject" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
         </div>
-        
+
         <div>
           <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
           <textarea id="message" name="message" rows="5" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
         </div>
-        
+
         <button type="submit" id="submitButton" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           <span id="buttonText">Send Message</span>
           <span id="loadingIndicator" class="hidden inline-flex items-center">
@@ -47,7 +49,7 @@
           </span>
         </button>
       </form>
-      
+
       <div id="successMessage" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
         <div class="flex items-center">
           <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +58,7 @@
           <p class="text-green-700" id="successMessageText">Your message has been sent successfully. We'll get back to you soon!</p>
         </div>
       </div>
-      
+
       <div id="errorMessage" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
         <div class="flex items-center">
           <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,10 +68,10 @@
         </div>
       </div>
     </div>
-    
+
     <div class="bg-white rounded-lg shadow-sm p-6">
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Contact Information</h2>
-      
+
       <div class="space-y-6">
         <div class="flex items-start">
           <div class="flex-shrink-0 mt-1">
@@ -80,10 +82,14 @@
           </div>
           <div class="ml-3">
             <h3 class="text-lg font-medium text-gray-800">Address</h3>
+            {% if contact_info %}
+            <p class="text-gray-600 mt-1">{{ contact_info.address }}<br>{{ contact_info.city }}, {{ contact_info.country }}</p>
+            {% else %}
             <p class="text-gray-600 mt-1">Plot 45, Kampala Road<br>Kampala, Uganda</p>
+            {% endif %}
           </div>
         </div>
-        
+
         <div class="flex items-start">
           <div class="flex-shrink-0 mt-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -92,11 +98,17 @@
           </div>
           <div class="ml-3">
             <h3 class="text-lg font-medium text-gray-800">Phone</h3>
+            {% if contact_info and contact_info.phone_numbers %}
+              {% for phone in contact_info.phone_numbers %}
+              <p class="text-gray-600 {% if not loop.first %}mt-1{% endif %}">{{ phone }}</p>
+              {% endfor %}
+            {% else %}
             <p class="text-gray-600 mt-1">+256 700 123 456</p>
             <p class="text-gray-600">+256 772 987 654</p>
+            {% endif %}
           </div>
         </div>
-        
+
         <div class="flex items-start">
           <div class="flex-shrink-0 mt-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,11 +117,17 @@
           </div>
           <div class="ml-3">
             <h3 class="text-lg font-medium text-gray-800">Email</h3>
+            {% if contact_info and contact_info.email_addresses %}
+              {% for email in contact_info.email_addresses %}
+              <p class="text-gray-600 {% if not loop.first %}mt-1{% endif %}">{{ email }}</p>
+              {% endfor %}
+            {% else %}
             <p class="text-gray-600 mt-1">info@pmstore.com</p>
             <p class="text-gray-600">support@pmstore.com</p>
+            {% endif %}
           </div>
         </div>
-        
+
         <div class="flex items-start">
           <div class="flex-shrink-0 mt-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,40 +136,75 @@
           </div>
           <div class="ml-3">
             <h3 class="text-lg font-medium text-gray-800">Business Hours</h3>
+            {% if contact_info and contact_info.business_hours %}
+            <p class="text-gray-600 mt-1">Monday - Friday: {{ contact_info.business_hours.monday_friday }}</p>
+            <p class="text-gray-600">Saturday: {{ contact_info.business_hours.saturday }}</p>
+            <p class="text-gray-600">Sunday: {{ contact_info.business_hours.sunday }}</p>
+            {% else %}
             <p class="text-gray-600 mt-1">Monday - Friday: 8:00 AM - 6:00 PM</p>
             <p class="text-gray-600">Saturday: 9:00 AM - 4:00 PM</p>
             <p class="text-gray-600">Sunday: Closed</p>
+            {% endif %}
           </div>
         </div>
       </div>
-      
+
       <div class="mt-8">
         <h3 class="text-lg font-medium text-gray-800 mb-3">Follow Us</h3>
         <div class="flex space-x-4">
-          <a href="#" class="text-gray-600 hover:text-blue-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/>
-            </svg>
-          </a>
-          <a href="#" class="text-gray-600 hover:text-blue-400 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-            </svg>
-          </a>
-          <a href="#" class="text-gray-600 hover:text-pink-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-            </svg>
-          </a>
+          {% if contact_info and contact_info.social_platforms and (contact_info.social_platforms|length > 0) %}
+            {% for platform in contact_info.social_platforms %}
+              {% set platform_url = platform.url if platform is not mapping else platform.get('url', '#') %}
+              {% set platform_name = platform.name if platform is not mapping else platform.get('name', 'Social Media') %}
+              {% set platform_icon_url = platform.icon_url if platform is not mapping else platform.get('icon_url', '') %}
+
+              <a href="{{ platform_url }}" class="text-gray-600 hover:text-blue-600 transition-colors" title="{{ platform_name }}" target="_blank" rel="noopener noreferrer">
+                {% if platform_icon_url %}
+                  <img src="{{ platform_icon_url }}" alt="{{ platform_name }}" class="h-6 w-6">
+                {% else %}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm6.066 9.645c.183 4.04-2.83 8.544-8.164 8.544-1.622 0-3.131-.476-4.402-1.291 1.524.18 3.045-.244 4.252-1.189-1.256-.023-2.317-.854-2.684-1.995.451.086.895.061 1.298-.049-1.381-.278-2.335-1.522-2.304-2.853.388.215.83.344 1.301.359-1.279-.855-1.641-2.544-.889-3.835 1.416 1.738 3.533 2.881 5.92 3.001-.419-1.796.944-3.527 2.799-3.527.825 0 1.572.349 2.096.907.654-.128 1.27-.368 1.824-.697-.215.671-.67 1.233-1.263 1.589.581-.07 1.135-.224 1.649-.453-.384.578-.87 1.084-1.433 1.489z"/>
+                  </svg>
+                {% endif %}
+              </a>
+            {% endfor %}
+          {% elif contact_info and contact_info.social_media %}
+            <!-- Legacy social media support -->
+            <a href="{{ contact_info.social_media.facebook }}" class="text-gray-600 hover:text-blue-600 transition-colors" {% if not contact_info.social_media.facebook %}style="display: none;"{% endif %}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/>
+              </svg>
+            </a>
+            <a href="{{ contact_info.social_media.twitter }}" class="text-gray-600 hover:text-blue-400 transition-colors" {% if not contact_info.social_media.twitter %}style="display: none;"{% endif %}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+              </svg>
+            </a>
+            <a href="{{ contact_info.social_media.instagram }}" class="text-gray-600 hover:text-pink-600 transition-colors" {% if not contact_info.social_media.instagram %}style="display: none;"{% endif %}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+            </a>
+          {% else %}
+            <!-- Default social media icons -->
+            <a href="#" class="text-gray-600 hover:text-blue-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/>
+              </svg>
+            </a>
+            <a href="#" class="text-gray-600 hover:text-blue-400 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+              </svg>
+            </a>
+            <a href="#" class="text-gray-600 hover:text-pink-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+            </a>
+          {% endif %}
         </div>
       </div>
-    </div>
-  </div>
-  
-  <div class="bg-white rounded-lg shadow-sm p-6">
-    <h2 class="text-xl font-semibold text-gray-800 mb-4">Our Location</h2>
-    <div class="w-full h-96 rounded-lg overflow-hidden">
-      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.7570804908435!2d32.57843307469698!3d0.3152839996812751!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x177dbb8080541c63%3A0x7cc3f9c0b59fbb09!2sKampala%20Road%2C%20Kampala%2C%20Uganda!5e0!3m2!1sen!2sus!4v1684921234567!5m2!1sen!2sus" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
   </div>
 </div>
@@ -168,35 +221,50 @@
     const submitButton = document.getElementById('submitButton');
     const buttonText = document.getElementById('buttonText');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    
+    const userId = document.getElementById('userId').value.trim();
+
     if (contactForm) {
       contactForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         // Hide any previous messages
         successMessage.classList.add('hidden');
         errorMessage.classList.add('hidden');
-        
-        // Get form data
-        const formData = {
-          name: document.getElementById('name').value.trim(),
-          email: document.getElementById('email').value.trim(),
-          phone: document.getElementById('phone').value.trim(),
+
+        // Get form data - only include necessary fields based on login status
+        let formData = {
           subject: document.getElementById('subject').value.trim(),
-          message: document.getElementById('message').value.trim()
+          message: document.getElementById('message').value.trim(),
         };
-        
+
+        // If user is not logged in, include personal details
+        if (!userId) {
+          formData.name = document.getElementById('name').value.trim();
+          formData.email = document.getElementById('email').value.trim();
+          formData.phone = document.getElementById('phone').value.trim();
+        } else {
+          // If logged in, include user_id
+          formData.user_id = userId;
+        }
+
         // Validate form data
-        if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+        if (!formData.subject || !formData.message) {
           errorMessageText.textContent = 'Please fill in all required fields.';
           errorMessage.classList.remove('hidden');
           return;
         }
-        
+
+        // If not logged in, validate personal details
+        if (!userId && (!formData.name || !formData.email)) {
+          errorMessageText.textContent = 'Please fill in all required fields.';
+          errorMessage.classList.remove('hidden');
+          return;
+        }
+
         // Show loading indicator
         buttonText.classList.add('hidden');
         loadingIndicator.classList.remove('hidden');
-        
+
         // Submit form data to API
         fetch('/api/contact', {
           method: 'POST',
@@ -215,10 +283,15 @@
           // Show success message
           successMessageText.textContent = data.message || 'Your message has been sent successfully. We\'ll get back to you soon!';
           successMessage.classList.remove('hidden');
-          
+
           // Reset form
           contactForm.reset();
-          
+
+          // If user is logged in, restore their data in the form
+          if (userId) {
+            document.getElementById('userId').value = userId;
+          }
+
           // Hide success message after 5 seconds
           setTimeout(function() {
             successMessage.classList.add('hidden');
@@ -226,7 +299,7 @@
         })
         .catch(error => {
           console.error('Error submitting contact form:', error);
-          
+
           // Show error message
           errorMessageText.textContent = 'An error occurred while submitting your message. Please try again later.';
           errorMessage.classList.remove('hidden');

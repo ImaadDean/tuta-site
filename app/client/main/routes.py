@@ -51,7 +51,7 @@ async def safe_db_operation(operation, fallback_value=None, error_message="Datab
 
 @router.get("/", response_class=HTMLResponse)
 async def home(
-    request: Request, 
+    request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_client)
 ):
@@ -63,78 +63,78 @@ async def home(
             fallback_value=[],
             error_message="Failed to fetch banners"
         )
-        
+
         # Get featured products
         featured_products = await safe_db_operation(
             Product.find({"featured": True, "status": "published"}).limit(8).to_list(),
             fallback_value=[],
             error_message="Failed to fetch featured products"
         )
-        
+
         # Get bestseller products using the dedicated method
         bestseller_products = await safe_db_operation(
             Product.get_bestsellers(limit=8),
             fallback_value=[],
             error_message="Failed to fetch bestseller products"
         )
-        
+
         # Get new arrivals
         new_arrivals = await safe_db_operation(
             Product.find({"status": "published"}).sort([("created_at", -1)]).limit(4).to_list(),
             fallback_value=[],
             error_message="Failed to fetch new arrivals"
         )
-        
+
         # Get trending products (most viewed in the last 30 days)
         trending_products = await safe_db_operation(
             Product.find({"status": "published"}).sort([("view_count", -1)]).limit(8).to_list(),
             fallback_value=[],
             error_message="Failed to fetch trending products"
         )
-        
+
         # Get top rated products
         top_rated_products = await safe_db_operation(
             Product.find({"status": "published"}).sort([("rating_avg", -1)]).limit(8).to_list(),
             fallback_value=[],
             error_message="Failed to fetch top rated products"
         )
-        
+
         # Get categories
         categories = await safe_db_operation(
-            Category.find({"is_active": True}).to_list(),
+            Category.find({"is_active": True}).to_list(length=None),
             fallback_value=[],
             error_message="Failed to fetch categories"
         )
-        
+
         # Get collections
         collections = await safe_db_operation(
-            Collection.find({"is_active": True}).to_list(),
+            Collection.find({"is_active": True}).to_list(length=None),
             fallback_value=[],
             error_message="Failed to fetch collections"
         )
-        
+
         # Helper function to format product data with variants
         def format_product(product):
             # Ensure we have at least one image
             image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
-            
+
             # Use the base_price property instead of calculating it
             base_price = product.base_price
-            
+
             # Find the variant with the highest price
             highest_price_variant = None
             highest_price = 0
-            
+
             if hasattr(product, 'variants') and product.variants:
                 for variant_type, variant_values in product.variants.items():
                     for variant in variant_values:
                         variant_price = getattr(variant, 'price', 0) if not isinstance(variant, dict) else variant.get('price', 0)
-                        
+
                         if variant_price > highest_price:
                             highest_price = variant_price
                             variant_id = getattr(variant, 'id', str(uuid.uuid4())) if not isinstance(variant, dict) else variant.get('id', str(uuid.uuid4()))
                             variant_value = getattr(variant, 'value', '') if not isinstance(variant, dict) else variant.get('value', '')
-                            
+
                             highest_price_variant = {
                                 'id': variant_id,
                                 'type': variant_type,
@@ -142,10 +142,10 @@ async def home(
                                 'price': variant_price,
                                 'display_name': f"{variant_value}"
                             }
-            
+
             # Create a list with just the highest price variant, or empty if no variants
             formatted_variants = [highest_price_variant] if highest_price_variant else []
-            
+
             return {
                 "id": product.id,
                 "name": product.name,
@@ -169,7 +169,7 @@ async def home(
             fallback_value=[],
             error_message="Failed to fetch all products"
         )
-        
+
         # Format product lists
         formatted_featured = [format_product(p) for p in featured_products]
         formatted_bestsellers = [format_product(p) for p in bestseller_products]
@@ -177,12 +177,12 @@ async def home(
         formatted_trending = [format_product(p) for p in trending_products]
         formatted_top_rated = [format_product(p) for p in top_rated_products]
         formatted_products = [format_product(p) for p in all_products]
-            
+
         # Return the template with all the data
         return templates.TemplateResponse(
-            "index.html", 
+            "index.html",
             {
-                "request": request, 
+                "request": request,
                 "banners": banners,
                 "featured_products": formatted_featured,
                 "bestseller_products": formatted_bestsellers,
@@ -202,7 +202,7 @@ async def home(
         return templates.TemplateResponse(
                 "index.html",
             {
-                "request": request, 
+                "request": request,
                     "banners": [],
                     "featured_products": [],
                     "bestseller_products": [],
@@ -220,38 +220,38 @@ async def home(
 
 @router.get("/about", response_class=HTMLResponse)
 async def about_page(
-    request: Request, 
+    request: Request,
     current_user: Optional[User] = Depends(get_current_active_client)
 ):
     """About page with company information"""
     try:
         # Get categories and collections for sidebar
         categories = await safe_db_operation(
-            Category.find({"is_active": True}).to_list(),
+            Category.find({"is_active": True}).to_list(length=None),
             fallback_value=[],
             error_message="Failed to fetch categories"
         )
-        
+
         # Get collections
         collections = await safe_db_operation(
-            Collection.find({"is_active": True}).to_list(),
+            Collection.find({"is_active": True}).to_list(length=None),
             fallback_value=[],
             error_message="Failed to fetch collections"
         )
-        
+
         # Get bestseller products for sidebar
         bestseller_products = await safe_db_operation(
             Product.get_bestsellers(limit=4),
             fallback_value=[],
             error_message="Failed to fetch bestseller products"
         )
-        
+
         # Format bestseller products
         formatted_bestsellers = []
         for product in bestseller_products:
             # Ensure we have at least one image
             image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
-            
+
             formatted_bestsellers.append({
                 "id": product.id,
                 "name": product.name,
@@ -261,7 +261,7 @@ async def about_page(
                 "stock": getattr(product, 'stock', 0),
                 "variants": getattr(product, 'variants', [])
             })
-        
+
         return templates.TemplateResponse(
             "about.html",
             {
@@ -288,38 +288,46 @@ async def about_page(
 
 @router.get("/contact", response_class=HTMLResponse)
 async def contact_page(
-    request: Request, 
+    request: Request,
     current_user: Optional[User] = Depends(get_current_active_client)
 ):
     """Contact page with contact form and information"""
     try:
         # Get categories and collections for sidebar
         categories = await safe_db_operation(
-            Category.find({"is_active": True}).to_list(),
+            Category.find({"is_active": True}).to_list(length=None),
             fallback_value=[],
             error_message="Failed to fetch categories"
         )
-        
+
         # Get collections
         collections = await safe_db_operation(
-            Collection.find({"is_active": True}).to_list(),
+            Collection.find({"is_active": True}).to_list(length=None),
             fallback_value=[],
             error_message="Failed to fetch collections"
         )
-        
+
         # Get bestseller products for sidebar
         bestseller_products = await safe_db_operation(
             Product.get_bestsellers(limit=4),
             fallback_value=[],
             error_message="Failed to fetch bestseller products"
         )
-        
+
+        # Get contact information from database
+        from app.models.contact_info import ContactInfo
+        contact_info = await safe_db_operation(
+            ContactInfo.get_active(),
+            fallback_value=None,
+            error_message="Failed to fetch contact information"
+        )
+
         # Format bestseller products
         formatted_bestsellers = []
         for product in bestseller_products:
             # Ensure we have at least one image
             image_urls = product.image_urls if product.image_urls else ["/static/images/product-placeholder.jpg"]
-            
+
             formatted_bestsellers.append({
                 "id": product.id,
                 "name": product.name,
@@ -329,7 +337,7 @@ async def contact_page(
                 "stock": getattr(product, 'stock', 0),
                 "variants": getattr(product, 'variants', [])
             })
-        
+
         return templates.TemplateResponse(
             "contact.html",
             {
@@ -337,7 +345,8 @@ async def contact_page(
                 "current_user": current_user,
                 "categories": categories,
                 "collections": collections,
-                "best_sellers_sidebar": formatted_bestsellers
+                "best_sellers_sidebar": formatted_bestsellers,
+                "contact_info": contact_info
             }
         )
     except Exception as e:
@@ -350,6 +359,7 @@ async def contact_page(
                 "categories": [],
                 "collections": [],
                 "best_sellers_sidebar": [],
+                "contact_info": None,
                 "error_message": "Failed to load some content. Please refresh the page."
             }
         )

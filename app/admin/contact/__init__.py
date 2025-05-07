@@ -1,9 +1,13 @@
 from fastapi import APIRouter
 from fastapi.templating import Jinja2Templates
+from pathlib import Path
 
-# Use tags instead of prefix to allow more flexibility with URL paths
-router = APIRouter(prefix="/admin/contact", tags=["Admin_contact"])
+# Create router
+router = APIRouter(prefix="/admin/contact", tags=["admin_contact"])
+
+# Setup templates
 templates = Jinja2Templates(directory="app/admin/templates")
 
-# Import after router is defined to avoid circular import
-from app.admin.contact.routes import router
+# Import routes after router and templates are defined
+from app.admin.contact.routes import *
+from app.admin.contact.api import *

@@ -18,7 +18,7 @@ from app.models.banner import Banner
 from app.models.scent import Scent
 from app.models.review import Review
 from app.models.address import Address
-from app.models.contact import ContactMessage
+from app.models.contact_info import ContactInfo, ContactMessage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -121,6 +121,7 @@ async def initialize_mongodb():
                 Scent,
                 Review,
                 Address,
+                ContactInfo,
                 ContactMessage
             ]
         )

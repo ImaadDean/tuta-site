@@ -1,293 +1,174 @@
-from fastapi import APIRouter, Request, Depends, HTTPException, status, Body, Query, Path
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Query
+from fastapi.responses import RedirectResponse, HTMLResponse
+from typing import Optional, List
+from app.models.contact_info import ContactMessage, ContactInfo
+from app.models.user import User
+from app.auth.jwt import get_current_active_admin
+from app.admin.contact import router, templates
 from app.database import get_db
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.models.user import User
-from app.models.contact_info import ContactInfo, ContactMessage
-from app.auth.jwt import get_current_active_admin
-from app.admin.dashboard import templates, router
-from app.utils.json import to_serializable_dict
-from typing import Optional, List
 import logging
 from datetime import datetime
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Contact Information Management Routes
-@router.get("/contact-info", response_class=HTMLResponse)
-async def contact_info_page(request: Request, current_user: User = Depends(get_current_active_admin)):
-    """Admin page for managing contact information"""
-    try:
-        # Get current contact info
-        contact_info = await ContactInfo.get_active()
-        
-        return templates.TemplateResponse(
-            "dashboard/contact_info.html",
-            {
-                "request": request,
-                "current_user": current_user,
-                "contact_info": contact_info,
-                "page_title": "Contact Information",
-                "active_page": "contact_info"
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error rendering contact info page: {str(e)}")
-        return templates.TemplateResponse(
-            "dashboard/contact_info.html",
-            {
-                "request": request,
-                "current_user": current_user,
-                "contact_info": None,
-                "page_title": "Contact Information",
-                "active_page": "contact_info",
-                "error": "Failed to load contact information. Please try again."
-            }
-        )
-
-@router.post("/api/contact-info/update")
-async def update_contact_info(
+@router.get("/", response_class=HTMLResponse)
+async def list_contact_messages(
     request: Request,
-    address: str = Body(...),
-    city: str = Body(...),
-    country: str = Body(...),
-    phone_numbers: List[str] = Body(...),
-    email_addresses: List[str] = Body(...),
-    monday_friday: str = Body(...),
-    saturday: str = Body(...),
-    sunday: str = Body(...),
-    facebook: str = Body(default=""),
-    twitter: str = Body(default=""),
-    instagram: str = Body(default=""),
-    contact_id: Optional[str] = Body(default=None),
-    current_user: User = Depends(get_current_active_admin)
-):
-    """Update or create contact information"""
-    try:
-        # Check if we're updating existing info or creating new
-        if contact_id:
-            contact_info = await ContactInfo.find_one({"id": contact_id})
-            if not contact_info:
-                return JSONResponse(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    content={"success": False, "error": "Contact information not found"}
-                )
-        else:
-            # If creating new, first deactivate any existing active contact info
-            existing_info = await ContactInfo.get_active()
-            if existing_info:
-                existing_info.is_active = False
-                await existing_info.save()
-            
-            # Create new contact info
-            contact_info = ContactInfo(
-                address=address,
-                city=city,
-                country=country,
-                phone_numbers=phone_numbers,
-                email_addresses=email_addresses,
-                business_hours={
-                    "monday_friday": monday_friday,
-                    "saturday": saturday,
-                    "sunday": sunday
-                },
-                social_media={
-                    "facebook": facebook,
-                    "twitter": twitter,
-                    "instagram": instagram
-                }
-            )
-        
-        # Update fields if we're updating existing info
-        if contact_id:
-            contact_info.address = address
-            contact_info.city = city
-            contact_info.country = country
-            contact_info.phone_numbers = phone_numbers
-            contact_info.email_addresses = email_addresses
-            contact_info.business_hours = {
-                "monday_friday": monday_friday,
-                "saturday": saturday,
-                "sunday": sunday
-            }
-            contact_info.social_media = {
-                "facebook": facebook,
-                "twitter": twitter,
-                "instagram": instagram
-            }
-            contact_info.updated_at = datetime.utcnow()
-        
-        # Save to database
-        await contact_info.save()
-        
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "message": "Contact information updated successfully",
-                "data": to_serializable_dict(contact_info)
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error updating contact info: {str(e)}")
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"success": False, "error": "Failed to update contact information"}
-        )
-
-# Contact Messages Management Routes
-@router.get("/contact-messages", response_class=HTMLResponse)
-async def contact_messages_page(
-    request: Request, 
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=5, le=50),
+    is_read: Optional[bool] = None,
+    is_replied: Optional[bool] = None,
+    search: Optional[str] = None,
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Admin page for viewing contact form messages"""
+    """
+    List all contact messages with filtering and pagination
+    """
     try:
+        # Build the query
+        query = {}
+
+        # Apply read/unread filter
+        if is_read is not None:
+            query["is_read"] = is_read
+
+        # Apply replied/not replied filter
+        if is_replied is not None:
+            query["is_replied"] = is_replied
+
+        # Apply search filter if provided
+        if search:
+            # Search in subject, message, and user info
+            query["$or"] = [
+                {"subject": {"$regex": search, "$options": "i"}},
+                {"message": {"$regex": search, "$options": "i"}},
+                {"user_info.name": {"$regex": search, "$options": "i"}},
+                {"user_info.email": {"$regex": search, "$options": "i"}}
+            ]
+
         # Calculate pagination
-        skip = (page - 1) * limit
-        
-        # Get messages with pagination
-        messages = await ContactMessage.find(skip=skip, limit=limit)
-        total_messages = await ContactMessage.count()
-        
-        # Calculate total pages
-        total_pages = (total_messages + limit - 1) // limit
-        
-        # Count unread messages
-        unread_count = await ContactMessage.count({"is_read": False})
-        
+        skip = (page - 1) * page_size
+
+        # Get total count for pagination
+        total_count = await ContactMessage.find(query).count()
+        total_pages = (total_count + page_size - 1) // page_size
+
+        # Get messages with pagination and sorting
+        messages = await ContactMessage.find(query).sort([("created_at", -1)]).skip(skip).limit(page_size).to_list()
+
+        # Get unread count for badge
+        unread_count = await ContactMessage.find({"is_read": False}).count()
+
         return templates.TemplateResponse(
-            "dashboard/contact_messages.html",
+            "contact/list.html",
             {
                 "request": request,
-                "current_user": current_user,
+                "user": current_user,
                 "messages": messages,
                 "page": page,
-                "limit": limit,
+                "page_size": page_size,
                 "total_pages": total_pages,
-                "total_messages": total_messages,
-                "unread_count": unread_count,
-                "page_title": "Contact Messages",
-                "active_page": "contact_messages"
+                "total_count": total_count,
+                "is_read": is_read,
+                "is_replied": is_replied,
+                "search": search,
+                "unread_count": unread_count
             }
         )
     except Exception as e:
-        logger.error(f"Error rendering contact messages page: {str(e)}")
+        logger.error(f"Error listing contact messages: {str(e)}")
+        # Return the template with error message
         return templates.TemplateResponse(
-            "dashboard/contact_messages.html",
+            "contact/list.html",
             {
                 "request": request,
-                "current_user": current_user,
+                "user": current_user,
                 "messages": [],
                 "page": 1,
-                "limit": limit,
+                "page_size": page_size,
                 "total_pages": 0,
-                "total_messages": 0,
+                "total_count": 0,
+                "is_read": is_read,
+                "is_replied": is_replied,
+                "search": search,
                 "unread_count": 0,
-                "page_title": "Contact Messages",
-                "active_page": "contact_messages",
-                "error": "Failed to load contact messages. Please try again."
+                "error": f"Could not list contact messages: {str(e)}"
             }
         )
 
-@router.get("/contact-messages/{message_id}", response_class=HTMLResponse)
+@router.get("/message/{message_id}", response_class=HTMLResponse)
 async def view_contact_message(
     request: Request,
-    message_id: str = Path(...),
+    message_id: str,
     current_user: User = Depends(get_current_active_admin)
 ):
-    """View a single contact message"""
+    """
+    View a single contact message
+    """
     try:
         # Get the message
         message = await ContactMessage.get_by_id(message_id)
+
         if not message:
+            # If message not found, redirect to list with error message
             return RedirectResponse(
-                url="/admin/contact-messages",
-                status_code=status.HTTP_303_SEE_OTHER
+                url=f"/admin/contact/?error=Message with ID {message_id} not found",
+                status_code=303
             )
-        
+
         # Mark as read if not already
         if not message.is_read:
-            await message.mark_as_read()
-        
+            message.is_read = True
+            await message.save()
+
+        # Get user information if available
+        user_info = None
+        if message.user_id:
+            user_info = await User.find_one({"id": message.user_id})
+
         return templates.TemplateResponse(
-            "dashboard/view_message.html",
+            "contact/view.html",
             {
                 "request": request,
-                "current_user": current_user,
+                "user": current_user,
                 "message": message,
-                "page_title": f"Message from {message.name}",
-                "active_page": "contact_messages"
+                "user_info": user_info
             }
         )
     except Exception as e:
         logger.error(f"Error viewing contact message: {str(e)}")
+        # Redirect to list with error message
         return RedirectResponse(
-            url="/admin/contact-messages",
-            status_code=status.HTTP_303_SEE_OTHER
+            url=f"/admin/contact/?error=Error viewing message: {str(e)}",
+            status_code=303
         )
 
-@router.post("/api/contact-messages/{message_id}/mark-read")
-async def mark_message_read(
+@router.get("/settings", response_class=HTMLResponse)
+async def contact_settings(
     request: Request,
-    message_id: str = Path(...),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Mark a message as read"""
+    """
+    Manage contact information settings
+    """
     try:
-        message = await ContactMessage.get_by_id(message_id)
-        if not message:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"success": False, "error": "Message not found"}
-            )
-        
-        await message.mark_as_read()
-        
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "message": "Message marked as read"
+        # Get current contact information
+        contact_info = await ContactInfo.get_active()
+
+        return templates.TemplateResponse(
+            "contact/settings.html",
+            {
+                "request": request,
+                "user": current_user,
+                "contact_info": contact_info
             }
         )
     except Exception as e:
-        logger.error(f"Error marking message as read: {str(e)}")
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"success": False, "error": "Failed to mark message as read"}
-        )
-
-@router.delete("/api/contact-messages/{message_id}")
-async def delete_message(
-    request: Request,
-    message_id: str = Path(...),
-    current_user: User = Depends(get_current_active_admin)
-):
-    """Delete a contact message"""
-    try:
-        message = await ContactMessage.get_by_id(message_id)
-        if not message:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"success": False, "error": "Message not found"}
-            )
-        
-        await message.delete()
-        
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "success": True,
-                "message": "Message deleted successfully"
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error deleting message: {str(e)}")
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"success": False, "error": "Failed to delete message"}
+        logger.error(f"Error loading contact settings: {str(e)}")
+        # Redirect to list with error message
+        return RedirectResponse(
+            url=f"/admin/contact/?error=Error loading contact settings: {str(e)}",
+            status_code=303
         )

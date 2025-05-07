@@ -1,37 +1,81 @@
-from fastapi import HTTPException, Depends
-from app.models.contact import ContactMessage, ContactMessageCreate, ContactMessageResponse
-from app.database import get_db
-from app.client.main.routes import router
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Body
+from fastapi.responses import JSONResponse
+from app.models.user import User
+from app.models.contact_info import ContactMessage, ContactUser
+from app.auth.jwt import get_current_user_optional
+from typing import Optional
 import logging
+from datetime import datetime
+
+# Create router
+router = APIRouter(prefix="/api", tags=["client_api"])
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-@router.post("/api/contact", response_model=ContactMessageResponse)
-async def submit_contact_form(contact_data: ContactMessageCreate, db: AsyncIOMotorDatabase = Depends(get_db)):
+@router.post("/contact")
+async def submit_contact_form(
+    request: Request,
+    subject: str = Body(...),
+    message: str = Body(...),
+    name: Optional[str] = Body(None),
+    email: Optional[str] = Body(None),
+    phone: Optional[str] = Body(None),
+    user_id: Optional[str] = Body(None),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """Submit a contact form message"""
     try:
-        # Create a new contact message
+        # Create user info object
+        user_info = None
+        
+        # If user is logged in, use their information
+        if current_user:
+            user_info = ContactUser(
+                name=current_user.username,
+                email=current_user.email,
+                phone=getattr(current_user, 'phone_number', None)
+            )
+            user_id = str(current_user.id)
+        # Otherwise use the provided information
+        elif name and email:
+            user_info = ContactUser(
+                name=name,
+                email=email,
+                phone=phone
+            )
+        else:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "success": False,
+                    "message": "Name and email are required when not logged in"
+                }
+            )
+        
+        # Create and save the contact message
         contact_message = ContactMessage(
-            name=contact_data.name,
-            email=contact_data.email,
-            phone=contact_data.phone,
-            subject=contact_data.subject,
-            message=contact_data.message
+            user_info=user_info,
+            subject=subject,
+            message=message,
+            user_id=user_id
         )
         
-        # Save to database
         await contact_message.save()
         
-        # Return success response
-        return ContactMessageResponse(
-            success=True,
-            message="Your message has been sent successfully. We'll get back to you soon!"
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content={
+                "success": True,
+                "message": "Your message has been sent successfully. We'll get back to you soon!"
+            }
         )
     except Exception as e:
         logger.error(f"Error submitting contact form: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="An error occurred while submitting your message. Please try again later."
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "success": False,
+                "message": "An error occurred while submitting your message. Please try again later."
+            }
         )

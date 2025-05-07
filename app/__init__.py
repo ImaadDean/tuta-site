@@ -13,6 +13,7 @@ from app.admin.category import router as admin_category_router
 from app.admin.collection import router as admin_collection_router
 from app.admin.brand import router as admin_brand_router
 from app.admin.scent import router as admin_scent_router
+from app.admin.contact import router as admin_contact_router
 from app.database import initialize_mongodb, close_mongodb_connection, lifespan_mongodb_connection
 from app.jinja_filters import setup_jinja_filters
 from fastapi.templating import Jinja2Templates
@@ -22,6 +23,7 @@ from app.client.main.routes import router as client_main_router
 from app.client.products import router as client_products_router
 from app.client.checkout import router as client_checkout_router
 from app.client.orders import router as client_orders_router
+from app.client.main.api import router as client_api_router
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -44,7 +46,7 @@ def create_app():
         title="Perfumes & More",
         lifespan=lifespan_mongodb_connection
     )
-    
+
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
@@ -53,7 +55,7 @@ def create_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Configure Session Middleware
     app.add_middleware(
         SessionMiddleware,
@@ -61,7 +63,7 @@ def create_app():
         session_cookie="session",
         max_age=3600  # 1 hour
     )
-    
+
     # Include the routers
     app.include_router(auth_router)
     app.include_router(admin_router)
@@ -74,11 +76,13 @@ def create_app():
     app.include_router(admin_collection_router)
     app.include_router(admin_brand_router)
     app.include_router(admin_scent_router)
+    app.include_router(admin_contact_router)
     app.include_router(client_main_router)
     app.include_router(client_products_router)
     app.include_router(client_checkout_router)
     app.include_router(client_orders_router)
+    app.include_router(client_api_router)
     # No need for these event handlers anymore, they're handled by the lifespan
     # context manager
-    
+
     return app
