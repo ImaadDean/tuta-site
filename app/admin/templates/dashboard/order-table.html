@@ -113,11 +113,78 @@
           <td
             class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
           >
-            <a
-              href="/admin/orders/{{ order.id }}"
-              class="text-indigo-600 hover:text-indigo-900"
-              >View</a
-            >
+            <div class="relative inline-block text-left">
+              <button
+                type="button"
+                id="actions-menu-button-{{ order.id }}"
+                class="inline-flex items-center p-1 border border-transparent rounded-full shadow-sm text-gray-500 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                aria-expanded="true"
+                aria-haspopup="true"
+              >
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+              <div
+                class="actions-dropdown-menu hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                role="menu"
+                aria-orientation="vertical"
+                aria-labelledby="actions-menu-button-{{ order.id }}"
+                tabindex="-1"
+              >
+                <div class="py-1" role="none">
+                  <a
+                    href="/admin/orders/{{ order.id }}"
+                    class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100"
+                    role="menuitem"
+                    tabindex="-1"
+                  >
+                    <div class="flex items-center">
+                      <svg class="mr-3 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View Order
+                    </div>
+                  </a>
+                  {% if order.status != 'cancelled' %}
+                  <button
+                    type="button"
+                    class="text-gray-700 block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 cancel-order"
+                    role="menuitem"
+                    tabindex="-1"
+                    data-order-id="{{ order.id }}"
+                    data-order-no="{{ order.order_no }}"
+                  >
+                    <div class="flex items-center">
+                      <svg class="mr-3 h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cancel Order
+                    </div>
+                  </button>
+                  {% endif %}
+                  <button
+                    type="button"
+                    class="text-gray-700 block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 delete-order"
+                    role="menuitem"
+                    tabindex="-1"
+                    data-order-id="{{ order.id }}"
+                    data-order-no="{{ order.order_no }}"
+                    data-order-amount="{% if order.formatted_amount is defined %}{{ order.formatted_amount }}{% else %}{{ order.total_amount }}{% endif %}"
+                    data-order-status="{{ order.status }}"
+                    data-order-date="{% if order.created_at_formatted is defined %}{{ order.created_at_formatted }}{% else %}{{ order.created_at.split('T')[0] if order.created_at and 'T' in order.created_at else order.created_at }}{% endif %}"
+                  >
+                    <div class="flex items-center">
+                      <svg class="mr-3 h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Order
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
         {% endfor %} {% else %}

@@ -339,3 +339,27 @@ async def cancel_order(
             },
             status_code=500
         )
+
+@router.delete("/{order_id}")
+async def delete_order(
+    order_id: str,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Delete an order permanently from the database
+    """
+    try:
+        order = await Order.find_one({"_id": order_id})
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        # Delete the order from the database
+        await order.delete()
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Order deleted successfully"
+        })
+    except Exception as e:
+        logger.error(f"Error deleting order: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Could not delete order: {str(e)}")
