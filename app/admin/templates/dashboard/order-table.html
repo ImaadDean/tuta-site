@@ -57,18 +57,24 @@
             {{ order.order_no }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {{ order.user.username }}
+            <div class="font-medium">{{ order.user.username }}</div>
+            {% if order.user.phone_number %}
+              <div class="text-xs text-gray-400">{{ order.user.phone_number }}</div>
+            {% elif order.user.email %}
+              <div class="text-xs text-gray-400">{{ order.user.email }}</div>
+            {% elif order.guest_data and order.guest_data.phone %}
+              <div class="text-xs text-gray-400">{{ order.guest_data.phone }}</div>
+            {% elif order.guest_data and order.guest_data.email %}
+              <div class="text-xs text-gray-400">{{ order.guest_data.email }}</div>
+            {% endif %}
           </td>
           <td class="px-6 py-4 text-sm text-gray-500">
-            {% if order.created_at_formatted is defined %}
-              {{ order.created_at_formatted }}
-            {% else %}
-              {{ order.created_at }}
-            {% endif %}
+            <div>{% if order.created_at_formatted is defined %}{{ order.created_at_formatted }}{% else %}{{ order.created_at.split('T')[0] if order.created_at and 'T' in order.created_at else order.created_at }}{% endif %}</div>
+            <div class="text-xs text-gray-400">{% if order.created_at_time is defined %}{{ order.created_at_time }}{% else %}{{ order.created_at.split('T')[1].split('.')[0] if order.created_at and 'T' in order.created_at else '' }}{% endif %}</div>
           </td>
           <td class="px-6 py-4 text-sm">
             <div class="flex items-center gap-2">
-              <span class="font-medium">UGX {{ order.total_amount }}</span>
+              <span class="font-medium">UGX {% if order.formatted_amount is defined %}{{ order.formatted_amount }}{% else %}{{ order.total_amount }}{% endif %}</span>
             </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">

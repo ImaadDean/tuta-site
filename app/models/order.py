@@ -2,7 +2,7 @@ from beanie import Document, Link
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 class OrderStatus(str, Enum):
@@ -15,6 +15,8 @@ class OrderStatus(str, Enum):
 class PaymentStatus(str, Enum):
     PENDING = "pending"
     PAID = "paid"
+    PARTIAL_PAID = "partial_paid"
+    FULLY_PAID = "fully_paid"
     FAILED = "failed"
     REFUNDED = "refunded"
     PARTIALLY_REFUNDED = "partially_refunded"
@@ -59,21 +61,40 @@ class Order(Document):
     status: OrderStatus = OrderStatus.PENDING
     tracking_number: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
     # This will be used to store the user object when needed
     user: Optional[Any] = None
-    
+
     class Settings:
         name = "orders"
         indexes = [
-            "order_no",  
+            "order_no",
             "user_id",
             "status",
             "payment_status",
             "created_at"
         ]
+
+    @property
+    def created_at_formatted(self) -> str:
+        """Return the created_at date formatted as 'YYYY-MM-DD'"""
+        if isinstance(self.created_at, datetime):
+            return self.created_at.strftime('%Y-%m-%d')
+        return str(self.created_at)
+
+    @property
+    def created_at_time(self) -> str:
+        """Return the created_at time formatted as 'HH:MM:SS'"""
+        if isinstance(self.created_at, datetime):
+            return self.created_at.strftime('%H:%M:%S')
+        return ""
+
+    @property
+    def formatted_amount(self) -> str:
+        """Return the total amount formatted with commas"""
+        return f"{int(self.total_amount):,}"
 
 # Pydantic models for API
 class OrderCreate(BaseModel):
@@ -100,4 +121,4 @@ class OrderOut(BaseModel):
     tracking_number: Optional[str]
     notes: Optional[str]
     created_at: datetime
-    updated_at: datetime 
+    updated_at: datetime

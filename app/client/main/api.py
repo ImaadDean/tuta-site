@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Body
 from fastapi.responses import JSONResponse
 from app.models.user import User
-from app.models.contact_info import ContactMessage, ContactUser
+from app.models.message import Message, MessageUser
 from app.auth.jwt import get_current_user_optional
 from typing import Optional
 import logging
@@ -28,10 +28,10 @@ async def submit_contact_form(
     try:
         # Create user info object
         user_info = None
-        
+
         # If user is logged in, use their information
         if current_user:
-            user_info = ContactUser(
+            user_info = MessageUser(
                 name=current_user.username,
                 email=current_user.email,
                 phone=getattr(current_user, 'phone_number', None)
@@ -39,7 +39,7 @@ async def submit_contact_form(
             user_id = str(current_user.id)
         # Otherwise use the provided information
         elif name and email:
-            user_info = ContactUser(
+            user_info = MessageUser(
                 name=name,
                 email=email,
                 phone=phone
@@ -52,17 +52,17 @@ async def submit_contact_form(
                     "message": "Name and email are required when not logged in"
                 }
             )
-        
-        # Create and save the contact message
-        contact_message = ContactMessage(
+
+        # Create and save the message
+        user_message = Message(
             user_info=user_info,
             subject=subject,
             message=message,
             user_id=user_id
         )
-        
-        await contact_message.save()
-        
+
+        await user_message.save()
+
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
             content={

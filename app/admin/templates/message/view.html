@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}View Message - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+  <div class="flex justify-between items-center mb-6">
+    <div class="flex items-center">
+      <a href="/admin/message/" class="text-blue-600 hover:text-blue-800 mr-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+      </a>
+      <h1 class="text-xl font-semibold text-gray-900">Message Details</h1>
+    </div>
+    <div class="flex space-x-2">
+      <button 
+        id="toggleReadBtn" 
+        type="button" 
+        data-message-id="{{ message.id }}" 
+        data-is-read="{{ message.is_read | lower }}"
+        class="text-white {% if message.is_read %}bg-gray-600 hover:bg-gray-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %} focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+        {% if message.is_read %}Mark as Unread{% else %}Mark as Read{% endif %}
+      </button>
+      <button 
+        id="deleteBtn" 
+        type="button" 
+        data-message-id="{{ message.id }}"
+        class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2">
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Message Header -->
+  <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <p class="text-sm text-gray-500">From:</p>
+        <p class="font-medium">
+          {% if message.user_info %}
+            {{ message.user_info.name }}
+            <span class="block text-sm text-gray-500">{{ message.user_info.email }}</span>
+            {% if message.user_info.phone %}
+            <span class="block text-sm text-gray-500">{{ message.user_info.phone }}</span>
+            {% endif %}
+          {% else %}
+            <span class="text-gray-400">Unknown</span>
+          {% endif %}
+        </p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-500">Date:</p>
+        <p class="font-medium">{{ message.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+      </div>
+    </div>
+    <div class="mt-4">
+      <p class="text-sm text-gray-500">Subject:</p>
+      <p class="font-medium">{{ message.subject }}</p>
+    </div>
+  </div>
+
+  <!-- Message Content -->
+  <div class="mb-6">
+    <h2 class="text-lg font-medium text-gray-900 mb-2">Message</h2>
+    <div class="p-4 bg-gray-50 rounded-lg whitespace-pre-wrap">{{ message.message }}</div>
+  </div>
+
+  <!-- User Information (if available) -->
+  {% if user_info %}
+  <div class="mb-6">
+    <h2 class="text-lg font-medium text-gray-900 mb-2">User Account Information</h2>
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-sm text-gray-500">Username:</p>
+          <p class="font-medium">{{ user_info.username }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Email:</p>
+          <p class="font-medium">{{ user_info.email }}</p>
+        </div>
+        {% if user_info.first_name or user_info.last_name %}
+        <div>
+          <p class="text-sm text-gray-500">Name:</p>
+          <p class="font-medium">{{ user_info.first_name }} {{ user_info.last_name }}</p>
+        </div>
+        {% endif %}
+        <div>
+          <p class="text-sm text-gray-500">Account Created:</p>
+          <p class="font-medium">{{ user_info.created_at.strftime('%Y-%m-%d') }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Contact Information -->
+  <div class="mt-8">
+    <h2 class="text-lg font-medium text-gray-900 mb-2">Contact Information</h2>
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <p class="mb-2">You can contact this user using the following information:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        {% if message.user_info and message.user_info.email %}
+        <li>Email: <a href="mailto:{{ message.user_info.email }}" class="text-blue-600 hover:underline">{{ message.user_info.email }}</a></li>
+        {% endif %}
+        {% if message.user_info and message.user_info.phone %}
+        <li>Phone: <a href="tel:{{ message.user_info.phone }}" class="text-blue-600 hover:underline">{{ message.user_info.phone }}</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const messageId = '{{ message.id }}';
+    
+    // Toggle read status
+    document.getElementById('toggleReadBtn').addEventListener('click', function() {
+      const isCurrentlyRead = this.getAttribute('data-is-read') === 'true';
+      const newReadStatus = !isCurrentlyRead;
+      
+      fetch(`/admin/message/api/message/${messageId}/mark-read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          is_read: newReadStatus
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update button text and appearance
+          this.textContent = newReadStatus ? 'Mark as Unread' : 'Mark as Read';
+          this.classList.remove(newReadStatus ? 'bg-blue-600' : 'bg-gray-600');
+          this.classList.remove(newReadStatus ? 'hover:bg-blue-700' : 'hover:bg-gray-700');
+          this.classList.add(newReadStatus ? 'bg-gray-600' : 'bg-blue-600');
+          this.classList.add(newReadStatus ? 'hover:bg-gray-700' : 'hover:bg-blue-700');
+          this.setAttribute('data-is-read', newReadStatus);
+        } else {
+          alert(`Error: ${data.message}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the message status.');
+      });
+    });
+    
+    // Delete message
+    document.getElementById('deleteBtn').addEventListener('click', function() {
+      if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+        fetch(`/admin/message/api/message/${messageId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Redirect to the messages list
+            window.location.href = '/admin/message/';
+          } else {
+            alert(`Error: ${data.message}`);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while deleting the message.');
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

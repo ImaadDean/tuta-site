@@ -18,7 +18,8 @@ from app.models.banner import Banner
 from app.models.scent import Scent
 from app.models.review import Review
 from app.models.address import Address
-from app.models.contact_info import ContactInfo, ContactMessage
+from app.models.contact_info import ContactInfo
+from app.models.message import Message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,11 +41,11 @@ async def get_db():
     Get database connection. This will ensure a connection exists before returning.
     """
     global mongo_client, db, is_closing
-    
+
     # If we're in the process of closing, wait a moment
     if is_closing:
         await asyncio.sleep(0.1)
-    
+
     # Use a lock to prevent multiple simultaneous initializations
     async with connection_lock:
         # Check if we need to initialize
@@ -64,7 +65,7 @@ async def get_db():
                 logger.warning("MongoDB connection check failed, reconnecting...")
                 await close_mongodb_connection()
                 await initialize_mongodb()
-    
+
     return db
 
 async def initialize_mongodb():
@@ -72,19 +73,19 @@ async def initialize_mongodb():
     Initialize MongoDB connection with better error handling for traditional server environment
     """
     global mongo_client, db, is_closing
-    
+
     # Don't initialize if we're in the process of closing
     if is_closing:
         await asyncio.sleep(0.1)
         if db is not None and mongo_client is not None:
             return db
-    
+
     try:
         # Get MongoDB URI from settings
         mongodb_uri = settings.MONGODB_URI
         if not mongodb_uri:
             raise ValueError("MongoDB URI is not configured. Please check your environment variables.")
-        
+
         # Standard settings for long-running server
         conn_params = {
             "serverSelectionTimeoutMS": 5000,
@@ -99,13 +100,13 @@ async def initialize_mongodb():
             "retryReads": True,
             "appName": "PerfumesMoreApp"
         }
-        
+
         # Create a new client with optimized settings
         mongo_client = AsyncIOMotorClient(mongodb_uri, **conn_params)
-        
+
         # Get database
         db = mongo_client[settings.MONGODB_DATABASE]
-        
+
         # Initialize Beanie with all document models
         await init_beanie(
             database=db,
@@ -122,10 +123,10 @@ async def initialize_mongodb():
                 Review,
                 Address,
                 ContactInfo,
-                ContactMessage
+                Message
             ]
         )
-        
+
         # Verify connection - use a safer approach
         try:
             # Use a synchronous operation instead of asyncio.wait_for
@@ -135,7 +136,7 @@ async def initialize_mongodb():
         except Exception as e:
             logger.error(f"MongoDB connection verification failed: {str(e)}")
             raise
-        
+
         return db
     except Exception as e:
         logger.error(f"Failed to initialize MongoDB connection: {str(e)}")
@@ -150,10 +151,10 @@ async def close_mongodb_connection():
     Close MongoDB connection more safely
     """
     global mongo_client, db, is_closing
-    
+
     # Set closing flag to prevent new connections during shutdown
     is_closing = True
-    
+
     try:
         if mongo_client:
             try:

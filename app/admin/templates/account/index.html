@@ -1,7 +1,15 @@
 {% extends "base.html" %} {% block title %}Account Settings{% endblock %} {%
 block content %}
 <div class="">
-  <h2 class="mb-4 text-xl font-bold text-gray-900">Account Settings</h2>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl font-bold text-gray-900">Account Settings</h2>
+    <a href="/admin/contact_info" class="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
+      <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM20 4v13.17L18.83 16H4V4h16zM6 12h12v2H6v-2zm0-3h12v2H6V9zm0-3h12v2H6V6z"/>
+      </svg>
+      Contact Information
+    </a>
+  </div>
 
   {% if success %}
   <div

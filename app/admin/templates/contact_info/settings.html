@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Information Settings - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+  <div class="flex justify-between items-center mb-6">
+    <div class="flex items-center">
+      <a href="/admin/message/" class="text-blue-600 hover:text-blue-800 mr-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+      </a>
+      <h1 class="text-xl font-semibold text-gray-900">Contact Information Settings</h1>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <form id="contactInfoForm" class="space-y-6">
+    <!-- Address Information -->
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Address Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="address" class="block mb-2 text-sm font-medium text-gray-900">Address</label>
+          <input type="text" id="address" name="address" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.address if contact_info else '' }}" required>
+        </div>
+        <div>
+          <label for="city" class="block mb-2 text-sm font-medium text-gray-900">City</label>
+          <input type="text" id="city" name="city" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.city if contact_info else '' }}" required>
+        </div>
+        <div>
+          <label for="country" class="block mb-2 text-sm font-medium text-gray-900">Country</label>
+          <input type="text" id="country" name="country" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.country if contact_info else '' }}" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Details -->
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Contact Details</h2>
+      
+      <!-- Phone Numbers -->
+      <div class="mb-4">
+        <label class="block mb-2 text-sm font-medium text-gray-900">Phone Numbers</label>
+        <div id="phoneNumbersContainer">
+          {% if contact_info and contact_info.phone_numbers %}
+            {% for phone in contact_info.phone_numbers %}
+              <div class="flex mb-2">
+                <input type="text" name="phone_numbers[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ phone }}" required>
+                <button type="button" class="remove-field ml-2 text-red-600 hover:text-red-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="flex mb-2">
+              <input type="text" name="phone_numbers[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+              <button type="button" class="remove-field ml-2 text-red-600 hover:text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          {% endif %}
+        </div>
+        <button type="button" id="addPhoneBtn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add Phone Number</button>
+      </div>
+      
+      <!-- Email Addresses -->
+      <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900">Email Addresses</label>
+        <div id="emailAddressesContainer">
+          {% if contact_info and contact_info.email_addresses %}
+            {% for email in contact_info.email_addresses %}
+              <div class="flex mb-2">
+                <input type="email" name="email_addresses[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ email }}" required>
+                <button type="button" class="remove-field ml-2 text-red-600 hover:text-red-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="flex mb-2">
+              <input type="email" name="email_addresses[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+              <button type="button" class="remove-field ml-2 text-red-600 hover:text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          {% endif %}
+        </div>
+        <button type="button" id="addEmailBtn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add Email Address</button>
+      </div>
+    </div>
+
+    <!-- Business Hours -->
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Business Hours</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="monday_friday" class="block mb-2 text-sm font-medium text-gray-900">Monday - Friday</label>
+          <input type="text" id="monday_friday" name="monday_friday" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.business_hours.monday_friday if contact_info and contact_info.business_hours else '8:00 AM - 6:00 PM' }}">
+        </div>
+        <div>
+          <label for="saturday" class="block mb-2 text-sm font-medium text-gray-900">Saturday</label>
+          <input type="text" id="saturday" name="saturday" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.business_hours.saturday if contact_info and contact_info.business_hours else '9:00 AM - 4:00 PM' }}">
+        </div>
+        <div>
+          <label for="sunday" class="block mb-2 text-sm font-medium text-gray-900">Sunday</label>
+          <input type="text" id="sunday" name="sunday" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.business_hours.sunday if contact_info and contact_info.business_hours else 'Closed' }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Social Media -->
+    <div class="p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Social Media</h2>
+      
+      <!-- Legacy Social Media -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label for="facebook" class="block mb-2 text-sm font-medium text-gray-900">Facebook</label>
+          <input type="url" id="facebook" name="facebook" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.social_media.facebook if contact_info and contact_info.social_media else '' }}">
+        </div>
+        <div>
+          <label for="twitter" class="block mb-2 text-sm font-medium text-gray-900">Twitter</label>
+          <input type="url" id="twitter" name="twitter" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.social_media.twitter if contact_info and contact_info.social_media else '' }}">
+        </div>
+        <div>
+          <label for="instagram" class="block mb-2 text-sm font-medium text-gray-900">Instagram</label>
+          <input type="url" id="instagram" name="instagram" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ contact_info.social_media.instagram if contact_info and contact_info.social_media else '' }}">
+        </div>
+      </div>
+      
+      <!-- Custom Social Media Platforms -->
+      <h3 class="text-md font-medium text-gray-900 mb-2">Custom Social Media Platforms</h3>
+      <div id="socialPlatformsContainer">
+        {% if contact_info and contact_info.social_platforms %}
+          {% for platform in contact_info.social_platforms %}
+            <div class="social-platform-item border border-gray-200 rounded-lg p-4 mb-4">
+              <input type="hidden" name="platform_id" value="{{ platform.id }}">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                <div>
+                  <label class="block mb-2 text-sm font-medium text-gray-900">Platform Name</label>
+                  <input type="text" name="platform_name" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ platform.name }}" required>
+                </div>
+                <div>
+                  <label class="block mb-2 text-sm font-medium text-gray-900">URL</label>
+                  <input type="url" name="platform_url" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ platform.url }}" required>
+                </div>
+                <div>
+                  <label class="block mb-2 text-sm font-medium text-gray-900">Display Order</label>
+                  <input type="number" name="platform_order" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="{{ platform.order }}" min="0" required>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                <div>
+                  <label class="block mb-2 text-sm font-medium text-gray-900">Icon</label>
+                  <div class="flex items-center">
+                    <input type="file" name="platform_icon" class="hidden" accept="image/*">
+                    <input type="hidden" name="platform_icon_url" value="{{ platform.icon_url or '' }}">
+                    <button type="button" class="upload-icon-btn bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg mr-2">
+                      Upload Icon
+                    </button>
+                    {% if platform.icon_url %}
+                      <img src="{{ platform.icon_url }}" alt="{{ platform.name }}" class="h-8 w-8 object-contain">
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="remove-platform mt-2 text-sm text-red-600 hover:underline">Remove Platform</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      <button type="button" id="addPlatformBtn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add Social Media Platform</button>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="submit" id="saveBtn" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
+        Save Changes
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add phone number field
+    document.getElementById('addPhoneBtn').addEventListener('click', function() {
+      const container = document.getElementById('phoneNumbersContainer');
+      const newField = document.createElement('div');
+      newField.className = 'flex mb-2';
+      newField.innerHTML = `
+        <input type="text" name="phone_numbers[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+        <button type="button" class="remove-field ml-2 text-red-600 hover:text-red-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      `;
+      container.appendChild(newField);
+      
+      // Add event listener to the new remove button
+      newField.querySelector('.remove-field').addEventListener('click', function() {
+        container.removeChild(newField);
+      });
+    });
+    
+    // Add email address field
+    document.getElementById('addEmailBtn').addEventListener('click', function() {
+      const container = document.getElementById('emailAddressesContainer');
+      const newField = document.createElement('div');
+      newField.className = 'flex mb-2';
+      newField.innerHTML = `
+        <input type="email" name="email_addresses[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+        <button type="button" class="remove-field ml-2 text-red-600 hover:text-red-800">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      `;
+      container.appendChild(newField);
+      
+      // Add event listener to the new remove button
+      newField.querySelector('.remove-field').addEventListener('click', function() {
+        container.removeChild(newField);
+      });
+    });
+    
+    // Add social media platform
+    document.getElementById('addPlatformBtn').addEventListener('click', function() {
+      const container = document.getElementById('socialPlatformsContainer');
+      const newPlatform = document.createElement('div');
+      newPlatform.className = 'social-platform-item border border-gray-200 rounded-lg p-4 mb-4';
+      newPlatform.innerHTML = `
+        <input type="hidden" name="platform_id" value="">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900">Platform Name</label>
+            <input type="text" name="platform_name" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+          </div>
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900">URL</label>
+            <input type="url" name="platform_url" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+          </div>
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900">Display Order</label>
+            <input type="number" name="platform_order" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" value="0" min="0" required>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900">Icon</label>
+            <div class="flex items-center">
+              <input type="file" name="platform_icon" class="hidden" accept="image/*">
+              <input type="hidden" name="platform_icon_url" value="">
+              <button type="button" class="upload-icon-btn bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg mr-2">
+                Upload Icon
+              </button>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="remove-platform mt-2 text-sm text-red-600 hover:underline">Remove Platform</button>
+      `;
+      container.appendChild(newPlatform);
+      
+      // Add event listener to the new remove button
+      newPlatform.querySelector('.remove-platform').addEventListener('click', function() {
+        container.removeChild(newPlatform);
+      });
+      
+      // Add event listener to the new upload button
+      setupIconUpload(newPlatform.querySelector('.upload-icon-btn'));
+    });
+    
+    // Setup existing remove buttons
+    document.querySelectorAll('.remove-field').forEach(button => {
+      button.addEventListener('click', function() {
+        this.parentElement.remove();
+      });
+    });
+    
+    // Setup existing remove platform buttons
+    document.querySelectorAll('.remove-platform').forEach(button => {
+      button.addEventListener('click', function() {
+        this.closest('.social-platform-item').remove();
+      });
+    });
+    
+    // Setup icon upload functionality
+    function setupIconUpload(button) {
+      button.addEventListener('click', function() {
+        const fileInput = this.closest('div').querySelector('input[type="file"]');
+        fileInput.click();
+      });
+      
+      const fileInput = button.closest('div').querySelector('input[type="file"]');
+      fileInput.addEventListener('change', async function() {
+        if (this.files.length > 0) {
+          const file = this.files[0];
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          try {
+            const response = await fetch('/admin/contact_info/api/upload-social-icon', {
+              method: 'POST',
+              body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              // Update hidden input with icon URL
+              const iconUrlInput = this.closest('div').querySelector('input[name="platform_icon_url"]');
+              iconUrlInput.value = data.icon_url;
+              
+              // Show preview
+              let imgPreview = this.closest('div').querySelector('img');
+              if (!imgPreview) {
+                imgPreview = document.createElement('img');
+                imgPreview.className = 'h-8 w-8 object-contain';
+                this.closest('div').appendChild(imgPreview);
+              }
+              
+              imgPreview.src = data.icon_url;
+              imgPreview.alt = 'Icon';
+            } else {
+              alert(`Error: ${data.message}`);
+            }
+          } catch (error) {
+            console.error('Error uploading icon:', error);
+            alert('An error occurred while uploading the icon.');
+          }
+        }
+      });
+    }
+    
+    // Setup all existing icon upload buttons
+    document.querySelectorAll('.upload-icon-btn').forEach(button => {
+      setupIconUpload(button);
+    });
+    
+    // Form submission
+    document.getElementById('contactInfoForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Collect phone numbers
+      const phoneNumbers = [];
+      document.querySelectorAll('input[name="phone_numbers[]"]').forEach(input => {
+        if (input.value.trim()) {
+          phoneNumbers.push(input.value.trim());
+        }
+      });
+      
+      // Collect email addresses
+      const emailAddresses = [];
+      document.querySelectorAll('input[name="email_addresses[]"]').forEach(input => {
+        if (input.value.trim()) {
+          emailAddresses.push(input.value.trim());
+        }
+      });
+      
+      // Collect social platforms
+      const socialPlatforms = [];
+      document.querySelectorAll('.social-platform-item').forEach(item => {
+        const id = item.querySelector('input[name="platform_id"]').value;
+        const name = item.querySelector('input[name="platform_name"]').value;
+        const url = item.querySelector('input[name="platform_url"]').value;
+        const iconUrl = item.querySelector('input[name="platform_icon_url"]').value;
+        const order = parseInt(item.querySelector('input[name="platform_order"]').value) || 0;
+        
+        if (name && url) {
+          socialPlatforms.push({
+            id: id || null,
+            name: name,
+            url: url,
+            icon_url: iconUrl || null,
+            order: order
+          });
+        }
+      });
+      
+      // Prepare form data
+      const formData = {
+        address: document.getElementById('address').value,
+        city: document.getElementById('city').value,
+        country: document.getElementById('country').value,
+        phone_numbers: phoneNumbers,
+        email_addresses: emailAddresses,
+        business_hours: {
+          monday_friday: document.getElementById('monday_friday').value,
+          saturday: document.getElementById('saturday').value,
+          sunday: document.getElementById('sunday').value
+        },
+        social_media: {
+          facebook: document.getElementById('facebook').value,
+          twitter: document.getElementById('twitter').value,
+          instagram: document.getElementById('instagram').value
+        },
+        social_platforms: socialPlatforms
+      };
+
+      // Send data to API
+      fetch('/admin/contact_info/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Contact information updated successfully!');
+          // Reload the page to show the updated information
+          window.location.reload();
+        } else {
+          alert(`Error: ${data.message}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating contact information.');
+      });
+    });
+  });
+</script>
+{% endblock %}

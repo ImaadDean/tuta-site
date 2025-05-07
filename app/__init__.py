@@ -13,7 +13,8 @@ from app.admin.category import router as admin_category_router
 from app.admin.collection import router as admin_collection_router
 from app.admin.brand import router as admin_brand_router
 from app.admin.scent import router as admin_scent_router
-from app.admin.contact import router as admin_contact_router
+from app.admin.contact_info import router as admin_contact_info_router
+from app.admin.message import router as admin_message_router
 from app.database import initialize_mongodb, close_mongodb_connection, lifespan_mongodb_connection
 from app.jinja_filters import setup_jinja_filters
 from fastapi.templating import Jinja2Templates
@@ -76,7 +77,8 @@ def create_app():
     app.include_router(admin_collection_router)
     app.include_router(admin_brand_router)
     app.include_router(admin_scent_router)
-    app.include_router(admin_contact_router)
+    app.include_router(admin_contact_info_router)
+    app.include_router(admin_message_router)
     app.include_router(client_main_router)
     app.include_router(client_products_router)
     app.include_router(client_checkout_router)

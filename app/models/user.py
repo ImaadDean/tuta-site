@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 import uuid
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -19,21 +19,21 @@ class User(Document):
     is_active: bool = True
     role: UserRole = UserRole.CLIENT
     profile_picture: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
     # These relationships will be handled differently in MongoDB
     # We'll use references instead of SQLAlchemy relationships
-    
+
     class Settings:
         name = "users"
         indexes = [
-            "email", 
+            "email",
             "username",
             # You can add compound indexes if needed
             # [("email", 1), ("username", 1)]
         ]
-    
+
     @classmethod
     async def create_admin_user(cls, email: str, username: str, hashed_password: str):
         """Create an admin user if it doesn't exist"""
@@ -42,7 +42,7 @@ class User(Document):
             {"username": username},
             {"email": email}
         ]})
-        
+
         if existing_admin:
             # If the user exists but isn't admin, make them admin
             if existing_admin.role != UserRole.ADMIN:
@@ -50,7 +50,7 @@ class User(Document):
                 existing_admin.role = UserRole.ADMIN
                 await existing_admin.save()
             return existing_admin
-            
+
         # Create new admin user
         print(f"Creating new admin user: {username}")
         admin_user = cls(
@@ -61,7 +61,7 @@ class User(Document):
             role=UserRole.ADMIN,
             is_active=True
         )
-        
+
         await admin_user.insert()
         return admin_user
 

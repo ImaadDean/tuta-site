@@ -34,13 +34,13 @@ async def admin_home(
     try:
         # Get products (assuming you have a Product model defined with Beanie)
         from app.models.product import Product
-        
+
         products = []
         try:
             products = await Product.find_all().to_list()
         except Exception as e:
             print(f"Error fetching products: {str(e)}")
-        
+
         # Convert products to serializable dict with datetime handling
         serialized_products = []
         for product in products:
@@ -48,10 +48,10 @@ async def admin_home(
                 serialized_products.append(to_serializable_dict(product))
             except Exception as e:
                 print(f"Error serializing product: {str(e)}")
-        
+
         # Get pending orders count
         from app.models.order import Order
-        
+
         pending_orders = 0
         try:
             pending_orders = await Order.find(
@@ -59,12 +59,12 @@ async def admin_home(
             ).count()
         except Exception as e:
             print(f"Error counting pending orders: {str(e)}")
-        
+
         # Get today's sales
         today = datetime.now().date()
         today_start = datetime.combine(today, datetime.min.time())
         today_end = datetime.combine(today, datetime.max.time())
-        
+
         daily_sales_pipeline = [
             {
                 "$match": {
@@ -79,7 +79,7 @@ async def admin_home(
                 }
             }
         ]
-        
+
         daily_sales = 0
         try:
             daily_sales_result = await Order.aggregate(daily_sales_pipeline).to_list()
@@ -87,49 +87,66 @@ async def admin_home(
                 daily_sales = daily_sales_result[0]["total"]
         except Exception as e:
             print(f"Error calculating daily sales: {str(e)}")
-        
+
         # Get total users count
         total_users = 0
         try:
             total_users = await User.find_all().count()
         except Exception as e:
             print(f"Error counting users: {str(e)}")
-        
+
         # Get recent orders (last 5)
         recent_orders = []
         try:
             recent_orders = await Order.find_all().sort([("created_at", -1)]).limit(5).to_list()
-            
+
             # For each order, fetch the associated user
             for order in recent_orders:
-                if hasattr(order, "user_id"):
+                if hasattr(order, "user_id") and order.user_id:
                     try:
-                        order.user = await User.find_one({"id": order.user_id})
+                        user = await User.find_one({"id": order.user_id})
+                        if user:
+                            # Store the user object
+                            order.user = user
                     except Exception as e:
                         print(f"Error fetching user for order: {str(e)}")
         except Exception as e:
             print(f"Error fetching recent orders: {str(e)}")
-        
+
         # Convert recent orders to serializable format
         serialized_orders = []
         for order in recent_orders:
             try:
-                # Create a copy we can modify with formatted dates before serialization
-                if hasattr(order, "created_at") and order.created_at:
-                    # Pre-format the date for template display
-                    if isinstance(order.created_at, datetime):
-                        order.created_at_formatted = order.created_at.strftime('%b %d, %Y')
-                    else:
-                        order.created_at_formatted = str(order.created_at)
-                
-                # Make sure user exists
+                # Handle guest orders
                 if not hasattr(order, "user") or not order.user:
-                    order.user = {"username": "Guest"}
-                    
-                serialized_orders.append(to_serializable_dict(order))
+                    # Check if we have guest data
+                    if hasattr(order, "guest_data") and order.guest_data:
+                        guest_name = order.guest_data.get("name", "Guest")
+                        guest_phone = order.guest_data.get("phone", "")
+                        guest_email = order.guest_data.get("email", "")
+                        order.user = {
+                            "username": guest_name,
+                            "phone_number": guest_phone,
+                            "email": guest_email
+                        }
+                    else:
+                        order.user = {"username": "Guest"}
+
+                # Get the serialized order
+                serialized_order = to_serializable_dict(order)
+
+                # Add the formatted properties
+                if hasattr(order, 'created_at_formatted'):
+                    serialized_order['created_at_formatted'] = order.created_at_formatted
+                if hasattr(order, 'created_at_time'):
+                    serialized_order['created_at_time'] = order.created_at_time
+                if hasattr(order, 'formatted_amount'):
+                    serialized_order['formatted_amount'] = order.formatted_amount
+
+                serialized_orders.append(serialized_order)
             except Exception as e:
                 print(f"Error serializing order: {str(e)}")
-        
+
         # For now, return a simple success message if templates aren't set up yet
         if not hasattr(templates, "TemplateResponse"):
             return HTMLResponse(content=f"""
@@ -145,7 +162,7 @@ async def admin_home(
                 </body>
             </html>
             """)
-        
+
         # Safely serialize the current user
         serialized_user = None
         try:
@@ -153,7 +170,7 @@ async def admin_home(
         except Exception as e:
             print(f"Error serializing current user: {str(e)}")
             serialized_user = {"username": current_user.username, "id": current_user.id}
-        
+
         return templates.TemplateResponse(
             "dashboard/index.html",
             {
@@ -194,10 +211,10 @@ async def get_admin_products(
         # Get products
         from app.models.product import Product
         products = await Product.find_all().to_list()
-        
+
         # Convert products to serializable dict with datetime handling
         serialized_products = [to_serializable_dict(product) for product in products]
-            
+
         return JSONResponse(content=serialized_products)
     except Exception as e:
         return JSONResponse(
@@ -217,25 +234,25 @@ async def set_product_discount(
         # Get data from request
         original_price = data.get("original_price")
         discount_price = data.get("discount_price")
-        
+
         if not original_price or not discount_price:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Original price and discount price are required"}
             )
-            
+
         # Calculate discount percentage
         original_price = float(original_price)
         discount_price = float(discount_price)
-        
+
         if discount_price >= original_price:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Discount price must be less than original price"}
             )
-            
+
         discount_percentage = round(100 - (discount_price / original_price * 100), 2)
-        
+
         # Find the product
         from app.models.product import Product
         product = await Product.find_one({"id": product_id})
@@ -244,16 +261,16 @@ async def set_product_discount(
                 status_code=404,
                 content={"detail": "Product not found"}
             )
-        
+
         # Update product with discount
         product.old_price = int(original_price)
         product.discount_percentage = discount_percentage
         product.discount_start_date = datetime.now()
         product.discount_end_date = datetime.now() + timedelta(days=30)  # Default to 30 days
-        
+
         # Save the updated product
         await product.save()
-        
+
         # Convert to serializable format for response
         response_data = {
             "success": True,
@@ -264,7 +281,7 @@ async def set_product_discount(
             "discount_start_date": product.discount_start_date.isoformat(),
             "discount_end_date": product.discount_end_date.isoformat()
         }
-        
+
         return JSONResponse(content=response_data)
     except Exception as e:
         return JSONResponse(
@@ -284,39 +301,39 @@ async def set_variant_discount(
         # Get data from request
         original_price = data.get("original_price")
         discount_price = data.get("discount_price")
-        
+
         if not original_price or not discount_price:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Original price and discount price are required"}
             )
-            
+
         # Calculate discount percentage
         original_price = float(original_price)
         discount_price = float(discount_price)
-        
+
         if discount_price >= original_price:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Discount price must be less than original price"}
             )
-            
+
         discount_percentage = round(100 - (discount_price / original_price * 100), 2)
-        
+
         # Find product with the variant
         from app.models.product import Product
-        
+
         # We need to search across all products to find the one containing this variant
         products = await Product.find_all().to_list()
         target_product = None
         target_variant = None
         variant_type = None
-        
+
         # Find the product and variant
         for product in products:
             if not hasattr(product, 'variants') or not product.variants:
                 continue
-                
+
             # Search through each variant type and its values
             for v_type, variants in product.variants.items():
                 for variant in variants:
@@ -330,21 +347,21 @@ async def set_variant_discount(
                     break
             if target_variant:
                 break
-        
+
         if not target_product or not target_variant:
             return JSONResponse(
                 status_code=404,
                 content={"detail": "Variant not found"}
             )
-        
+
         # Update variant with discount info
         target_variant.discount_percentage = discount_percentage
         target_variant.discount_start_date = datetime.now()
         target_variant.discount_end_date = datetime.now() + timedelta(days=30)  # Default to 30 days
-        
+
         # Save the updated product
         await target_product.save()
-        
+
         # Convert dates to ISO format for response
         response_data = {
             "success": True,
@@ -356,7 +373,7 @@ async def set_variant_discount(
             "discount_start_date": target_variant.discount_start_date.isoformat(),
             "discount_end_date": target_variant.discount_end_date.isoformat()
         }
-        
+
         return JSONResponse(content=response_data)
     except Exception as e:
         return JSONResponse(
@@ -373,7 +390,7 @@ async def debug_discount(
     """Debugging endpoint for discount requests"""
     form_data = await request.form()
     form_dict = {key: form_data[key] for key in form_data}
-    
+
     # Convert form_data to serializable format
     response_data = {
         "success": True,
@@ -383,7 +400,7 @@ async def debug_discount(
         "headers": dict(request.headers),
         "method": request.method
     }
-    
+
     return JSONResponse(content=response_data)
 
 @router.post("/api/admin/debug/form")
@@ -394,7 +411,7 @@ async def debug_form(
     """Debugging endpoint for form submission"""
     form_data = await request.form()
     form_dict = {key: form_data[key] for key in form_data}
-    
+
     # Convert form_data to serializable format
     response_data = {
         "success": True,
@@ -403,7 +420,7 @@ async def debug_form(
         "headers": dict(request.headers),
         "method": request.method
     }
-    
+
     return JSONResponse(content=response_data)
 
 @router.get("/api/admin/debug/product/{product_id}")
@@ -415,7 +432,7 @@ async def debug_product(
     """Debug endpoint to inspect a product and its variants"""
     try:
         from app.models.product import Product
-        
+
         # Find the product
         product = await Product.find_one({"id": product_id})
         if not product:
@@ -423,10 +440,10 @@ async def debug_product(
                 status_code=404,
                 content={"detail": "Product not found"}
             )
-        
+
         # Convert product to serializable dict
         product_dict = to_serializable_dict(product)
-        
+
         # Return a detailed response
         return JSONResponse(content=product_dict)
     except Exception as e:
@@ -451,7 +468,7 @@ async def debug_product_variants(
                 status_code=404,
                 content={"detail": "Product not found"}
             )
-        
+
         # Try to get variants
         variants_info = {}
         if hasattr(product, 'variants') and product.variants:
@@ -467,7 +484,7 @@ async def debug_product_variants(
                     variants_info[vtype].append(variant_data)
         else:
             variants_info = {"message": "Product has no variants"}
-        
+
         return JSONResponse(content=variants_info)
     except Exception as e:
         return JSONResponse(
@@ -497,15 +514,15 @@ async def debug_find_product(
         from app.database import get_db
         from bson import ObjectId
         import json
-        
+
         db = await get_db()
         collection = db.products
-        
+
         results = {
             "id_tested": id,
             "results": []
         }
-        
+
         # Method 1: Direct id lookup
         doc1 = await collection.find_one({"id": id})
         if doc1:
@@ -522,7 +539,7 @@ async def debug_find_product(
                 "method": "Direct id lookup",
                 "found": False
             })
-            
+
         # Method 2: ObjectId lookup if valid
         if ObjectId.is_valid(id):
             doc2 = await collection.find_one({"_id": ObjectId(id)})
@@ -540,7 +557,7 @@ async def debug_find_product(
                     "method": "ObjectId lookup",
                     "found": False
                 })
-                
+
         # Method 3: Case insensitive lookup
         doc3 = await collection.find_one({"id": {"$regex": f"^{id}$", "$options": "i"}})
         if doc3:
@@ -557,7 +574,7 @@ async def debug_find_product(
                 "method": "Case insensitive lookup",
                 "found": False
             })
-            
+
         # Method 4: Raw find with limit
         raw_docs = []
         async for doc in collection.find().limit(3):
@@ -566,9 +583,9 @@ async def debug_find_product(
                 "_id": str(doc.get("_id")),
                 "name": doc.get("name")
             })
-            
+
         results["sample_products"] = raw_docs
-        
+
         return JSONResponse(content=results)
     except Exception as e:
         return JSONResponse(
@@ -587,29 +604,29 @@ async def debug_fix_product(
         from app.database import get_db
         from bson import ObjectId
         import json
-        
+
         db = await get_db()
         collection = db.products
-        
+
         results = {
             "id_tested": id,
             "original": None,
             "fixed": None,
             "actions": []
         }
-        
+
         # Step 1: Find the product
         product_doc = None
-        
+
         # Try by id
         product_doc = await collection.find_one({"id": id})
         lookup_method = "id"
-        
+
         # If not found, try by _id if valid ObjectId
         if not product_doc and ObjectId.is_valid(id):
             product_doc = await collection.find_one({"_id": ObjectId(id)})
             lookup_method = "_id"
-            
+
         if not product_doc:
             return JSONResponse(
                 content={
@@ -617,88 +634,88 @@ async def debug_fix_product(
                     "message": f"Product not found with ID: {id}"
                 }
             )
-        
+
         # Store original for comparison (convert ObjectId to string)
         original_doc = dict(product_doc)
         original_doc["_id"] = str(original_doc["_id"])
-        
+
         results["original"] = {
             "id": original_doc.get("id"),
             "_id": original_doc.get("_id"),
             "name": original_doc.get("name"),
             "has_variants": "variants" in original_doc and bool(original_doc["variants"])
         }
-        
+
         # Step 2: Analyze variants and fix if needed
         fixed_doc = dict(product_doc)  # Make a copy to modify
-        
+
         # Check for variants
         if "variants" in product_doc and product_doc["variants"]:
             results["actions"].append("Found variants to analyze")
             fixed_variants = {}
-            
+
             # Process each variant type
             for variant_type, variants in product_doc["variants"].items():
                 fixed_variants[variant_type] = []
-                
+
                 # Process each variant
                 for variant in variants:
                     fixed_variant = dict(variant)  # Copy to modify
-                    
+
                     # Ensure variant has an ID
                     if "id" not in fixed_variant or not fixed_variant["id"]:
                         from uuid import uuid4
                         fixed_variant["id"] = str(uuid4())
                         results["actions"].append(f"Added missing ID to variant: {variant_type} - {fixed_variant.get('value', 'unknown')}")
-                    
+
                     # Ensure variant ID is string
                     if not isinstance(fixed_variant["id"], str):
                         fixed_variant["id"] = str(fixed_variant["id"])
                         results["actions"].append(f"Converted variant ID to string: {variant_type} - {fixed_variant.get('value', 'unknown')}")
-                    
+
                     # Convert any datetime objects to strings
                     for key, value in fixed_variant.items():
                         if isinstance(value, datetime):
                             fixed_variant[key] = value.isoformat()
                             results["actions"].append(f"Converted datetime field {key} to ISO format string")
-                    
+
                     fixed_variants[variant_type].append(fixed_variant)
-            
+
             # Replace variants with fixed version
             fixed_doc["variants"] = fixed_variants
             results["actions"].append("Processed all variants")
-            
+
         # Step 3: Update the document if changes were made
         if results["original"] != fixed_doc:
             update_result = await collection.replace_one(
-                {"_id": product_doc["_id"]}, 
+                {"_id": product_doc["_id"]},
                 fixed_doc
             )
-            
+
             results["update_result"] = {
                 "matched_count": update_result.matched_count,
                 "modified_count": update_result.modified_count,
                 "acknowledged": update_result.acknowledged
             }
-            
+
             results["actions"].append("Updated document in database")
         else:
             results["actions"].append("No changes needed")
-        
+
         # Step 4: Verify the fix by retrieving the document again
         updated_doc = await collection.find_one({"_id": product_doc["_id"]})
-        
+
         if updated_doc:
             # Convert _id to string for JSON serialization
             updated_doc["_id"] = str(updated_doc["_id"])
-            
+
             results["fixed"] = {
                 "id": updated_doc.get("id"),
                 "_id": updated_doc.get("_id"),
                 "name": updated_doc.get("name"),
                 "has_variants": "variants" in updated_doc and bool(updated_doc["variants"])
             }
-            
+
             # Add sample of fixed variants
             if "variants" in updated_doc and updated_doc["variants"]:
                 variant_samples = {}
@@ -711,9 +728,9 @@ async def debug_fix_product(
                                 "value": variant.get("value"),
                                 "price": variant.get("price")
                             })
-                
+
                 results["fixed"]["variant_samples"] = variant_samples
-        
+
         return JSONResponse(content=results)
     except Exception as e:
         return JSONResponse(
@@ -730,11 +747,11 @@ async def get_monthly_sales(
     """Get monthly sales data for the current year"""
     try:
         from app.models.order import Order
-        
+
         # Default to current year if not specified
         if not year:
             year = datetime.now().year
-            
+
         # Create date ranges for each month
         monthly_data = []
         for month in range(1, 13):
@@ -744,11 +761,11 @@ async def get_monthly_sales(
                 month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
             else:
                 month_end = datetime(year, month + 1, 1) - timedelta(days=1)
-            
+
             # Set times to start and end of day
             month_start = datetime.combine(month_start, datetime.min.time())
             month_end = datetime.combine(month_end, datetime.max.time())
-            
+
             # Query completed orders for this month
             pipeline = [
                 {
@@ -765,9 +782,9 @@ async def get_monthly_sales(
                     }
                 }
             ]
-            
+
             monthly_result = await Order.aggregate(pipeline).to_list()
-            
+
             # Handle case where there are no orders for the month
             total = 0
             count = 0
@@ -777,7 +794,7 @@ async def get_monthly_sales(
                     total = result_item["total"]
                 if "count" in result_item:
                     count = result_item["count"]
-            
+
             # Add month data to results
             monthly_data.append({
                 "month": month,
@@ -785,7 +802,7 @@ async def get_monthly_sales(
                 "sales": total,
                 "orders": count
             })
-        
+
         return JSONResponse(content=monthly_data)
     except Exception as e:
         return JSONResponse(
