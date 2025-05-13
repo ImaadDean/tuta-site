@@ -1,56 +1,109 @@
-<div class="mb-8">
+<div class="mb-8" x-data="bannerSection">
   <div class="container mx-auto px-4">
-    <div
-      class="flex items-center gap-2.5 overflow-auto hidden-scrollbar rounded-md has-scrollbar"
-    >
-      {% for banner in banners %}
-      <div
-        class="relative min-w-full max-h-[450px] aspect-square md:aspect-[5/3] lg:h-[380px] xl:h-[450px] rounded-md overflow-hidden snap-start"
-      >
-        <img
-          src="{{ banner.image_url }}"
-          alt="{{ banner.title }}"
-          class="w-full h-full object-cover object-right"
-        />
+    <!-- Loading skeleton -->
+    <template x-if="loading">
+      <div class="relative min-w-full max-h-[450px] aspect-square md:aspect-[5/3] lg:h-[380px] xl:h-[450px] rounded-md overflow-hidden animate-pulse">
+        <!-- Background skeleton -->
+        <div class="w-full h-full bg-gray-200"></div>
 
-        <div
-          class="absolute bottom-6 left-6 right-6 md:bottom-auto md:right-auto md:top-1/2 md:-translate-y-1/2 md:left-[75px] md:max-w-[380px] lg:max-w-[400px] xl:max-w-[460px] bg-white/80 p-5 md:p-6 rounded-md"
-        >
-          {% if banner.subtitle %}
-          <p
-            class="text-salmon-pink text-sm md:text-base lg:text-xl font-medium capitalize tracking-wider mb-2.5"
-          >
-            {{ banner.subtitle }}
-          </p>
-          {% endif %}
-
-          <h2
-            class="text-eerie-black text-2xl md:text-3xl lg:text-4xl uppercase leading-tight mb-2.5"
-          >
-            {{ banner.title }}
-          </h2>
-
-          <div
-            class="flex flex-row items-center justify-between gap-4 md:block"
-          >
-            {% if banner.description %}
-            <p
-              class="text-sonic-silver text-sm md:text-base lg:text-lg font-medium md:mb-2.5 flex-1"
-            >
-              {{ banner.description }}
-            </p>
-            {% endif %} {% if banner.link %}
-            <a
-              href="{{ banner.link }}"
-              class="inline-block bg-salmon-pink text-white text-xs md:text-sm font-semibold uppercase px-2.5 py-1 md:px-5 md:py-2 rounded-sm hover:bg-eerie-black transition-colors whitespace-nowrap"
-            >
-              Shop now
-            </a>
-            {% endif %}
-          </div>
+        <!-- Content skeleton -->
+        <div class="absolute bottom-6 left-6 right-6 md:bottom-auto md:right-auto md:top-1/2 md:-translate-y-1/2 md:left-[75px] md:max-w-[380px] lg:max-w-[400px] xl:max-w-[460px] bg-white/80 p-5 md:p-6 rounded-md">
+          <div class="h-4 bg-gray-300 rounded w-1/3 mb-2.5"></div>
+          <div class="h-8 bg-gray-300 rounded w-3/4 mb-2.5"></div>
+          <div class="h-4 bg-gray-300 rounded w-full mb-2.5"></div>
+          <div class="h-8 bg-gray-300 rounded w-1/4 mt-4"></div>
         </div>
       </div>
-      {% endfor %}
-    </div>
+    </template>
+
+    <!-- Banners content -->
+    <template x-if="!loading && banners.length > 0">
+      <div class="flex items-center gap-2.5 overflow-auto hidden-scrollbar rounded-md has-scrollbar">
+        <template x-for="banner in banners" :key="banner.id">
+          <div class="relative min-w-full max-h-[450px] aspect-square md:aspect-[5/3] lg:h-[380px] xl:h-[450px] rounded-md overflow-hidden snap-start">
+            <img
+              :src="banner.image_url"
+              :alt="banner.title"
+              class="w-full h-full object-cover object-right"
+            />
+
+            <div class="absolute bottom-6 left-6 right-6 md:bottom-auto md:right-auto md:top-1/2 md:-translate-y-1/2 md:left-[75px] md:max-w-[380px] lg:max-w-[400px] xl:max-w-[460px] bg-white/80 p-5 md:p-6 rounded-md">
+              <template x-if="banner.subtitle">
+                <p class="text-salmon-pink text-sm md:text-base lg:text-xl font-medium capitalize tracking-wider mb-2.5" x-text="banner.subtitle"></p>
+              </template>
+
+              <h2 class="text-eerie-black text-2xl md:text-3xl lg:text-4xl uppercase leading-tight mb-2.5" x-text="banner.title"></h2>
+
+              <div class="flex flex-row items-center justify-between gap-4 md:block">
+                <template x-if="banner.description">
+                  <p class="text-sonic-silver text-sm md:text-base lg:text-lg font-medium md:mb-2.5 flex-1" x-text="banner.description"></p>
+                </template>
+
+                <template x-if="banner.link">
+                  <a
+                    :href="banner.link"
+                    class="inline-block bg-salmon-pink text-white text-xs md:text-sm font-semibold uppercase px-2.5 py-1 md:px-5 md:py-2 rounded-sm hover:bg-eerie-black transition-colors whitespace-nowrap"
+                  >
+                    Shop now
+                  </a>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- No banners message -->
+    <template x-if="!loading && banners.length === 0">
+      <div class="min-w-full max-h-[450px] aspect-square md:aspect-[5/3] lg:h-[380px] xl:h-[450px] rounded-md overflow-hidden flex items-center justify-center bg-gray-100">
+        <div class="text-center p-6">
+          <p class="text-gray-500 text-lg mb-2">No banners available</p>
+          <p class="text-gray-400 text-sm">Check back later for new promotions</p>
+        </div>
+      </div>
+    </template>
   </div>
 </div>
+
+<!-- Banner Section JavaScript -->
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('bannerSection', () => ({
+      banners: [],
+      loading: true,
+
+      init() {
+        this.loadBanners();
+      },
+
+      loadBanners() {
+        this.loading = true;
+
+        fetch('/api/banners/position/home_top')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              this.banners = data.banners || [];
+              console.log('Loaded banners:', this.banners.length);
+            } else {
+              console.error('Error loading banners:', data.message);
+              this.banners = [];
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching banners:', error);
+            this.banners = [];
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+      }
+    }));
+  });
+</script>

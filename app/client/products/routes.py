@@ -10,10 +10,11 @@ import os
 
 from app.database import get_db
 from app.models.product import Product
-from app.models.review import Review, ReviewCreate
+from app.models.review import Review, ReviewCreate, ReviewComment, ReviewCommentCreate
 from app.client.products import templates
 from app.auth.jwt import get_current_user_optional, get_current_active_client
 from app.models.user import User
+from app.utils.image import validate_and_save_comment_image
 
 
 router = APIRouter()
@@ -63,15 +64,15 @@ async def get_products(
 ):
     # Build the query for products
     query = {"status": "published"}
-    
+
     # Apply category filter if provided
     if category and category != "All":
         query["tags"] = {"$regex": category, "$options": "i"}
-    
+
     # Apply price filters if provided - using variants pricing
     # This is a simplification since variant pricing is more complex
     # A more accurate approach would require a more complex aggregation query
-    
+
     # Decide the sort field and direction
     sort_field = "-created_at"  # Default sort by newest
     if sort == "price_low":
@@ -82,13 +83,13 @@ async def get_products(
         sort_field = "-rating_avg"
     elif sort == "popular":
         sort_field = "-view_count"  # Sort by popularity using view_count
-    
+
     # Add debug logging
     logger.info(f"Fetching products with query: {query}, sort: {sort_field}")
-    
+
     # Execute the query
     products_db = await Product.find(query).sort(sort_field).to_list()
-    
+
     # Log the results
     logger.info(f"Found {len(products_db)} products")
     if len(products_db) > 0:
@@ -101,33 +102,33 @@ async def get_products(
             logger.info("Database connection is working")
         except Exception as e:
             logger.error(f"Database connection failed: {str(e)}")
-    
+
     # Get all unique categories from the product tags
     all_tags = []
     for product in products_db:
         if product.tags:
             all_tags.extend(product.tags)
-    
+
     # Remove duplicates using a set
     unique_tags = set(all_tags)
-    
+
     # Format categories for display
     category_options = ["All"] + sorted(list(unique_tags))
-    
+
     # Format products for the template
     formatted_products = []
     for product in products_db:
         # Get primary category from tags
         primary_category = product.tags[0] if product.tags and len(product.tags) > 0 else "Uncategorized"
-        
+
         # Ensure we have at least one image or use default
         image_urls = product.image_urls or []
         if not image_urls:
             image_urls = [DEFAULT_IMAGE_PATH]
-            
+
         # Get price from variants
         price = product.base_price
-            
+
         formatted_products.append({
             "id": str(product.id),
             "name": product.name,
@@ -141,7 +142,7 @@ async def get_products(
             "new": getattr(product, 'is_new', False),
             "stock": getattr(product, 'stock', 0)
         })
-    
+
     # Return the rendered template
     return templates.TemplateResponse(
         "products/products.html",
@@ -176,12 +177,12 @@ async def get_products_with_slash(
         query_parts.append(f"max_price={max_price}")
     if sort:
         query_parts.append(f"sort={sort}")
-    
+
     # Construct the redirect URL
     redirect_url = "/products"
     if query_parts:
         redirect_url += "?" + "&".join(query_parts)
-    
+
     return RedirectResponse(url=redirect_url, status_code=302)
 
 @router.get("/products/{product_id}", response_class=HTMLResponse)
@@ -197,7 +198,7 @@ async def get_product(
     try:
         # Log authentication status
         logger.info(f"User authenticated: {current_user.username if current_user else 'Anonymous'}")
-        
+
         logger.info(f"Attempting to find product with ID: {product_id}")
         # Try to find product using multiple id fields
         product = await safe_db_operation(
@@ -205,10 +206,10 @@ async def get_product(
             fallback_value=None,
             error_message=f"Error finding product: {product_id}"
         )
-    
+
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
-        
+
         # Increment view count
         try:
             product.view_count = getattr(product, 'view_count', 0) + 1
@@ -219,18 +220,18 @@ async def get_product(
         except Exception as e:
             # Log the error but continue processing
             logger.error(f"Error updating view count: {str(e)}")
-        
+
         # Get primary category from tags
         primary_category = product.tags[0] if product.tags and len(product.tags) > 0 else "Uncategorized"
-        
+
         # Ensure we have at least one image or use default
         image_urls = product.image_urls or []
         if not image_urls:
             image_urls = [DEFAULT_IMAGE_PATH]
-            
+
         # Get price from variants
         price = getattr(product, 'base_price', 0)  # Default to 0 if missing
-            
+
         # Format the product for the template
         formatted_product = {
             "id": str(product.id),
@@ -250,7 +251,7 @@ async def get_product(
             "stock": getattr(product, 'stock', 0),
             "is_perfume": getattr(product, 'is_perfume', False)
         }
-            
+
         # Convert variants to JSON serializable format
         if hasattr(product, 'variants') and product.variants:
             details = {}
@@ -272,9 +273,9 @@ async def get_product(
                     elif isinstance(variant, dict):
                         # Already a dict, just append it
                         details[variant_type].append(variant)
-                
+
             formatted_product["details"] = details
-            
+
         # Fetch scent information if product is a perfume with safe operation
         if getattr(product, 'is_perfume', False) and hasattr(product, 'scent_ids') and product.scent_ids:
             try:
@@ -294,14 +295,14 @@ async def get_product(
                 formatted_product["scents"] = formatted_scents
             except Exception as e:
                 logger.error(f"Error fetching scent information: {e}")
-            
+
         # Fetch similar products based on tags or brand with safe operation
         similar_products = []
         if product.tags and len(product.tags) > 0:
             # Find products that share at least one tag with the current product
             product_id_field = "_id" if hasattr(product, "_id") else "id"
             product_id_value = product._id if hasattr(product, "_id") else product.id
-                
+
             tag_query = {"$and": [
                 {product_id_field: {"$ne": product_id_value}},  # Exclude current product
                 {"tags": {"$in": product.tags}},
@@ -312,12 +313,12 @@ async def get_product(
                 fallback_value=[],
                 error_message=f"Error fetching similar products by tags for product {product_id}"
             )
-            
+
         # If no similar products found by tags, try fetching from the same brand
         if not similar_products and hasattr(product, 'brand_id') and product.brand_id:
             product_id_field = "_id" if hasattr(product, "_id") else "id"
             product_id_value = product._id if hasattr(product, "_id") else product.id
-                
+
             brand_query = {"$and": [
                 {product_id_field: {"$ne": product_id_value}},  # Exclude current product
                 {"brand_id": product.brand_id},
@@ -328,21 +329,21 @@ async def get_product(
                 fallback_value=[],
                 error_message=f"Error fetching similar products by brand for product {product_id}"
             )
-        
+
         # Format related products
         formatted_related = []
         for rel_product in similar_products:
             # Get primary category for related product
             rel_primary_category = rel_product.tags[0] if rel_product.tags and len(rel_product.tags) > 0 else "Uncategorized"
-            
+
             # Ensure related products have at least one image
             rel_image_urls = rel_product.image_urls or []
             if not rel_image_urls:
                 rel_image_urls = [DEFAULT_IMAGE_PATH]
-                
+
             # Get price from variants for related product
             rel_price = getattr(rel_product, 'base_price', 0)
-                
+
             # Format the related product details
             rel_details = {}
             if hasattr(rel_product, 'variants') and rel_product.variants:
@@ -361,7 +362,7 @@ async def get_product(
                             rel_details[variant_type].append(variant_dict)
                         elif isinstance(variant, dict):
                             rel_details[variant_type].append(variant)
-                
+
             formatted_related.append({
                 "id": str(rel_product.id),
                 "name": rel_product.name,
@@ -376,7 +377,7 @@ async def get_product(
                 "stock": getattr(rel_product, 'stock', 0),
                 "details": rel_details
             })
-            
+
         # Return the rendered template with serializable data
         return templates.TemplateResponse(
             "products/product_detail.html",
@@ -399,8 +400,8 @@ async def get_product(
                 "request": request,
                 "error": "Product could not be loaded. Please try again later.",
                 "product": {
-                    "name": "Product Not Available", 
-                    "image_urls": [DEFAULT_IMAGE_PATH], 
+                    "name": "Product Not Available",
+                    "image_urls": [DEFAULT_IMAGE_PATH],
                     "price": 0,
                     "stock": 0,
                     "details": {},
@@ -412,7 +413,7 @@ async def get_product(
                     "view_count": 0
                 },
                 "related_products": [],
-                "current_user": current_user  
+                "current_user": current_user
             },
             status_code=500
         )
@@ -440,34 +441,34 @@ async def get_product_reviews(
             fallback_value=None,
             error_message=f"Error finding product: {product_id}"
         )
-        
+
         if not product:
             return JSONResponse(
                 status_code=404,
                 content={"success": False, "message": "Product not found"}
             )
-        
+
         # Get reviews for the product - ONLY include reviews with content (not rating-only)
         reviews = await safe_db_operation(
             Review.find({"product_id": product_id, "is_rating_only": {"$ne": True}, "content": {"$ne": ""}}).to_list(),
             fallback_value=[],
             error_message=f"Error fetching reviews for product: {product_id}"
         )
-        
+
         # Calculate rating statistics (include ALL ratings, even rating-only ones)
         rating_stats = await safe_db_operation(
             Review.calculate_product_rating(product_id),
             fallback_value={"rating_avg": 0, "review_count": 0, "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}},
             error_message=f"Error calculating rating statistics for product: {product_id}"
         )
-        
+
         # Format reviews for the response
         formatted_reviews = []
         for review in reviews:
             # Get user if available
             user = None
             username = "Anonymous"
-            
+
             if review.user_id:
                 # Try to find the user by ID
                 user = await safe_db_operation(
@@ -475,7 +476,7 @@ async def get_product_reviews(
                     fallback_value=None,
                     error_message=f"Error fetching user for review: {review.id}"
                 )
-                
+
                 # If not found by id, try with _id
                 if not user:
                     user = await safe_db_operation(
@@ -483,14 +484,14 @@ async def get_product_reviews(
                         fallback_value=None,
                         error_message=f"Error fetching user with _id for review: {review.id}"
                     )
-                
+
                 # If user found, get username
                 if user:
                     username = user.username
             elif review.user_name:
                 # Use the provided user_name for non-logged in users
                 username = review.user_name
-            
+
             formatted_review = {
                 "id": review.id,
                 "rating": review.rating,
@@ -505,7 +506,7 @@ async def get_product_reviews(
                 }
             }
             formatted_reviews.append(formatted_review)
-        
+
         return JSONResponse(
             status_code=200,
             content={
@@ -544,23 +545,23 @@ async def add_product_review(
             logger.info(f"Review submitted by authenticated user: {current_user.username} (ID: {user_id})")
         else:
             logger.info("Review submitted by anonymous user")
-            
+
         # Check if product exists using multiple ID fields
         product = await safe_db_operation(
             Product.find_one({"$or": [{"id": product_id}, {"_id": product_id}]}),
             fallback_value=None,
             error_message=f"Error finding product: {product_id}"
         )
-        
+
         if not product:
             return JSONResponse(
                 status_code=404,
                 content={"success": False, "message": "Product not found"}
             )
-        
+
         # Check if this is a rating-only submission
         is_rating_only_submission = is_rating_only == "true"
-        
+
         # Validate fields based on submission type
         if not is_rating_only_submission:
             # For full reviews, require content
@@ -569,14 +570,14 @@ async def add_product_review(
                     status_code=400,
                     content={"success": False, "message": "Review content is required"}
                 )
-        
+
         # If user is not logged in, require a name
         if not user_id and not user_name:
             return JSONResponse(
                 status_code=400,
                 content={"success": False, "message": "Please provide your name"}
             )
-        
+
         # Check if user already reviewed this product
         if user_id:
             existing_review = await safe_db_operation(
@@ -584,23 +585,23 @@ async def add_product_review(
                 fallback_value=None,
                 error_message=f"Error checking existing review"
             )
-            
+
             if existing_review:
                 return JSONResponse(
                     status_code=400,
                     content={"success": False, "message": "You have already reviewed this product"}
                 )
-        
+
         # Process photo uploads using the new validate_and_save_review_image function
         photo_urls = []
         if photos:
             # Import the function
             from app.utils.image import validate_and_save_review_image
-            
+
             # Limit to 5 photos
             max_photos = 5
             photos = photos[:max_photos]
-            
+
             # Process each photo
             for photo in photos:
                 try:
@@ -610,11 +611,11 @@ async def add_product_review(
                         photo_urls.append(photo_url)
                 except Exception as e:
                     logger.error(f"Error saving review photo: {str(e)}")
-        
+
         # For rating-only submissions, set content to empty string if not provided
         if is_rating_only_submission and (not content or not content.strip()):
             content = ""
-        
+
         # Create review data
         review_data = {
             "product_id": product_id,
@@ -624,36 +625,36 @@ async def add_product_review(
             "verified_purchase": False,  # This could be checked against order history
             "is_rating_only": is_rating_only_submission  # Add flag to identify rating-only submissions
         }
-        
+
         # Add user information based on what's available
         if user_id:
             review_data["user_id"] = user_id
         elif user_name:
             review_data["user_name"] = user_name
-        
+
         # Create and save review
         review = Review(**review_data)
         await safe_db_operation(
             review.save(),
             error_message=f"Error saving review for product: {product_id}"
         )
-        
+
         # Update product rating
         rating_stats = await safe_db_operation(
             Review.calculate_product_rating(product_id),
             fallback_value={"rating_avg": 0.0, "review_count": 0, "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}},
             error_message=f"Error calculating rating statistics for product: {product_id}"
         )
-        
+
         # Update product fields with the new rating
         product.rating_avg = rating_stats["rating_avg"]
         product.review_count = rating_stats["review_count"]
-        
+
         await safe_db_operation(
             product.save(),
             error_message=f"Error updating product rating: {product_id}"
         )
-        
+
         # Return success response
         return JSONResponse(
             status_code=201,
@@ -701,27 +702,27 @@ async def mark_review_helpful(
             logger.info(f"Helpful vote from authenticated user: {current_user.username}")
         else:
             logger.info("Helpful vote from anonymous user")
-            
+
         # Parse request body
         data = await request.json()
         review_id = data.get("review_id")
-        
+
         if not review_id:
             return JSONResponse(
                 status_code=400,
                 content={"success": False, "message": "Review ID is required"}
             )
-        
+
         # Find the review - try all possible combinations of id fields
         logger.info(f"Finding review with ID: {review_id} for product {product_id}")
-        
+
         # First try direct ID match
         review = await safe_db_operation(
             Review.find_one({"id": review_id, "product_id": product_id}),
             fallback_value=None,
             error_message=f"Error finding review: {review_id}"
         )
-        
+
         # If not found, try with MongoDB _id
         if not review:
             logger.info(f"Review not found with id, trying with _id")
@@ -730,7 +731,7 @@ async def mark_review_helpful(
                 fallback_value=None,
                 error_message=f"Error finding review with _id: {review_id}"
             )
-            
+
         # If still not found, try just with ID fields without product_id constraint
         if not review:
             logger.info(f"Review not found with product constraint, trying just ID")
@@ -739,24 +740,24 @@ async def mark_review_helpful(
                 fallback_value=None,
                 error_message=f"Error finding review by any ID: {review_id}"
             )
-        
+
         if not review:
             logger.error(f"Review not found with any ID format: {review_id}")
             return JSONResponse(
                 status_code=404,
                 content={"success": False, "message": "Review not found"}
             )
-        
+
         # Increment helpful_votes
         review.helpful_votes = (review.helpful_votes or 0) + 1
         logger.info(f"Incrementing helpful votes for review {review_id} to {review.helpful_votes}")
-        
+
         # Save the review
         await safe_db_operation(
             review.save(),
             error_message=f"Error updating helpful votes for review: {review_id}"
         )
-        
+
         return JSONResponse(
             status_code=200,
             content={
@@ -770,4 +771,240 @@ async def mark_review_helpful(
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": "Failed to mark review as helpful"}
+        )
+
+@router.get("/products/{product_id}/reviews/{review_id}/comments", response_class=JSONResponse)
+async def get_review_comments(
+    product_id: str,
+    review_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_client)
+):
+    """
+    Get comments for a specific review
+    """
+    try:
+        # Log current user if available
+        if current_user:
+            logger.info(f"Current user: id={current_user.id}, username={current_user.username}")
+        else:
+            logger.info("No current user (anonymous request)")
+
+        # Check if review exists
+        review = await safe_db_operation(
+            Review.find_one({"$or": [{"id": review_id}, {"_id": review_id}], "product_id": product_id}),
+            fallback_value=None,
+            error_message=f"Error finding review: {review_id}"
+        )
+
+        if not review:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Review not found"}
+            )
+
+        # Get comments for the review
+        comments = await safe_db_operation(
+            ReviewComment.get_by_review(review_id),
+            fallback_value=[],
+            error_message=f"Error fetching comments for review: {review_id}"
+        )
+
+        # Format comments with user information
+        formatted_comments = []
+        logger.info(f"Formatting {len(comments)} comments for review {review_id}")
+        for comment in comments:
+            logger.info(f"Processing comment {comment.id} with user_id: {comment.user_id}, user_name: {comment.user_name}")
+            # Get user information if available
+            user = None
+            username = "Anonymous"
+
+            # Check if this comment belongs to the current user
+            if current_user and comment.user_id == current_user.id:
+                logger.info(f"Comment belongs to current user: {current_user.username}")
+                user = current_user
+                username = current_user.username
+            # Otherwise try to look up the user
+            elif comment.user_id:
+                logger.info(f"Looking up user with ID: {comment.user_id}")
+                try:
+                    # Try direct lookup first
+                    user = await User.find_one({"_id": comment.user_id})
+                    if user:
+                        logger.info(f"Found user directly: {user.username}")
+                        username = user.username
+                    else:
+                        # Try a direct lookup from the database
+                        db_client = await get_db()
+                        user_doc = await db_client.users.find_one({"_id": comment.user_id})
+                        if user_doc:
+                            logger.info(f"Found user in raw DB: {user_doc.get('username', 'unknown')}")
+                            username = user_doc.get("username", "Anonymous")
+                        else:
+                            logger.info(f"User not found in DB: {comment.user_id}")
+                            # If we have a user_name, use that
+                            if comment.user_name:
+                                username = comment.user_name
+                except Exception as e:
+                    logger.error(f"Error looking up user: {str(e)}")
+                    # If we have a user_name, use that as fallback
+                    if comment.user_name:
+                        username = comment.user_name
+            # Use user_name if available and no user found
+            elif comment.user_name:
+                username = comment.user_name
+
+            logger.info(f"Final username for comment {comment.id}: {username}")
+
+            formatted_comment = {
+                "id": comment.id,
+                "content": comment.content,
+                "photo_urls": comment.photo_urls if hasattr(comment, 'photo_urls') else [],
+                "created_at": comment.created_at.isoformat() if comment.created_at else None,
+                "user": {
+                    "id": user.id if user else None,
+                    "name": username
+                }
+            }
+            logger.info(f"Formatted comment with username: {username}")
+            formatted_comments.append(formatted_comment)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "comments": formatted_comments
+            }
+        )
+    except Exception as e:
+        logger.exception(f"Error in get_review_comments for review {review_id}: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Failed to fetch comments"}
+        )
+
+@router.post("/products/{product_id}/reviews/{review_id}/comments", response_class=JSONResponse)
+async def add_review_comment(
+    product_id: str,
+    review_id: str,
+    content: str = Form(...),
+    user_name: Optional[str] = Form(None),
+    photos: List[UploadFile] = [],
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_active_client)
+):
+    """
+    Add a new comment to a review
+    """
+    try:
+        # Check if review exists
+        review = await safe_db_operation(
+            Review.find_one({"$or": [{"id": review_id}, {"_id": review_id}], "product_id": product_id}),
+            fallback_value=None,
+            error_message=f"Error finding review: {review_id}"
+        )
+
+        if not review:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Review not found"}
+            )
+
+        # Get user ID if authenticated
+        user_id = None
+        if current_user:
+            user_id = current_user.id
+            logger.info(f"Comment submitted by authenticated user: {current_user.username} (ID: {user_id})")
+        else:
+            logger.info("Comment submitted by anonymous user")
+
+            # Require user_name for anonymous comments
+            if not user_name:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "message": "Name is required for guest comments"}
+                )
+
+        # Process photos if any
+        photo_urls = []
+        if photos:
+            logger.info(f"Processing {len(photos)} photos for comment")
+
+            # Save each photo to Cloudinary
+            for i, photo in enumerate(photos):
+                if i >= 3:  # Limit to 3 photos per comment
+                    break
+
+                try:
+                    # Upload to Cloudinary
+                    photo_url = await validate_and_save_comment_image(photo)
+
+                    if photo_url:
+                        photo_urls.append(photo_url)
+                        logger.info(f"Saved comment photo to Cloudinary: {photo_url}")
+                except Exception as e:
+                    logger.error(f"Error saving comment photo: {str(e)}")
+
+        # Create comment data
+        comment_data = {
+            "review_id": review_id,
+            "content": content,
+            "photo_urls": photo_urls
+        }
+
+        # Add user information based on what's available
+        if user_id:
+            comment_data["user_id"] = user_id
+        elif user_name:
+            comment_data["user_name"] = user_name
+
+        # Create and save comment
+        comment = ReviewComment(**comment_data)
+        await safe_db_operation(
+            comment.save(),
+            error_message=f"Error saving comment for review: {review_id}"
+        )
+
+        # Get user information for response
+        user = None
+
+        # If we have a current_user, use that directly
+        if current_user:
+            logger.info(f"Using current user for comment: {current_user.username}")
+            user = current_user
+            username = current_user.username
+        # Otherwise use the provided user_name
+        elif user_name:
+            logger.info(f"Using provided user_name for comment: {user_name}")
+            username = user_name
+        # Fallback to Anonymous
+        else:
+            logger.info("No user info available, using Anonymous")
+            username = "Anonymous"
+
+        logger.info(f"Final username for new comment: {username}")
+
+        # Return success response
+        return JSONResponse(
+            status_code=201,
+            content={
+                "success": True,
+                "message": "Comment added successfully",
+                "comment": {
+                    "id": comment.id,
+                    "content": comment.content,
+                    "photo_urls": comment.photo_urls if hasattr(comment, 'photo_urls') else [],
+                    "created_at": comment.created_at.isoformat() if comment.created_at else None,
+                    "user": {
+                        "id": current_user.id if current_user else None,
+                        "name": username
+                    }
+                }
+            }
+        )
+    except Exception as e:
+        logger.exception(f"Error in add_review_comment for review {review_id}: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Failed to add comment"}
         )

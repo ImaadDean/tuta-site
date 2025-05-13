@@ -9,6 +9,11 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     CLIENT = "client"
 
+class UserStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    DELETED = "deleted"
+
 class User(Document):
     """MongoDB User document model using Beanie ODM"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -17,6 +22,7 @@ class User(Document):
     phone_number: Optional[str] = None
     hashed_password: str
     is_active: bool = True
+    status: UserStatus = UserStatus.ACTIVE
     role: UserRole = UserRole.CLIENT
     profile_picture: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -77,6 +83,7 @@ class UserCreate(UserBase):
 class UserInDB(UserBase):
     id: str
     is_active: bool
+    status: UserStatus
     role: UserRole
     profile_picture: Optional[str] = None
     created_at: datetime
@@ -91,4 +98,6 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     phone_number: Optional[str] = None
     profile_picture: Optional[str] = None
+    status: Optional[UserStatus] = None
+    is_active: Optional[bool] = None
 

@@ -16,7 +16,7 @@ from app.models.collection import Collection
 from app.models.brand import Brand
 from app.models.banner import Banner
 from app.models.scent import Scent
-from app.models.review import Review
+from app.models.review import Review, ReviewComment
 from app.models.address import Address
 from app.models.contact_info import ContactInfo
 from app.models.message import Message
@@ -121,6 +121,7 @@ async def initialize_mongodb():
                 Banner,
                 Scent,
                 Review,
+                ReviewComment,
                 Address,
                 ContactInfo,
                 Message

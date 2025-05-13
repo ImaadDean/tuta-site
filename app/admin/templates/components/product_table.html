@@ -1,0 +1,2630 @@
+<!-- Products Table with Integrated Filters -->
+<style>
+  /* Ensure dropdowns can overflow the table */
+  #products-table {
+    overflow: visible !important;
+  }
+
+  #products-table > div {
+    overflow: visible !important;
+  }
+
+  /* Dropdown menu styling */
+  .dropdown-on-top {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    transform: translateZ(0); /* Force hardware acceleration */
+    border-radius: 0.5rem !important;
+    background-color: white !important;
+    border: 1px solid rgba(107, 114, 128, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    transition: opacity 0.1s ease, transform 0.1s ease;
+    z-index: 50; /* Ensure this is lower than the modal z-index */
+  }
+
+  /* Style dropdown items */
+  .dropdown-on-top a,
+  .dropdown-on-top button {
+    padding: 0.75rem 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: 0.875rem !important;
+    transition: background-color 0.2s !important;
+    border-bottom: 1px solid rgba(107, 114, 128, 0.1) !important;
+  }
+
+  .dropdown-on-top a:last-child,
+  .dropdown-on-top button:last-child {
+    border-bottom: none !important;
+  }
+
+  .dropdown-on-top a:hover,
+  .dropdown-on-top button:hover {
+    background-color: rgba(107, 114, 128, 0.1) !important;
+  }
+
+  /* Product heading in dropdown */
+  .dropdown-on-top .product-heading {
+    padding: 0.75rem 1rem !important;
+    border-bottom: 1px solid rgba(107, 114, 128, 0.2) !important;
+    margin-bottom: 0 !important;
+    background-color: rgba(107, 114, 128, 0.05) !important;
+  }
+
+  /* Order heading in dropdown */
+  .dropdown-on-top .order-heading {
+    padding: 0.75rem 1rem !important;
+    border-bottom: 1px solid rgba(107, 114, 128, 0.2) !important;
+    margin-bottom: 0 !important;
+    background-color: rgba(107, 114, 128, 0.05) !important;
+  }
+
+  /* Ensure the table container allows overflow for dropdowns */
+  .bg-gradient-to-br.rounded-lg {
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  /* Highlight row with open dropdown */
+  tr.has-open-dropdown {
+    background-color: rgba(107, 114, 128, 0.05) !important;
+    position: relative;
+    z-index: 50;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Custom scrollbar for variant selection */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #6B7280;
+    border-radius: 10px;
+    opacity: 0.7;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #4B5563;
+  }
+
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #6B7280 #f1f1f1;
+  }
+
+  /* Modal container animation */
+  .modal-container {
+    height: auto;
+    transition: height 0.2s ease, max-height 0.2s ease;
+    position: relative;
+    z-index: 1100; /* Higher than everything except other modal elements */
+  }
+
+  /* Ensure all modal content is above everything */
+  .modal-container * {
+    position: relative;
+    z-index: 1110; /* Even higher to ensure all content is above everything */
+  }
+
+  /* Modal z-index hierarchy */
+  .modal {
+    z-index: 9999 !important; /* Base modal layer - above everything */
+  }
+
+  /* Ensure modals are always on top */
+  #discount-modal,
+  #delete-product-modal,
+  .modal-container,
+  .modal * {
+    z-index: 9999 !important;
+    position: relative;
+  }
+
+  /* Modal backdrop should be above navigation */
+  .modal::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9990 !important;
+  }
+
+  /* Style modals consistently */
+  #discount-modal .modal-container,
+  #delete-product-modal .modal-container {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 28rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  /* We're now using scrollbar-hide for variant radio group */
+
+  /* Fix for small screens */
+  @media (max-width: 640px) {
+    .overflow-x-auto {
+      position: relative;
+      max-width: 100%;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      min-width: 800px; /* Force table to be wider than viewport to enable scrolling */
+      table-layout: fixed;
+    }
+
+    /* Ensure the table container allows scrolling */
+    #products-table > div {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+</style>
+<style>
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+</style>
+<div class="bg-gradient-to-br from-gray-50 to-white rounded-lg shadow-top mb-8 relative">
+
+  <!-- Delete Product Modal Template (hidden, used as a template for cloning) -->
+  <div id="delete-product-modal-template" class="modal fixed inset-0 flex items-center justify-center hidden" style="z-index: 99999 !important; background-color: rgba(0,0,0,0.5); transform: translateZ(0); position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;">
+    <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg overflow-y-auto scrollbar-hide relative" style="z-index: 99999 !important; max-height: 90vh; position: relative !important;">
+      <div class="py-4 text-left px-6">
+        <!-- Title -->
+        <div class="flex justify-between items-center pb-3 sticky top-0 bg-white z-[9999] border-b border-red-100">
+          <p class="text-xl font-bold text-red-600">Delete Product</p>
+          <div class="cursor-pointer" style="z-index: 9999 !important;" onclick="hideProductDeleteModal()">
+            <svg class="fill-current text-black" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+              <path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="mb-4">
+          <p class="text-sm text-gray-700">You are about to delete product <span id="delete-product-name" class="font-semibold"></span>. This action cannot be undone.</p>
+          <p class="text-sm text-gray-700 mt-2">To confirm, please type the product name below:</p>
+
+          <div class="mt-3">
+            <input type="text" id="confirm-product-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Enter product name">
+          </div>
+
+          <div id="delete-product-error" class="mt-2 text-sm text-red-600 hidden"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end pt-2">
+          <button onclick="hideProductDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md mr-2 hover:bg-gray-300 focus:outline-none">
+            Cancel
+          </button>
+          <button id="confirm-delete-product" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none opacity-50 cursor-not-allowed" disabled>
+            Delete Product
+          </button>
+          <input type="hidden" id="delete-product-id">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Management Modal Template (hidden, used as a template for cloning) -->
+  <div id="stock-modal-template" class="modal fixed inset-0 flex items-center justify-center hidden" style="z-index: 99999 !important; background-color: rgba(0,0,0,0.5); transform: translateZ(0); position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;">
+    <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg overflow-y-auto scrollbar-hide relative" style="z-index: 99999 !important; max-height: 90vh; position: relative !important;">
+      <div class="py-4 text-left px-6">
+        <!-- Title - Sticky at the top when scrolling -->
+        <div class="flex justify-between items-center pb-3 sticky top-0 bg-white z-[9999] border-b border-gray-100">
+          <p class="text-xl font-bold text-gray-600">Manage Product Stock</p>
+          <div class="cursor-pointer" style="z-index: 9999 !important;" onclick="hideStockModal()">
+            <svg class="fill-current text-black" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+              <path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="mb-4">
+          <p class="text-sm text-gray-700">Manage stock for product <span id="stock-product-name" class="font-semibold"></span>.</p>
+
+          <!-- Current Stock Info -->
+          <div class="mt-4 p-3 bg-gray-50 rounded-md border border-gray-100">
+            <h4 class="text-sm font-medium text-gray-800 mb-1">Current Stock Information</h4>
+            <div class="text-sm text-gray-600">
+              <p><span class="font-medium">Current Stock:</span> <span id="current-stock-count">0</span> items</p>
+              <p><span class="font-medium">Status:</span> <span id="current-stock-status">In Stock</span></p>
+              <p><span class="font-medium">Last Restocked:</span> <span id="current-stock-last-restocked">Never</span></p>
+            </div>
+          </div>
+
+          <!-- Stock Management Options -->
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Action</label>
+            <div class="space-y-3">
+              <!-- Mark as Out of Stock -->
+              <div class="flex items-center">
+                <input type="radio" id="action-out-of-stock" name="stock-action" value="mark_out_of_stock" class="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded">
+                <label for="action-out-of-stock" class="ml-2 block text-sm font-medium text-gray-700">Mark as Out of Stock</label>
+              </div>
+
+              <!-- Reduce Stock -->
+              <div class="flex items-center">
+                <input type="radio" id="action-reduce-stock" name="stock-action" value="reduce_stock" class="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded">
+                <label for="action-reduce-stock" class="ml-2 block text-sm font-medium text-gray-700">Reduce Stock</label>
+              </div>
+
+              <!-- Restock -->
+              <div class="flex items-center">
+                <input type="radio" id="action-restock" name="stock-action" value="restock" class="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded">
+                <label for="action-restock" class="ml-2 block text-sm font-medium text-gray-700">Restock</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quantity Input (hidden by default, shown for reduce/restock) -->
+          <div id="quantity-container" class="mt-4 hidden">
+            <label for="stock-quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+            <input type="number" id="stock-quantity" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Enter quantity">
+            <p id="quantity-helper-text" class="mt-1 text-xs text-gray-500">Enter the number of items to add or remove.</p>
+          </div>
+
+          <div id="stock-error" class="mt-2 text-sm text-red-600 hidden"></div>
+          <div id="stock-success" class="mt-2 text-sm text-green-600 hidden"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end pt-2">
+          <button onclick="hideStockModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md mr-2 hover:bg-gray-300 focus:outline-none">
+            Cancel
+          </button>
+          <button id="apply-stock-btn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Apply Changes
+          </button>
+          <input type="hidden" id="stock-product-id">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Set Discount Modal Template (hidden, used as a template for cloning) -->
+  <div id="discount-modal-template" class="modal fixed inset-0 flex items-center justify-center hidden" style="z-index: 99999 !important; background-color: rgba(0,0,0,0.5); transform: translateZ(0); position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;">
+    <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg overflow-y-auto scrollbar-hide relative" style="z-index: 99999 !important; max-height: 90vh; position: relative !important;">
+      <div class="py-4 text-left px-6">
+        <!-- Title - Sticky at the top when scrolling -->
+        <div class="flex justify-between items-center pb-3 sticky top-0 bg-white z-[9999] border-b border-gray-100">
+          <p class="text-xl font-bold text-gray-600">Set Product Discount</p>
+          <div class="cursor-pointer" style="z-index: 9999 !important;" onclick="hideDiscountModal()">
+            <svg class="fill-current text-black" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+              <path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="mb-4">
+          <p class="text-sm text-gray-700">Set discount for product <span id="discount-product-name" class="font-semibold"></span>.</p>
+
+          <!-- Loading indicator for variants -->
+          <div id="variants-loading" class="py-4 flex items-center justify-center">
+            <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="ml-2 text-sm text-gray-600">Loading variants...</span>
+          </div>
+
+          <!-- Variants selection -->
+          <div id="variants-container" class="hidden">
+            <div class="mt-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Select Variant</label>
+              <div id="variant-radio-group" class="space-y-3 mt-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2 pb-2 bg-gray-50/50 rounded-lg p-3">
+                <!-- Variants will be added here dynamically as radio buttons -->
+              </div>
+            </div>
+
+            <!-- Discount Form -->
+            <div id="discount-form" class="mt-4 hidden">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Original Price - Full Width -->
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Original Price</label>
+                  <input type="text" id="original-price" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" readonly>
+                </div>
+
+                <!-- New Price and Calculated Discount on same row -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">New Price</label>
+                  <input type="number" id="new-price" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Enter discounted price">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Discount (%)</label>
+                  <input type="text" id="discount-percentage" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
+                </div>
+
+                <!-- Quantity Limit Checkbox - Full Width -->
+                <div class="md:col-span-2">
+                  <div class="flex items-center mb-1">
+                    <input type="checkbox" id="enable-quantity-limit" class="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded">
+                    <label for="enable-quantity-limit" class="ml-2 block text-sm font-medium text-gray-700">Set Quantity Limit</label>
+                  </div>
+                  <div id="quantity-limit-container" class="hidden">
+                    <input type="number" id="quantity-limit" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Number of items at discount">
+                  </div>
+                </div>
+
+                <!-- Date Range Checkbox -->
+                <div class="md:col-span-2">
+                  <div class="flex items-center mb-1">
+                    <input type="checkbox" id="enable-date-range" class="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded">
+                    <label for="enable-date-range" class="ml-2 block text-sm font-medium text-gray-700">Set Date Range</label>
+                  </div>
+                  <div id="date-range-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                      <input type="datetime-local" id="start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                      <input type="datetime-local" id="end-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Current discount info -->
+              <div id="current-discount-info" class="mt-4 p-3 bg-gray-50 rounded-md border border-gray-100 hidden">
+                <h4 class="text-sm font-medium text-gray-800 mb-1">Current Discount</h4>
+                <div class="text-sm text-gray-600">
+                  <p><span class="font-medium">Original Price:</span> <span id="current-original-price">0</span></p>
+                  <p><span class="font-medium">Discounted Price:</span> <span id="current-discounted-price">0</span></p>
+                  <p><span class="font-medium">Discount:</span> <span id="current-discount-percentage">0</span>%</p>
+                  <p><span class="font-medium">Quantity Limit:</span> <span id="current-discount-quantity">Not set</span></p>
+                  <p><span class="font-medium">Period:</span> <span id="current-discount-period">Not set</span></p>
+                  <p><span class="font-medium">Remaining:</span> <span id="current-discount-remaining">0</span> of <span id="current-discount-total">0</span> items</p>
+                </div>
+                <div class="mt-2">
+                  <button type="button" id="remove-discount-btn" class="text-sm text-red-600 hover:text-red-800 focus:outline-none">
+                    Remove Current Discount
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="discount-error" class="mt-2 text-sm text-red-600 hidden"></div>
+          <div id="discount-success" class="mt-2 text-sm text-green-600 hidden"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end pt-2">
+          <button onclick="hideDiscountModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md mr-2 hover:bg-gray-300 focus:outline-none">
+            Cancel
+          </button>
+          <button id="apply-discount-btn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Apply Discount
+          </button>
+          <input type="hidden" id="discount-product-id">
+          <input type="hidden" id="selected-variant-type">
+          <input type="hidden" id="selected-variant-id">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Include shared table JavaScript -->
+  {% include 'components/table_js.html' %}
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Elements for products table
+    const productsLoading = document.getElementById('products-loading');
+    const productsTable = document.getElementById('products-table');
+    const productsTableHead = document.getElementById('products-table-head');
+    const productsTableBody = document.getElementById('products-table-body');
+
+    // Add event delegation for set discount buttons
+    document.addEventListener('click', function(event) {
+      if (event.target.closest('.set-discount-btn')) {
+        const button = event.target.closest('.set-discount-btn');
+        const dropdown = button.closest('.dropdown-on-top');
+
+        // Hide dropdown
+        if (dropdown) {
+          dropdown.classList.add('hidden');
+          dropdown.classList.add('opacity-0');
+          dropdown.classList.add('scale-95');
+        }
+
+        // Get product data from data attributes
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.getAttribute('data-product-name');
+
+        // Show discount modal with a slight delay to allow dropdown to hide
+        setTimeout(() => showDiscountModal(productId, productName), 50);
+      }
+
+      // Handle stock management button clicks
+      if (event.target.closest('.manage-stock-btn')) {
+        const button = event.target.closest('.manage-stock-btn');
+        const dropdown = button.closest('.dropdown-on-top');
+
+        // Hide dropdown
+        if (dropdown) {
+          dropdown.classList.add('hidden');
+          dropdown.classList.add('opacity-0');
+          dropdown.classList.add('scale-95');
+        }
+
+        // Get product data from data attributes
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.getAttribute('data-product-name');
+        const productStock = button.getAttribute('data-product-stock');
+        const productInStock = button.getAttribute('data-product-in-stock');
+
+        // Show stock modal with a slight delay to allow dropdown to hide
+        setTimeout(() => showStockModal(productId, productName, productStock, productInStock), 50);
+      }
+
+      // Handle delete product button clicks
+      if (event.target.closest('.delete-product-btn')) {
+        const button = event.target.closest('.delete-product-btn');
+        const dropdown = button.closest('.dropdown-on-top');
+
+        // Hide dropdown
+        if (dropdown) {
+          dropdown.classList.add('hidden');
+          dropdown.classList.add('opacity-0');
+          dropdown.classList.add('scale-95');
+        }
+
+        // Get product data from data attributes
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.getAttribute('data-product-name');
+
+        // Show delete modal with a slight delay to allow dropdown to hide
+        setTimeout(() => showProductDeleteModal(productId, productName), 50);
+      }
+    });
+    const noProducts = document.getElementById('no-products');
+
+    // Pagination elements for products
+    const productsPagination = document.getElementById('products-pagination');
+    const productsPrevPage = document.getElementById('products-prev-page');
+    const productsNextPage = document.getElementById('products-next-page');
+
+    // Filter and search elements for products
+    const productSearch = document.getElementById('product-search');
+    const productStatusFilter = document.getElementById('product-status-filter');
+    const featuredFilter = document.getElementById('featured-filter');
+
+    // Current filter state for products
+    let productFilters = {
+      search: '',
+      status: '',
+      featured: '',
+      limit: 8,
+      skip: 0
+    };
+
+    // Function to fetch products with filters
+    function fetchProducts(filters = {}) {
+      // Clear existing table rows immediately to prevent old data from showing
+      productsTableBody.innerHTML = '';
+
+      // Show loading indicator and hide table elements
+      productsLoading.classList.remove('hidden');
+      productsTable.classList.add('hidden');
+      productsTableHead.classList.add('hidden'); // Hide table headers during loading
+      noProducts.classList.add('hidden');
+
+      // Build query string from filters
+      const queryParams = new URLSearchParams();
+
+      if (filters.search) queryParams.append('search', filters.search);
+      if (filters.status) queryParams.append('status', filters.status);
+      if (filters.featured) queryParams.append('featured', filters.featured === 'true');
+      if (filters.limit) queryParams.append('limit', filters.limit);
+      if (filters.skip) queryParams.append('skip', filters.skip);
+
+      // Fetch products with filters
+      fetch(`/admin/products/api/get-products?${queryParams.toString()}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Hide loading indicator
+          productsLoading.classList.add('hidden');
+
+          if (data.success && data.products && data.products.length > 0) {
+            // Show table and table headers
+            productsTable.classList.remove('hidden');
+            productsTableHead.classList.remove('hidden'); // Show table headers when data is loaded
+            productsPagination.classList.remove('hidden'); // Show pagination controls
+
+            // Update pagination information
+            if (data.pagination) {
+              // Get the range and total values
+              const rangeText = data.pagination.items_showing.split(' of ')[0];
+              const totalText = data.total.toString();
+              const pageText = `Page ${data.pagination.current_page} of ${data.pagination.total_pages}`;
+
+              // Update both desktop and mobile elements
+              document.getElementById('products-pagination-range-desktop').textContent = rangeText;
+              document.getElementById('products-pagination-total-desktop').textContent = totalText;
+              document.getElementById('products-pagination-range').textContent = rangeText;
+              document.getElementById('products-pagination-total').textContent = totalText;
+
+              // Update page information
+              document.getElementById('products-pagination-pages').textContent = pageText;
+              document.getElementById('products-pagination-pages-mobile').textContent = pageText;
+
+              // Enable/disable pagination buttons
+              productsPrevPage.disabled = data.pagination.current_page <= 1;
+              productsNextPage.disabled = !data.has_more;
+            }
+
+            // Add products to table
+            data.products.forEach(product => {
+              const row = createProductRow(product);
+              productsTableBody.appendChild(row);
+            });
+          } else {
+            // Show no products message and keep table headers hidden
+            noProducts.classList.remove('hidden');
+            productsTableHead.classList.add('hidden'); // Ensure headers stay hidden when no data
+            productsPagination.classList.add('hidden'); // Hide pagination controls
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching products:', error);
+          // Hide loading indicator and show error message
+          productsLoading.classList.add('hidden');
+          productsTableHead.classList.add('hidden'); // Ensure headers stay hidden on error
+          productsPagination.classList.add('hidden'); // Hide pagination controls
+          noProducts.classList.remove('hidden');
+          noProducts.querySelector('p').textContent = 'Error loading products. Please try again later.';
+        });
+    }
+
+    // Function to create product row with vanilla JS dropdowns
+    function createProductRow(product) {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-gray-100 transition-colors duration-150';
+      row.setAttribute('data-product-id', product.id);
+
+      // Get status badge HTML
+      const statusBadge = getProductStatusBadgeHTML(product.status);
+
+      // Create stock status badge
+      const stockStatus = product.in_stock ?
+        `<span class="px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full bg-green-100 text-green-800">${product.stock} in stock</span>` :
+        '<span class="px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full bg-red-100 text-red-800">Out of stock</span>';
+
+      // Create row HTML with vanilla JS dropdown
+      row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-10 w-10">
+              ${product.image_url ?
+                `<img class="h-10 w-10 rounded-md object-cover" src="${product.image_url}" alt="${product.name}">` :
+                `<div class="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>`
+              }
+            </div>
+            <div class="ml-4">
+              <div>
+                <a href="/admin/products/${product.id}" class="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                  ${product.name}
+                </a>
+              </div>
+              <div class="text-sm text-gray-500">
+                ${product.brand_name || ''}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+          ${product.price_range.includes(' - ') ?
+            `<div class="flex flex-col">
+              <span>${product.price_range.split(' - ')[0]}</span>
+              <span>${product.price_range.split(' - ')[1]}</span>
+             </div>`
+            : product.price_range}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm">
+          ${stockStatus}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm">
+          <div class="flex">
+            ${statusBadge}
+            ${product.featured ?
+              '<span class="mt-1 px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full bg-gray-100 text-gray-800">Featured</span>' : ''}
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex justify-center">
+            <div class="relative">
+              <button
+                type="button"
+                class="menu-button relative flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 focus:outline-none rounded-full hover:bg-gray-100 transition-all duration-150 active:scale-95"
+                onclick="toggleDropdown(this)">
+                <span class="absolute inset-0 rounded-full bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150"></span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 relative" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+
+              <div
+                class="dropdown-on-top w-52 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden absolute right-0 mt-2 z-50 hidden opacity-0 scale-95 transform">
+
+                <!-- Product Heading -->
+                <div class="product-heading">
+                  <h3 class="text-sm font-semibold text-gray-800">${product.name}</h3>
+                </div>
+
+                <a href="/admin/products/${product.id}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center group transition-colors duration-150">
+                  <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-3 transition-colors duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </span>
+                  <span>View Details</span>
+                </a>
+
+                <a href="/admin/products/${product.id}/edit" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center group transition-colors duration-150">
+                  <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-3 transition-colors duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </span>
+                  <span>Edit Product</span>
+                </a>
+
+                <button
+                  class="set-discount-btn block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center group transition-colors duration-150"
+                  data-product-id="${product.id}"
+                  data-product-name="${product.name.replace(/"/g, '&quot;')}">
+                  <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-3 transition-colors duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                  <span>Set Discount</span>
+                </button>
+
+                <button
+                  class="manage-stock-btn block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center group transition-colors duration-150"
+                  data-product-id="${product.id}"
+                  data-product-name="${product.name.replace(/"/g, '&quot;')}"
+                  data-product-stock="${product.stock}"
+                  data-product-in-stock="${product.in_stock}">
+                  <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-3 transition-colors duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </span>
+                  <span>Manage Stock</span>
+                </button>
+
+                <button
+                  class="delete-product-btn block w-full text-left px-4 py-2.5 text-sm text-red-700 hover:bg-gray-50 flex items-center group transition-colors duration-150"
+                  data-product-id="${product.id}"
+                  data-product-name="${product.name.replace(/"/g, '&quot;')}">
+                  <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-3 transition-colors duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </span>
+                  <span>Delete Product</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </td>
+      `;
+
+      return row;
+    }
+
+    // Initial fetch with default filters
+    fetchProducts(productFilters);
+
+    // Function to apply product filters
+    function applyProductFilters() {
+      // Get new filter values
+      const newSearch = productSearch.value.trim();
+      const newStatus = productStatusFilter.value;
+      const newFeatured = featuredFilter.value;
+
+      // Check if all filters are empty/default
+      const isAllDefault = !newSearch && !newStatus && !newFeatured;
+
+      // Update current filters
+      productFilters.search = newSearch;
+      productFilters.status = newStatus;
+      productFilters.featured = newFeatured;
+      productFilters.skip = 0; // Reset pagination when applying new filters
+
+      // Fetch products with updated filters
+      fetchProducts(productFilters);
+
+      // If all filters are default, this is effectively a reset
+      if (isAllDefault) {
+        console.log("All product filters reset to default");
+      }
+    }
+
+    // Event listeners for product filters - apply as they change
+    productSearch.addEventListener('input', window.debounce(applyProductFilters, 500)); // Debounce search input
+    productStatusFilter.addEventListener('change', applyProductFilters);
+    featuredFilter.addEventListener('change', applyProductFilters);
+
+    // Event listeners for product pagination
+    productsPrevPage.addEventListener('click', function() {
+      if (!this.disabled) {
+        productFilters.skip = Math.max(0, productFilters.skip - productFilters.limit);
+        fetchProducts(productFilters);
+      }
+    });
+
+    productsNextPage.addEventListener('click', function() {
+      if (!this.disabled) {
+        productFilters.skip += productFilters.limit;
+        fetchProducts(productFilters);
+      }
+    });
+
+    // Helper function to generate product status badge HTML
+    window.getProductStatusBadgeHTML = function(status) {
+      let badgeClass = '';
+      let displayText = status.charAt(0).toUpperCase() + status.slice(1);
+
+      switch(status) {
+        case 'published':
+          badgeClass = 'bg-green-100 text-green-800';
+          break;
+        case 'draft':
+          badgeClass = 'bg-yellow-100 text-yellow-800';
+          break;
+        case 'archived':
+          badgeClass = 'bg-gray-100 text-gray-800';
+          break;
+        default:
+          badgeClass = 'bg-gray-100 text-gray-800';
+      }
+
+      return `<span class="px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${badgeClass}">
+        ${displayText}
+      </span>`;
+    };
+
+
+  });
+
+
+
+  // Function to show the discount modal
+  window.showDiscountModal = function(productId, productName) {
+    // Close any open dropdown
+    if (window.currentOpenDropdown) {
+      try {
+        window.currentOpenDropdown.classList.add('hidden');
+        window.currentOpenDropdown.classList.add('opacity-0');
+        window.currentOpenDropdown.classList.add('scale-95');
+
+        // Remove highlight from the row
+        const prevRow = window.currentOpenDropdown.closest('tr');
+        if (prevRow) {
+          prevRow.classList.remove('has-open-dropdown');
+        }
+      } catch (e) {
+        console.error('Error closing dropdown:', e);
+      }
+      window.currentOpenDropdown = null;
+    }
+
+    // First, remove any existing modal in the body
+    try {
+      const existingModals = document.querySelectorAll('#discount-modal');
+      existingModals.forEach(modal => {
+        if (modal.parentNode === document.body) {
+          document.body.removeChild(modal);
+        }
+      });
+    } catch (e) {
+      console.error('Error removing existing modals:', e);
+    }
+
+    // Get the template modal
+    const templateModal = document.querySelector('#discount-modal-template');
+
+    // Check if template exists
+    if (!templateModal) {
+      console.error('Discount modal template not found in the DOM');
+      return; // Exit the function if template doesn't exist
+    }
+
+    try {
+      // Create a new modal by cloning the template
+      const modalElement = templateModal.cloneNode(true);
+
+      // Change the ID to avoid conflicts
+      modalElement.id = 'discount-modal';
+
+      // Set important styles to ensure it's positioned correctly
+      modalElement.style.position = "fixed";
+      modalElement.style.top = "0";
+      modalElement.style.left = "0";
+      modalElement.style.right = "0";
+      modalElement.style.bottom = "0";
+      modalElement.style.display = "flex";
+      modalElement.style.alignItems = "center";
+      modalElement.style.justifyContent = "center";
+      modalElement.style.zIndex = "99999";
+      modalElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+
+      // Make the modal visible
+      modalElement.classList.remove('hidden');
+
+      // Prevent scrolling on the body
+      document.body.style.overflow = "hidden";
+
+      // Append to body
+      document.body.appendChild(modalElement);
+
+      // Set up the modal container
+      const modalContainerElement = modalElement.querySelector('.modal-container');
+      if (modalContainerElement) {
+        modalContainerElement.style.zIndex = "99999";
+        modalContainerElement.style.position = "relative";
+        modalContainerElement.style.maxHeight = "90vh";
+        // Hide scrollbar on the modal container
+        modalContainerElement.style.overflowY = "auto";
+        modalContainerElement.classList.add("scrollbar-hide");
+        // Ensure the modal is centered
+        modalContainerElement.style.margin = "auto";
+      }
+
+      // Set product info in the modal
+      const productIdInput = modalElement.querySelector('#discount-product-id');
+      const productNameElement = modalElement.querySelector('#discount-product-name');
+
+      if (productIdInput) productIdInput.value = productId;
+      if (productNameElement) productNameElement.textContent = productName;
+
+      // Reset form fields
+      const variantRadioGroup = modalElement.querySelector('#variant-radio-group');
+      const originalPriceInput = modalElement.querySelector('#original-price');
+      const newPriceInput = modalElement.querySelector('#new-price');
+      const discountPercentageInput = modalElement.querySelector('#discount-percentage');
+
+      if (variantRadioGroup) variantRadioGroup.innerHTML = '';
+      if (originalPriceInput) originalPriceInput.value = '';
+      if (newPriceInput) newPriceInput.value = '';
+      if (discountPercentageInput) discountPercentageInput.value = '';
+
+      // Reset optional fields
+      const quantityLimit = modalElement.querySelector('#quantity-limit');
+      if (quantityLimit) quantityLimit.value = '';
+
+      const startDate = modalElement.querySelector('#start-date');
+      if (startDate) startDate.value = '';
+
+      const endDate = modalElement.querySelector('#end-date');
+      if (endDate) endDate.value = '';
+
+      // Hide form and messages
+      const discountForm = modalElement.querySelector('#discount-form');
+      const currentDiscountInfo = modalElement.querySelector('#current-discount-info');
+      const discountError = modalElement.querySelector('#discount-error');
+      const discountSuccess = modalElement.querySelector('#discount-success');
+
+      if (discountForm) discountForm.classList.add('hidden');
+      if (currentDiscountInfo) currentDiscountInfo.classList.add('hidden');
+      if (discountError) discountError.classList.add('hidden');
+      if (discountSuccess) discountSuccess.classList.add('hidden');
+
+      // Disable apply button
+      const applyButton = modalElement.querySelector('#apply-discount-btn');
+      if (applyButton) applyButton.disabled = true;
+
+      // Show loading indicator
+      const variantsLoading = modalElement.querySelector('#variants-loading');
+      const variantsContainer = modalElement.querySelector('#variants-container');
+
+      if (variantsLoading) variantsLoading.classList.remove('hidden');
+      if (variantsContainer) variantsContainer.classList.add('hidden');
+
+      // Set up event listeners
+      setupDiscountModalEventListeners(modalElement);
+
+      // Get product data and populate variants
+      populateVariantsFromProductData(productId, modalElement);
+    } catch (error) {
+      console.error('Error setting up discount modal:', error);
+
+      // Try to recover
+      try {
+        // Restore body scrolling
+        document.body.style.overflow = "";
+
+        // Remove any modals that might be causing issues
+        const existingModals = document.querySelectorAll('#discount-modal');
+        existingModals.forEach(modal => {
+          if (modal.parentNode === document.body) {
+            document.body.removeChild(modal);
+          }
+        });
+
+        // Alert the user
+        alert('There was an error opening the discount modal. Please try again.');
+      } catch (e) {
+        console.error('Failed to recover from modal error:', e);
+      }
+    }
+  };
+
+  // Function to set up event listeners for the cloned discount modal
+  function setupDiscountModalEventListeners(modalElement) {
+    try {
+      // Check if modal is still in the DOM
+      if (!document.body.contains(modalElement)) {
+        console.error('Modal no longer in DOM when setting up event listeners');
+        return; // Exit if modal is not in the DOM
+      }
+
+      // Set up event listener for the close button
+      const closeButton = modalElement.querySelector('[onclick="hideDiscountModal()"]');
+      if (closeButton) {
+        closeButton.onclick = function() {
+          hideDiscountModal();
+        };
+      }
+
+      // Set up event listener for the cancel button
+      const cancelButton = modalElement.querySelector('button[onclick="hideDiscountModal()"]');
+      if (cancelButton) {
+        cancelButton.onclick = function() {
+          hideDiscountModal();
+        };
+      }
+
+      // Set up event listener for the apply discount button
+      const applyButton = modalElement.querySelector('#apply-discount-btn');
+      if (applyButton) {
+        applyButton.onclick = function() {
+          applyDiscount(modalElement);
+        };
+      }
+
+      // Set up event listener for new price input to calculate discount percentage
+      const newPriceInput = modalElement.querySelector('#new-price');
+      if (newPriceInput) {
+        newPriceInput.addEventListener('input', function() {
+          calculateDiscountPercentage(modalElement);
+        });
+      }
+
+      // Set up event listeners for checkboxes
+      const quantityLimitCheckbox = modalElement.querySelector('#enable-quantity-limit');
+      if (quantityLimitCheckbox) {
+        quantityLimitCheckbox.addEventListener('change', function() {
+          try {
+            const container = modalElement.querySelector('#quantity-limit-container');
+            if (container) {
+              container.classList.toggle('hidden', !this.checked);
+            }
+
+            if (!this.checked) {
+              const quantityLimit = modalElement.querySelector('#quantity-limit');
+              if (quantityLimit) {
+                quantityLimit.value = '';
+              }
+            }
+          } catch (e) {
+            console.error('Error in quantity limit checkbox handler:', e);
+          }
+          // Don't adjust height - let scrolling handle overflow
+        });
+      }
+
+      const dateRangeCheckbox = modalElement.querySelector('#enable-date-range');
+      if (dateRangeCheckbox) {
+        dateRangeCheckbox.addEventListener('change', function() {
+          try {
+            const container = modalElement.querySelector('#date-range-container');
+            if (container) {
+              container.classList.toggle('hidden', !this.checked);
+            }
+
+            if (!this.checked) {
+              const startDate = modalElement.querySelector('#start-date');
+              const endDate = modalElement.querySelector('#end-date');
+
+              if (startDate) startDate.value = '';
+              if (endDate) endDate.value = '';
+            }
+          } catch (e) {
+            console.error('Error in date range checkbox handler:', e);
+          }
+          // Don't adjust height - let scrolling handle overflow
+        });
+      }
+
+      // Set up event listener for remove discount button
+      const removeDiscountBtn = modalElement.querySelector('#remove-discount-btn');
+      if (removeDiscountBtn) {
+        removeDiscountBtn.onclick = function() {
+          try {
+            const productId = modalElement.querySelector('#discount-product-id').value;
+            const variantType = modalElement.querySelector('#selected-variant-type').value;
+            const variantId = modalElement.querySelector('#selected-variant-id').value;
+
+            if (productId && variantType && variantId) {
+              removeDiscount(productId, variantType, variantId);
+            } else {
+              console.error('Missing required values for removeDiscount');
+            }
+          } catch (e) {
+            console.error('Error in remove discount button handler:', e);
+          }
+        };
+      }
+    } catch (error) {
+      console.error('Error setting up discount modal event listeners:', error);
+    }
+  }
+
+  // Function to hide the discount modal
+  window.hideDiscountModal = function() {
+    // Restore body scrolling
+    document.body.style.overflow = "";
+
+    // Find all discount modals in the document (including those in the body)
+    const modals = document.querySelectorAll('#discount-modal');
+
+    // Hide all of them
+    modals.forEach(modal => {
+      modal.classList.add('hidden');
+
+      // If the modal was moved to the body, remove it
+      if (modal.parentNode === document.body) {
+        try {
+          // Remove all event listeners by cloning and replacing
+          const emptyNode = modal.cloneNode(false);
+          document.body.replaceChild(emptyNode, modal);
+          document.body.removeChild(emptyNode);
+        } catch (e) {
+          console.error('Error removing modal:', e);
+          // Fallback to direct removal
+          try {
+            document.body.removeChild(modal);
+          } catch (err) {
+            console.error('Error in fallback removal:', err);
+          }
+        }
+      }
+    });
+  };
+
+  // Function to show the stock management modal
+  window.showStockModal = function(productId, productName, productStock, productInStock) {
+    // Close any open dropdown
+    if (window.currentOpenDropdown) {
+      try {
+        window.currentOpenDropdown.classList.add('hidden');
+        window.currentOpenDropdown.classList.add('opacity-0');
+        window.currentOpenDropdown.classList.add('scale-95');
+
+        // Remove highlight from the row
+        const prevRow = window.currentOpenDropdown.closest('tr');
+        if (prevRow) {
+          prevRow.classList.remove('has-open-dropdown');
+        }
+      } catch (e) {
+        console.error('Error closing dropdown:', e);
+      }
+      window.currentOpenDropdown = null;
+    }
+
+    // First, remove any existing modal in the body
+    try {
+      const existingModals = document.querySelectorAll('#stock-modal');
+      existingModals.forEach(modal => {
+        if (modal.parentNode === document.body) {
+          document.body.removeChild(modal);
+        }
+      });
+    } catch (e) {
+      console.error('Error removing existing modals:', e);
+    }
+
+    // Get the template modal
+    const templateModal = document.querySelector('#stock-modal-template');
+
+    // Check if template exists
+    if (!templateModal) {
+      console.error('Stock modal template not found in the DOM');
+      return; // Exit the function if template doesn't exist
+    }
+
+    try {
+      // Create a new modal by cloning the template
+      const modalElement = templateModal.cloneNode(true);
+
+      // Change the ID to avoid conflicts
+      modalElement.id = 'stock-modal';
+
+      // Set important styles to ensure it's positioned correctly
+      modalElement.style.position = "fixed";
+      modalElement.style.top = "0";
+      modalElement.style.left = "0";
+      modalElement.style.right = "0";
+      modalElement.style.bottom = "0";
+      modalElement.style.display = "flex";
+      modalElement.style.alignItems = "center";
+      modalElement.style.justifyContent = "center";
+      modalElement.style.zIndex = "99999";
+      modalElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+
+      // Make the modal visible
+      modalElement.classList.remove('hidden');
+
+      // Prevent scrolling on the body
+      document.body.style.overflow = "hidden";
+
+      // Append to body
+      document.body.appendChild(modalElement);
+
+      // Set up the modal container
+      const modalContainerElement = modalElement.querySelector('.modal-container');
+      if (modalContainerElement) {
+        modalContainerElement.style.zIndex = "99999";
+        modalContainerElement.style.position = "relative";
+        modalContainerElement.style.maxHeight = "90vh";
+        // Hide scrollbar on the modal container
+        modalContainerElement.style.overflowY = "auto";
+        modalContainerElement.classList.add("scrollbar-hide");
+        // Ensure the modal is centered
+        modalContainerElement.style.margin = "auto";
+      }
+
+      // Set product info in the modal
+      const productIdInput = modalElement.querySelector('#stock-product-id');
+      const productNameElement = modalElement.querySelector('#stock-product-name');
+      const currentStockCount = modalElement.querySelector('#current-stock-count');
+      const currentStockStatus = modalElement.querySelector('#current-stock-status');
+      const currentStockLastRestocked = modalElement.querySelector('#current-stock-last-restocked');
+
+      if (productIdInput) productIdInput.value = productId;
+      if (productNameElement) productNameElement.textContent = productName;
+
+      // Set current stock information
+      if (currentStockCount) currentStockCount.textContent = productStock || '0';
+      if (currentStockStatus) {
+        const isInStock = productInStock === 'true';
+        currentStockStatus.textContent = isInStock ? 'In Stock' : 'Out of Stock';
+        currentStockStatus.className = isInStock ? 'text-green-600' : 'text-red-600';
+      }
+
+      // We'll need to fetch the product details to get the last restocked date
+      fetch(`/admin/products/api/product/${productId}/variants`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && currentStockLastRestocked) {
+            // Format the last restocked date if it exists
+            if (data.last_restocked) {
+              const lastRestockedDate = new Date(data.last_restocked);
+              currentStockLastRestocked.textContent = lastRestockedDate.toLocaleString();
+            } else {
+              currentStockLastRestocked.textContent = 'Never';
+            }
+
+            // Update stock information if available
+            if (data.stock !== undefined && currentStockCount) {
+              currentStockCount.textContent = data.stock;
+            }
+
+            if (data.in_stock !== undefined && currentStockStatus) {
+              currentStockStatus.textContent = data.in_stock ? 'In Stock' : 'Out of Stock';
+              currentStockStatus.className = data.in_stock ? 'text-green-600' : 'text-red-600';
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching product details:', error);
+          if (currentStockLastRestocked) currentStockLastRestocked.textContent = 'Unknown';
+        });
+
+      // Reset form fields
+      const stockError = modalElement.querySelector('#stock-error');
+      const stockSuccess = modalElement.querySelector('#stock-success');
+      const quantityContainer = modalElement.querySelector('#quantity-container');
+      const stockQuantity = modalElement.querySelector('#stock-quantity');
+      const quantityHelperText = modalElement.querySelector('#quantity-helper-text');
+
+      if (stockError) stockError.classList.add('hidden');
+      if (stockSuccess) stockSuccess.classList.add('hidden');
+      if (quantityContainer) quantityContainer.classList.add('hidden');
+      if (stockQuantity) stockQuantity.value = '1';
+
+      // Set up event listeners
+      setupStockModalEventListeners(modalElement, productStock);
+    } catch (error) {
+      console.error('Error setting up stock modal:', error);
+
+      // Try to recover
+      try {
+        // Restore body scrolling
+        document.body.style.overflow = "";
+
+        // Remove any modals that might be causing issues
+        const existingModals = document.querySelectorAll('#stock-modal');
+        existingModals.forEach(modal => {
+          if (modal.parentNode === document.body) {
+            document.body.removeChild(modal);
+          }
+        });
+
+        // Alert the user
+        alert('There was an error opening the stock modal. Please try again.');
+      } catch (e) {
+        console.error('Failed to recover from modal error:', e);
+      }
+    }
+  };
+
+  // Function to set up event listeners for the stock modal
+  function setupStockModalEventListeners(modalElement, currentStock) {
+    try {
+      // Check if modal is still in the DOM
+      if (!document.body.contains(modalElement)) {
+        console.error('Modal no longer in DOM when setting up event listeners');
+        return; // Exit if modal is not in the DOM
+      }
+
+      // Set up event listener for the close button
+      const closeButton = modalElement.querySelector('[onclick="hideStockModal()"]');
+      if (closeButton) {
+        closeButton.onclick = function() {
+          hideStockModal();
+        };
+      }
+
+      // Set up event listener for the cancel button
+      const cancelButton = modalElement.querySelector('button[onclick="hideStockModal()"]');
+      if (cancelButton) {
+        cancelButton.onclick = function() {
+          hideStockModal();
+        };
+      }
+
+      // Set up event listeners for radio buttons
+      const radioButtons = modalElement.querySelectorAll('input[name="stock-action"]');
+      const applyButton = modalElement.querySelector('#apply-stock-btn');
+      const quantityContainer = modalElement.querySelector('#quantity-container');
+      const quantityHelperText = modalElement.querySelector('#quantity-helper-text');
+      const stockQuantity = modalElement.querySelector('#stock-quantity');
+
+      radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+          // Enable apply button when an action is selected
+          if (applyButton) applyButton.disabled = false;
+
+          // Show/hide quantity input based on selected action
+          if (quantityContainer) {
+            const action = this.value;
+            const showQuantity = action === 'reduce_stock' || action === 'restock';
+            quantityContainer.classList.toggle('hidden', !showQuantity);
+
+            // Update helper text based on action
+            if (showQuantity && quantityHelperText) {
+              if (action === 'reduce_stock') {
+                quantityHelperText.textContent = `Enter the number of items to remove (max: ${currentStock})`;
+                if (stockQuantity) {
+                  stockQuantity.max = currentStock;
+                  stockQuantity.value = Math.min(stockQuantity.value, currentStock);
+                }
+              } else if (action === 'restock') {
+                quantityHelperText.textContent = 'Enter the number of items to add to stock';
+                if (stockQuantity) {
+                  stockQuantity.removeAttribute('max');
+                }
+              }
+            }
+          }
+        });
+      });
+
+      // Set up event listener for the apply button
+      if (applyButton) {
+        applyButton.addEventListener('click', function() {
+          applyStockChanges(modalElement);
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up stock modal event listeners:', error);
+    }
+  }
+
+  // Function to apply stock changes
+  async function applyStockChanges(modalElement) {
+    try {
+      // Get form data
+      const productId = modalElement.querySelector('#stock-product-id').value;
+      const selectedAction = modalElement.querySelector('input[name="stock-action"]:checked');
+      const stockQuantity = modalElement.querySelector('#stock-quantity');
+      const stockError = modalElement.querySelector('#stock-error');
+      const stockSuccess = modalElement.querySelector('#stock-success');
+      const applyButton = modalElement.querySelector('#apply-stock-btn');
+
+      // Validate form
+      if (!selectedAction) {
+        if (stockError) {
+          stockError.textContent = 'Please select an action';
+          stockError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      const action = selectedAction.value;
+      let quantity = 0;
+
+      // Validate quantity for actions that require it
+      if (action === 'reduce_stock' || action === 'restock') {
+        if (!stockQuantity || !stockQuantity.value || isNaN(stockQuantity.value) || parseInt(stockQuantity.value) <= 0) {
+          if (stockError) {
+            stockError.textContent = 'Please enter a valid quantity (greater than 0)';
+            stockError.classList.remove('hidden');
+          }
+          return;
+        }
+        quantity = parseInt(stockQuantity.value);
+      }
+
+      // Hide error message and show loading state
+      if (stockError) stockError.classList.add('hidden');
+      if (stockSuccess) stockSuccess.classList.add('hidden');
+      if (applyButton) {
+        applyButton.disabled = true;
+        applyButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Applying...';
+      }
+
+      // Send API request
+      const response = await fetch(`/admin/products/api/product/${productId}/manage-stock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: action,
+          quantity: quantity
+        })
+      });
+
+      const data = await response.json();
+
+      // Reset button state
+      if (applyButton) {
+        applyButton.disabled = false;
+        applyButton.textContent = 'Apply Changes';
+      }
+
+      if (response.ok && data.success) {
+        // Show success message
+        if (stockSuccess) {
+          stockSuccess.textContent = data.message || 'Stock updated successfully';
+          stockSuccess.classList.remove('hidden');
+        }
+
+        // Update the stock information in the modal
+        const currentStockCount = modalElement.querySelector('#current-stock-count');
+        const currentStockStatus = modalElement.querySelector('#current-stock-status');
+        const currentStockLastRestocked = modalElement.querySelector('#current-stock-last-restocked');
+
+        if (currentStockCount) currentStockCount.textContent = data.current_stock;
+        if (currentStockStatus) {
+          currentStockStatus.textContent = data.in_stock ? 'In Stock' : 'Out of Stock';
+          currentStockStatus.className = data.in_stock ? 'text-green-600' : 'text-red-600';
+        }
+        if (currentStockLastRestocked) {
+          if (data.last_restocked) {
+            currentStockLastRestocked.textContent = new Date(data.last_restocked).toLocaleString();
+          } else {
+            currentStockLastRestocked.textContent = 'Never';
+          }
+        }
+
+        // Update the stock information in the table row
+        const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+        if (productRow) {
+          const stockCell = productRow.querySelector('td:nth-child(3)');
+          if (stockCell) {
+            const stockBadge = data.in_stock ?
+              `<span class="px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full bg-green-100 text-green-800">${data.current_stock} in stock</span>` :
+              '<span class="px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full bg-red-100 text-red-800">Out of stock</span>';
+            stockCell.innerHTML = stockBadge;
+          }
+
+          // Update the stock button data attributes
+          const stockButton = productRow.querySelector('.manage-stock-btn');
+          if (stockButton) {
+            stockButton.setAttribute('data-product-stock', data.current_stock);
+            stockButton.setAttribute('data-product-in-stock', data.in_stock);
+          }
+        }
+
+        // Reset form after successful update
+        const radioButtons = modalElement.querySelectorAll('input[name="stock-action"]');
+        radioButtons.forEach(radio => {
+          radio.checked = false;
+        });
+
+        if (stockQuantity) stockQuantity.value = '1';
+        const quantityContainer = modalElement.querySelector('#quantity-container');
+        if (quantityContainer) quantityContainer.classList.add('hidden');
+        if (applyButton) applyButton.disabled = true;
+      } else {
+        // Show error message
+        if (stockError) {
+          stockError.textContent = data.detail || 'Failed to update stock';
+          stockError.classList.remove('hidden');
+        }
+      }
+    } catch (error) {
+      console.error('Error applying stock changes:', error);
+      const stockError = modalElement.querySelector('#stock-error');
+      const applyButton = modalElement.querySelector('#apply-stock-btn');
+
+      if (stockError) {
+        stockError.textContent = 'An error occurred while updating stock';
+        stockError.classList.remove('hidden');
+      }
+
+      if (applyButton) {
+        applyButton.disabled = false;
+        applyButton.textContent = 'Apply Changes';
+      }
+    }
+  }
+
+  // Function to hide the stock modal
+  window.hideStockModal = function() {
+    // Restore body scrolling
+    document.body.style.overflow = "";
+
+    // Find all stock modals in the document (including those in the body)
+    const modals = document.querySelectorAll('#stock-modal');
+
+    // Hide all of them
+    modals.forEach(modal => {
+      modal.classList.add('hidden');
+
+      // If the modal was moved to the body, remove it
+      if (modal.parentNode === document.body) {
+        try {
+          // Remove all event listeners by cloning and replacing
+          const emptyNode = modal.cloneNode(false);
+          document.body.replaceChild(emptyNode, modal);
+          document.body.removeChild(emptyNode);
+        } catch (e) {
+          console.error('Error removing modal:', e);
+          // Fallback to direct removal
+          try {
+            document.body.removeChild(modal);
+          } catch (err) {
+            console.error('Error in fallback removal:', err);
+          }
+        }
+      }
+    });
+  };
+
+  // Function to show the product delete modal
+  window.showProductDeleteModal = function(productId, productName) {
+    // Close any open dropdown
+    if (window.currentOpenDropdown) {
+      try {
+        window.currentOpenDropdown.classList.add('hidden');
+        window.currentOpenDropdown.classList.add('opacity-0');
+        window.currentOpenDropdown.classList.add('scale-95');
+
+        // Remove highlight from the row
+        const prevRow = window.currentOpenDropdown.closest('tr');
+        if (prevRow) {
+          prevRow.classList.remove('has-open-dropdown');
+        }
+      } catch (e) {
+        console.error('Error closing dropdown:', e);
+      }
+      window.currentOpenDropdown = null;
+    }
+
+    // First, remove any existing modal in the body
+    try {
+      const existingModals = document.querySelectorAll('#delete-product-modal');
+      existingModals.forEach(modal => {
+        if (modal.parentNode === document.body) {
+          document.body.removeChild(modal);
+        }
+      });
+    } catch (e) {
+      console.error('Error removing existing modals:', e);
+    }
+
+    // Get the template modal
+    const templateModal = document.querySelector('#delete-product-modal-template');
+
+    // Check if template exists
+    if (!templateModal) {
+      console.error('Delete modal template not found in the DOM');
+      return; // Exit the function if template doesn't exist
+    }
+
+    try {
+      // Create a new modal by cloning the template
+      const modalElement = templateModal.cloneNode(true);
+
+      // Change the ID to avoid conflicts
+      modalElement.id = 'delete-product-modal';
+
+      // Set important styles to ensure it's positioned correctly
+      modalElement.style.position = "fixed";
+      modalElement.style.top = "0";
+      modalElement.style.left = "0";
+      modalElement.style.right = "0";
+      modalElement.style.bottom = "0";
+      modalElement.style.display = "flex";
+      modalElement.style.alignItems = "center";
+      modalElement.style.justifyContent = "center";
+      modalElement.style.zIndex = "99999";
+      modalElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+
+      // Make the modal visible
+      modalElement.classList.remove('hidden');
+
+      // Prevent scrolling on the body
+      document.body.style.overflow = "hidden";
+
+      // Append to body
+      document.body.appendChild(modalElement);
+
+      // Set up the modal container
+      const modalContainerElement = modalElement.querySelector('.modal-container');
+      if (modalContainerElement) {
+        modalContainerElement.style.zIndex = "99999";
+        modalContainerElement.style.position = "relative";
+        modalContainerElement.style.maxHeight = "90vh";
+        // Hide scrollbar on the modal container
+        modalContainerElement.style.overflowY = "auto";
+        modalContainerElement.classList.add("scrollbar-hide");
+        // Ensure the modal is centered
+        modalContainerElement.style.margin = "auto";
+      }
+
+      // Set product info in the modal
+      const productIdInput = modalElement.querySelector('#delete-product-id');
+      const productNameElement = modalElement.querySelector('#delete-product-name');
+      const confirmProductNameInput = modalElement.querySelector('#confirm-product-name');
+      const confirmDeleteButton = modalElement.querySelector('#confirm-delete-product');
+      const deleteProductError = modalElement.querySelector('#delete-product-error');
+
+      if (productIdInput) productIdInput.value = productId;
+      if (productNameElement) productNameElement.textContent = productName;
+      if (confirmProductNameInput) confirmProductNameInput.value = '';
+      if (confirmDeleteButton) confirmDeleteButton.disabled = true;
+      if (deleteProductError) deleteProductError.classList.add('hidden');
+
+      // Set up event listeners
+      setupDeleteModalEventListeners(modalElement, productName);
+    } catch (error) {
+      console.error('Error setting up delete modal:', error);
+
+      // Try to recover
+      try {
+        // Restore body scrolling
+        document.body.style.overflow = "";
+
+        // Remove any modals that might be causing issues
+        const existingModals = document.querySelectorAll('#delete-product-modal');
+        existingModals.forEach(modal => {
+          if (modal.parentNode === document.body) {
+            document.body.removeChild(modal);
+          }
+        });
+
+        // Alert the user
+        alert('There was an error opening the delete modal. Please try again.');
+      } catch (e) {
+        console.error('Failed to recover from modal error:', e);
+      }
+    }
+  };
+
+  // Function to set up event listeners for the delete modal
+  function setupDeleteModalEventListeners(modalElement, productName) {
+    try {
+      // Check if modal is still in the DOM
+      if (!document.body.contains(modalElement)) {
+        console.error('Modal no longer in DOM when setting up event listeners');
+        return; // Exit if modal is not in the DOM
+      }
+
+      // Set up event listener for the close button
+      const closeButton = modalElement.querySelector('[onclick="hideProductDeleteModal()"]');
+      if (closeButton) {
+        closeButton.onclick = function() {
+          hideProductDeleteModal();
+        };
+      }
+
+      // Set up event listener for the cancel button
+      const cancelButton = modalElement.querySelector('button[onclick="hideProductDeleteModal()"]');
+      if (cancelButton) {
+        cancelButton.onclick = function() {
+          hideProductDeleteModal();
+        };
+      }
+
+      // Set up event listener for the confirm product name input
+      const confirmProductNameInput = modalElement.querySelector('#confirm-product-name');
+      const confirmDeleteButton = modalElement.querySelector('#confirm-delete-product');
+      const deleteProductError = modalElement.querySelector('#delete-product-error');
+
+      if (confirmProductNameInput && confirmDeleteButton && deleteProductError) {
+        confirmProductNameInput.addEventListener('input', function() {
+          const confirmText = confirmProductNameInput.value;
+
+          // Enable the delete button only if the product name matches
+          if (confirmText === productName) {
+            confirmDeleteButton.disabled = false;
+            confirmDeleteButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            deleteProductError.classList.add('hidden');
+          } else {
+            confirmDeleteButton.disabled = true;
+            confirmDeleteButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Show error message only if user has typed something
+            if (confirmText.length > 0) {
+              deleteProductError.textContent = 'Product name does not match. Please try again.';
+              deleteProductError.classList.remove('hidden');
+            } else {
+              deleteProductError.classList.add('hidden');
+            }
+          }
+        });
+      }
+
+      // Set up event listener for the delete button
+      if (confirmDeleteButton) {
+        confirmDeleteButton.addEventListener('click', function() {
+          deleteProduct(modalElement);
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up delete modal event listeners:', error);
+    }
+  }
+
+  // Function to delete a product
+  async function deleteProduct(modalElement) {
+    try {
+      const productId = modalElement.querySelector('#delete-product-id').value;
+      const confirmDeleteButton = modalElement.querySelector('#confirm-delete-product');
+      const deleteProductError = modalElement.querySelector('#delete-product-error');
+
+      // Show loading state
+      confirmDeleteButton.disabled = true;
+      confirmDeleteButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Deleting...';
+
+      // Send delete request
+      const response = await fetch(`/admin/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to delete product');
+      }
+
+      // Success - remove the row from the table
+      const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+      if (row) {
+        // Add a fade-out effect before removing
+        row.style.transition = 'opacity 0.5s ease';
+        row.style.opacity = '0';
+
+        setTimeout(() => {
+          row.remove();
+        }, 500);
+      }
+
+      // Hide the modal
+      hideProductDeleteModal();
+
+      // Show success message
+      alert('Product deleted successfully');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      const deleteProductError = modalElement.querySelector('#delete-product-error');
+      const confirmDeleteButton = modalElement.querySelector('#confirm-delete-product');
+
+      // Show error message
+      if (deleteProductError) {
+        deleteProductError.textContent = error.message || 'An error occurred while deleting the product';
+        deleteProductError.classList.remove('hidden');
+      }
+
+      // Reset button state
+      if (confirmDeleteButton) {
+        confirmDeleteButton.disabled = false;
+        confirmDeleteButton.textContent = 'Delete Product';
+      }
+    }
+  }
+
+  // Function to hide the product delete modal
+  window.hideProductDeleteModal = function() {
+    // Restore body scrolling
+    document.body.style.overflow = "";
+
+    // Find all delete modals in the document (including those in the body)
+    const modals = document.querySelectorAll('#delete-product-modal');
+
+    // Hide all of them
+    modals.forEach(modal => {
+      modal.classList.add('hidden');
+
+      // If the modal was moved to the body, remove it
+      if (modal.parentNode === document.body) {
+        try {
+          // Remove all event listeners by cloning and replacing
+          const emptyNode = modal.cloneNode(false);
+          document.body.replaceChild(emptyNode, modal);
+          document.body.removeChild(emptyNode);
+        } catch (e) {
+          console.error('Error removing modal:', e);
+          // Fallback to direct removal
+          try {
+            document.body.removeChild(modal);
+          } catch (err) {
+            console.error('Error in fallback removal:', err);
+          }
+        }
+      }
+    });
+  };
+
+  // Function to populate variants from product data already in the table
+  function populateVariantsFromProductData(productId, modalElement) {
+    try {
+      // If modalElement is not provided, use the default modal
+      if (!modalElement) {
+        modalElement = document.getElementById('discount-modal');
+        if (!modalElement) {
+          console.error('Discount modal not found');
+          return; // Exit if modal doesn't exist
+        }
+      }
+
+      // Check if modal is still in the DOM
+      if (!document.body.contains(modalElement)) {
+        console.error('Modal element is no longer in the DOM');
+        return; // Exit if modal is not in the DOM
+      }
+
+      // Find the product row in the table
+      const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+      if (!productRow) {
+        // Handle case where product row is not found more gracefully
+        console.warn('Product not found in the table, but continuing with API call');
+      }
+
+      // Get product data from the row
+      const product = {
+        id: productId,
+        name: modalElement.querySelector('#discount-product-name').textContent,
+        variants: {}
+      };
+
+      // We need to fetch the product details to get variants
+      // This is a simplified approach - in a real implementation, you might want to
+      // store more product data in the table or make an API call
+
+      // Check if modal is still valid before making the API call
+      if (!document.body.contains(modalElement)) {
+        console.error('Modal no longer in DOM before API call');
+        return; // Exit if modal is gone
+      }
+
+      // Show loading indicator before fetch
+      try {
+        const loadingIndicator = modalElement.querySelector('#variants-loading');
+        if (loadingIndicator) {
+          loadingIndicator.classList.remove('hidden');
+        }
+      } catch (e) {
+        console.error('Error showing loading indicator:', e);
+      }
+
+      fetch(`/admin/products/api/product/${productId}/variants`)
+        .then(response => {
+          // Check if modal is still valid after response
+          if (!document.body.contains(modalElement)) {
+            console.error('Modal no longer in DOM after API response');
+            throw new Error('Modal no longer available');
+          }
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch product variants');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Check if modal is still valid after getting data
+          if (!document.body.contains(modalElement)) {
+            console.error('Modal no longer in DOM after data received');
+            throw new Error('Modal no longer available');
+          }
+
+          if (data.success && data.variants) {
+            try {
+              // Hide loading indicator
+              const loadingIndicator = modalElement.querySelector('#variants-loading');
+              if (loadingIndicator) {
+                loadingIndicator.classList.add('hidden');
+              }
+
+              const variantsContainer = modalElement.querySelector('#variants-container');
+              if (variantsContainer) {
+                variantsContainer.classList.remove('hidden');
+              }
+
+              // Populate variant radio group
+              const variantRadioGroup = modalElement.querySelector('#variant-radio-group');
+              if (!variantRadioGroup) {
+                throw new Error('Variant radio group element not found');
+              }
+
+              variantRadioGroup.innerHTML = '';
+              // Ensure the variant radio group keeps its custom-scrollbar class
+              variantRadioGroup.classList.add('custom-scrollbar');
+
+              // Check if there are any variants
+              let hasVariants = false;
+
+              for (const [variantType, variants] of Object.entries(data.variants)) {
+                if (variants.length > 0) {
+                  hasVariants = true;
+
+                  // Create a heading for this variant type
+                  const typeHeading = document.createElement('h3');
+                  typeHeading.className = 'text-sm font-medium text-gray-700 mb-2 mt-4';
+                  typeHeading.textContent = variantType.charAt(0).toUpperCase() + variantType.slice(1);
+                  variantRadioGroup.appendChild(typeHeading);
+
+                  // Add radio buttons for each variant value
+                  variants.forEach(variant => {
+                  // Create the variant data object
+                  const variantData = {
+                    type: variantType,
+                    id: variant.id,
+                    value: variant.value,
+                    price: variant.price,
+                    discount_percentage: variant.discount_percentage,
+                    discount_start_date: variant.discount_start_date,
+                    discount_end_date: variant.discount_end_date,
+                    discount_quantity_limit: variant.discount_quantity_limit,
+                    discount_quantity_used: variant.discount_quantity_used || 0,
+                    is_on_discount: variant.is_on_discount
+                  };
+
+                  // Create radio button container
+                  const radioContainer = document.createElement('div');
+                  radioContainer.className = 'relative border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors duration-150 mb-3';
+
+                  if (variant.is_on_discount) {
+                    radioContainer.classList.add('bg-gray-50');
+                  }
+
+                  // Create radio input
+                  const radioInput = document.createElement('input');
+                  radioInput.type = 'radio';
+                  radioInput.name = 'variant';
+                  radioInput.id = `variant-${variant.id}`;
+                  radioInput.className = 'hidden';
+                  radioInput.value = JSON.stringify(variantData);
+                  radioInput.addEventListener('change', function() {
+                    // Remove selected class from all containers
+                    modalElement.querySelectorAll('#variant-radio-group .relative').forEach(el => {
+                      el.classList.remove('border-gray-500', 'ring-2', 'ring-gray-300');
+                    });
+
+                    // Add selected class to this container
+                    this.closest('.relative').classList.add('border-gray-500', 'ring-2', 'ring-gray-300');
+
+                    // Call the variant selection handler
+                    handleVariantSelection(variantData, modalElement);
+                  });
+
+                  // Create label
+                  const label = document.createElement('label');
+                  label.htmlFor = `variant-${variant.id}`;
+                  label.className = 'block cursor-pointer';
+
+                  // Create a flex container for two-column layout
+                  const flexContainer = document.createElement('div');
+                  flexContainer.className = 'flex flex-wrap';
+
+                  // Create left column
+                  const leftColumn = document.createElement('div');
+                  leftColumn.className = 'w-1/2 pr-2';
+
+                  // Create right column
+                  const rightColumn = document.createElement('div');
+                  rightColumn.className = 'w-1/2 pl-2';
+
+                  // Create variant name
+                  const variantName = document.createElement('div');
+                  variantName.className = 'font-medium text-gray-800';
+                  variantName.textContent = variant.value;
+
+                  // Create price display
+                  const priceDisplay = document.createElement('div');
+                  priceDisplay.className = 'text-gray-600';
+                  priceDisplay.textContent = formatPrice(variant.price);
+
+                  // Add name and price to left column
+                  leftColumn.appendChild(variantName);
+                  leftColumn.appendChild(priceDisplay);
+
+                  // If variant has a discount, show it
+                  if (variant.is_on_discount) {
+                    // Calculate discounted price
+                    const discountedPrice = variant.price * (1 - (variant.discount_percentage / 100));
+
+                    // Create discount info
+                    const discountInfo = document.createElement('div');
+                    discountInfo.className = 'text-sm';
+
+                    // Format the discount display
+                    const discountedPriceSpan = document.createElement('span');
+                    discountedPriceSpan.className = 'text-gray-600 font-medium block';
+                    discountedPriceSpan.textContent = formatPrice(Math.round(discountedPrice));
+
+                    const discountPercentSpan = document.createElement('span');
+                    discountPercentSpan.className = 'text-green-600';
+                    discountPercentSpan.textContent = `(${variant.discount_percentage}% off)`;
+
+                    discountInfo.appendChild(discountedPriceSpan);
+                    discountInfo.appendChild(discountPercentSpan);
+
+                    // Add discount info to left column
+                    leftColumn.appendChild(discountInfo);
+
+                    // Create validity period
+                    const validityPeriod = document.createElement('div');
+                    validityPeriod.className = 'text-xs text-gray-600 mb-1';
+
+                    // Format period display
+                    let periodText = '';
+                    if (variant.discount_start_date && variant.discount_end_date) {
+                      const startDate = new Date(variant.discount_start_date);
+                      const endDate = new Date(variant.discount_end_date);
+                      periodText = `Valid: ${formatDate(startDate)} to ${formatDate(endDate)}`;
+                    }
+
+                    validityPeriod.textContent = periodText;
+
+                    // Add validity period to right column
+                    rightColumn.appendChild(validityPeriod);
+
+                    // Create quantity limit info if applicable
+                    if (variant.discount_quantity_limit) {
+                      const quantityUsed = variant.discount_quantity_used || 0;
+                      const remaining = Math.max(0, variant.discount_quantity_limit - quantityUsed);
+
+                      const limitInfo = document.createElement('div');
+                      limitInfo.className = 'text-xs text-gray-600 mb-1';
+                      limitInfo.textContent = `Limited: ${quantityUsed}/${variant.discount_quantity_limit} used (${remaining} remaining)`;
+
+                      // Add limit info to right column
+                      rightColumn.appendChild(limitInfo);
+                    }
+
+                    // Create remove button
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'text-xs text-red-600 hover:text-red-800 focus:outline-none';
+                    removeBtn.textContent = 'Remove';
+                    removeBtn.onclick = (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      removeDiscount(
+                        document.getElementById('discount-product-id').value,
+                        variantData.type,
+                        variantData.id
+                      );
+                    };
+
+                    // Add remove button to right column
+                    rightColumn.appendChild(removeBtn);
+
+                    // Add both columns to the flex container
+                    flexContainer.appendChild(leftColumn);
+                    flexContainer.appendChild(rightColumn);
+
+                    // Add flex container to label
+                    label.appendChild(flexContainer);
+                  } else {
+                    // Just append the basic info for non-discounted variants
+                    label.appendChild(variantName);
+                    label.appendChild(priceDisplay);
+                  }
+
+                  // Append radio and label to container
+                  radioContainer.appendChild(radioInput);
+                  radioContainer.appendChild(label);
+
+                  // Append container to radio group
+                  variantRadioGroup.appendChild(radioContainer);
+                  });
+                }
+              }
+
+              if (!hasVariants) {
+                // Show message if no variants
+                modalElement.querySelector('#discount-error').textContent = 'This product has no variants to apply discounts to.';
+                modalElement.querySelector('#discount-error').classList.remove('hidden');
+              }
+
+              // We don't need to set up event listeners here as they're already set up in setupDiscountModalEventListeners
+            } catch (e) {
+              console.error('Error processing variants data:', e);
+              // Show error message
+              const errorElement = modalElement.querySelector('#discount-error');
+              if (errorElement) {
+                errorElement.textContent = e.message || 'Error processing variant data';
+                errorElement.classList.remove('hidden');
+              }
+            }
+          } else {
+            throw new Error(data.detail || 'Failed to fetch product variants');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching variants:', error);
+
+          // Check if modal is still in the DOM before trying to update it
+          if (document.body.contains(modalElement)) {
+            try {
+              // Hide loading indicator
+              const loadingIndicator = modalElement.querySelector('#variants-loading');
+              if (loadingIndicator) {
+                loadingIndicator.classList.add('hidden');
+              }
+
+              // Show error message
+              const errorElement = modalElement.querySelector('#discount-error');
+              if (errorElement) {
+                errorElement.textContent = error.message || 'An error occurred while fetching product variants';
+                errorElement.classList.remove('hidden');
+              }
+            } catch (e) {
+              console.error('Error updating modal after fetch error:', e);
+            }
+          } else {
+            console.error('Modal no longer in DOM when handling fetch error');
+          }
+
+          // Don't adjust height - let scrolling handle overflow
+        });
+    } catch (error) {
+      console.error('Error in populateVariantsFromProductData:', error);
+
+      // Check if modal is still in the DOM before trying to update it
+      if (document.body.contains(modalElement)) {
+        try {
+          // Hide loading indicator
+          const loadingIndicator = modalElement.querySelector('#variants-loading');
+          if (loadingIndicator) {
+            loadingIndicator.classList.add('hidden');
+          }
+
+          // Show error message
+          const errorElement = modalElement.querySelector('#discount-error');
+          if (errorElement) {
+            errorElement.textContent = error.message || 'An error occurred while loading product data';
+            errorElement.classList.remove('hidden');
+          }
+        } catch (e) {
+          console.error('Error updating modal after outer error:', e);
+          // Try to recover by alerting the user
+          alert('There was an error loading the product data. Please try again.');
+        }
+      } else {
+        console.error('Modal no longer in DOM when handling outer error');
+      }
+
+      // Don't adjust height - let scrolling handle overflow
+    }
+  }
+
+  // Function to calculate discount percentage from new price
+  function calculateDiscountPercentage(modalElement) {
+    // If modalElement is not provided, use the default modal
+    if (!modalElement) {
+      modalElement = document.getElementById('discount-modal');
+    }
+
+    const originalPriceInput = modalElement.querySelector('#original-price');
+    const newPriceInput = modalElement.querySelector('#new-price');
+    const discountPercentageInput = modalElement.querySelector('#discount-percentage');
+
+    if (originalPriceInput.value && newPriceInput.value) {
+      const originalPrice = parseFloat(originalPriceInput.value.replace(/[^0-9.]/g, ''));
+      const newPrice = parseFloat(newPriceInput.value);
+
+      if (originalPrice > 0 && newPrice >= 0 && newPrice <= originalPrice) {
+        const discountPercentage = ((originalPrice - newPrice) / originalPrice) * 100;
+        discountPercentageInput.value = discountPercentage.toFixed(2) + '%';
+      } else if (newPrice > originalPrice) {
+        discountPercentageInput.value = 'New price cannot exceed original price';
+      } else {
+        discountPercentageInput.value = '';
+      }
+    } else {
+      discountPercentageInput.value = '';
+    }
+  }
+
+  // Function to handle variant selection
+  function handleVariantSelection(variantData, modalElement) {
+    // If modalElement is not provided, use the default modal
+    if (!modalElement) {
+      modalElement = document.getElementById('discount-modal');
+    }
+
+    const discountForm = modalElement.querySelector('#discount-form');
+    const applyDiscountBtn = modalElement.querySelector('#apply-discount-btn');
+    const currentDiscountInfo = modalElement.querySelector('#current-discount-info');
+    const modalContainer = modalElement.querySelector('.modal-container');
+
+    // Hide error/success messages
+    modalElement.querySelector('#discount-error').classList.add('hidden');
+    modalElement.querySelector('#discount-success').classList.add('hidden');
+
+    // Store selected variant info in hidden fields
+    modalElement.querySelector('#selected-variant-type').value = variantData.type;
+    modalElement.querySelector('#selected-variant-id').value = variantData.id;
+
+    // Set original price
+    const originalPriceInput = modalElement.querySelector('#original-price');
+    originalPriceInput.value = formatPrice(variantData.price);
+
+    // Show the discount form
+    discountForm.classList.remove('hidden');
+
+    // Don't adjust height - let scrolling handle overflow
+
+    // Enable the apply button
+    applyDiscountBtn.disabled = false;
+
+    // Reset checkboxes and hidden fields
+    modalElement.querySelector('#enable-quantity-limit').checked = false;
+    modalElement.querySelector('#quantity-limit-container').classList.add('hidden');
+    modalElement.querySelector('#quantity-limit').value = '';
+
+    modalElement.querySelector('#enable-date-range').checked = false;
+    modalElement.querySelector('#date-range-container').classList.add('hidden');
+    modalElement.querySelector('#start-date').value = '';
+    modalElement.querySelector('#end-date').value = '';
+
+    // Check if variant has an active discount
+    if (variantData.is_on_discount) {
+      // Calculate discounted price
+      const discountedPrice = variantData.price * (1 - (variantData.discount_percentage / 100));
+
+      // Show current discount info
+      modalElement.querySelector('#current-original-price').textContent = formatPrice(variantData.price);
+      modalElement.querySelector('#current-discounted-price').textContent = formatPrice(Math.round(discountedPrice));
+      modalElement.querySelector('#current-discount-percentage').textContent = variantData.discount_percentage;
+
+      // Format period display
+      let periodText = 'Not set';
+      if (variantData.discount_start_date && variantData.discount_end_date) {
+        const startDate = new Date(variantData.discount_start_date);
+        const endDate = new Date(variantData.discount_end_date);
+        periodText = `${formatDate(startDate)} to ${formatDate(endDate)}`;
+      } else if (variantData.discount_start_date) {
+        const startDate = new Date(variantData.discount_start_date);
+        periodText = `From ${formatDate(startDate)}`;
+      } else if (variantData.discount_end_date) {
+        const endDate = new Date(variantData.discount_end_date);
+        periodText = `Until ${formatDate(endDate)}`;
+      }
+      modalElement.querySelector('#current-discount-period').textContent = periodText;
+
+      // Format quantity limit display
+      let quantityText = 'Not set';
+      if (variantData.discount_quantity_limit) {
+        quantityText = `${variantData.discount_quantity_limit} units`;
+      }
+      modalElement.querySelector('#current-discount-quantity').textContent = quantityText;
+
+      // Show remaining quantity
+      const quantityUsed = variantData.discount_quantity_used || 0;
+      const quantityLimit = variantData.discount_quantity_limit || 0;
+      const remaining = Math.max(0, quantityLimit - quantityUsed);
+
+      modalElement.querySelector('#current-discount-remaining').textContent = remaining;
+      modalElement.querySelector('#current-discount-total').textContent = quantityLimit;
+
+      currentDiscountInfo.classList.remove('hidden');
+
+      // Don't adjust height - let scrolling handle overflow
+
+      // Set up remove discount button
+      modalElement.querySelector('#remove-discount-btn').onclick = () => removeDiscount(
+        modalElement.querySelector('#discount-product-id').value,
+        variantData.type,
+        variantData.id,
+        modalElement
+      );
+    } else {
+      // Hide current discount info if no active discount
+      currentDiscountInfo.classList.add('hidden');
+    }
+
+    // Set up apply discount button
+    applyDiscountBtn.onclick = () => applyDiscount(modalElement);
+  }
+
+  // Function to apply discount
+  async function applyDiscount(modalElement) {
+    // If modalElement is not provided, use the default modal
+    if (!modalElement) {
+      modalElement = document.getElementById('discount-modal');
+    }
+
+    const productId = modalElement.querySelector('#discount-product-id').value;
+    const variantType = modalElement.querySelector('#selected-variant-type').value;
+    const variantId = modalElement.querySelector('#selected-variant-id').value;
+    const originalPriceStr = modalElement.querySelector('#original-price').value;
+    const newPriceStr = modalElement.querySelector('#new-price').value;
+    const discountPercentageStr = modalElement.querySelector('#discount-percentage').value;
+
+    // Only use quantity limit if checkbox is checked
+    const quantityLimitEnabled = modalElement.querySelector('#enable-quantity-limit').checked;
+    const quantityLimit = quantityLimitEnabled ? modalElement.querySelector('#quantity-limit').value || 0 : 0;
+
+    // Only use date range if checkbox is checked
+    const dateRangeEnabled = modalElement.querySelector('#enable-date-range').checked;
+    const startDate = dateRangeEnabled ? modalElement.querySelector('#start-date').value : '';
+    const endDate = dateRangeEnabled ? modalElement.querySelector('#end-date').value : '';
+
+    // Validate inputs
+    if (!newPriceStr) {
+      modalElement.querySelector('#discount-error').textContent = 'Please enter a new price';
+      modalElement.querySelector('#discount-error').classList.remove('hidden');
+      // Don't adjust height - let scrolling handle overflow
+      return;
+    }
+
+    // Extract discount percentage from the formatted string
+    let discountPercentage = 0;
+    if (discountPercentageStr) {
+      discountPercentage = parseFloat(discountPercentageStr.replace(/[^0-9.]/g, ''));
+    }
+
+    if (discountPercentage <= 0 || discountPercentage > 100) {
+      modalElement.querySelector('#discount-error').textContent = 'Discount percentage must be between 0 and 100';
+      modalElement.querySelector('#discount-error').classList.remove('hidden');
+      // Don't adjust height - let scrolling handle overflow
+      return;
+    }
+
+    // Validate quantity limit if enabled
+    if (quantityLimitEnabled && quantityLimit && parseInt(quantityLimit) <= 0) {
+      modalElement.querySelector('#discount-error').textContent = 'Quantity limit must be greater than 0';
+      modalElement.querySelector('#discount-error').classList.remove('hidden');
+      // Don't adjust height - let scrolling handle overflow
+      return;
+    }
+
+    // Validate dates if date range is enabled
+    if (dateRangeEnabled) {
+      // Check if both dates are provided
+      if (!startDate || !endDate) {
+        modalElement.querySelector('#discount-error').textContent = 'Both start and end dates are required';
+        modalElement.querySelector('#discount-error').classList.remove('hidden');
+        // Don't adjust height - let scrolling handle overflow
+        return;
+      }
+
+      // Check if start date is before end date
+      if (new Date(startDate) >= new Date(endDate)) {
+        modalElement.querySelector('#discount-error').textContent = 'Start date must be before end date';
+        modalElement.querySelector('#discount-error').classList.remove('hidden');
+        // Don't adjust height - let scrolling handle overflow
+        return;
+      }
+    }
+
+    try {
+      // Show loading state
+      const applyBtn = modalElement.querySelector('#apply-discount-btn');
+      applyBtn.disabled = true;
+      applyBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Applying...';
+
+      // Hide error/success messages
+      modalElement.querySelector('#discount-error').classList.add('hidden');
+      modalElement.querySelector('#discount-success').classList.add('hidden');
+
+      // Send request to set discount
+      const response = await fetch(`/admin/products/api/product/${productId}/set-discount`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          variant_type: variantType,
+          variant_id: variantId,
+          discount_percentage: discountPercentage,
+          min_quantity: 0, // We're not using minimum purchase quantity
+          quantity_limit: parseInt(quantityLimit),
+          start_date: startDate,
+          end_date: endDate
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to set discount');
+      }
+
+      // Show success message
+      modalElement.querySelector('#discount-success').textContent = 'Discount applied successfully!';
+      modalElement.querySelector('#discount-success').classList.remove('hidden');
+
+      // Don't adjust height - let scrolling handle overflow
+
+      // Reset button state
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Apply Discount';
+
+      // Refresh variants to show updated discount
+      populateVariantsFromProductData(productId, modalElement);
+    } catch (error) {
+      // Show error message
+      modalElement.querySelector('#discount-error').textContent = error.message || 'An error occurred while applying the discount';
+      modalElement.querySelector('#discount-error').classList.remove('hidden');
+
+      // Don't adjust height - let scrolling handle overflow
+
+      // Reset button state
+      const applyBtn = modalElement.querySelector('#apply-discount-btn');
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Apply Discount';
+    }
+  }
+
+  // Function to remove discount
+  async function removeDiscount(productId, variantType, variantId, modalElement) {
+    // If modalElement is not provided, use the default modal
+    if (!modalElement) {
+      modalElement = document.getElementById('discount-modal');
+    }
+
+    try {
+      // Show loading state
+      const removeBtn = modalElement.querySelector('#remove-discount-btn');
+      removeBtn.disabled = true;
+      removeBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Removing...';
+
+      // Hide error/success messages
+      modalElement.querySelector('#discount-error').classList.add('hidden');
+      modalElement.querySelector('#discount-success').classList.add('hidden');
+
+      // Send request to remove discount
+      const response = await fetch(`/admin/products/api/product/${productId}/remove-discount`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          variant_type: variantType,
+          variant_id: variantId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to remove discount');
+      }
+
+      // Show success message
+      modalElement.querySelector('#discount-success').textContent = 'Discount removed successfully!';
+      modalElement.querySelector('#discount-success').classList.remove('hidden');
+
+      // Hide current discount info
+      modalElement.querySelector('#current-discount-info').classList.add('hidden');
+
+      // Reset button state
+      removeBtn.disabled = false;
+      removeBtn.textContent = 'Remove Current Discount';
+
+      // Refresh variants to show updated discount
+      populateVariantsFromProductData(productId, modalElement);
+    } catch (error) {
+      // Show error message
+      modalElement.querySelector('#discount-error').textContent = error.message || 'An error occurred while removing the discount';
+      modalElement.querySelector('#discount-error').classList.remove('hidden');
+
+      // Reset button state
+      const removeBtn = modalElement.querySelector('#remove-discount-btn');
+      removeBtn.disabled = false;
+      removeBtn.textContent = 'Remove Current Discount';
+    }
+  }
+
+  // Helper function to format price
+  function formatPrice(price) {
+    return `UGX ${parseInt(price).toLocaleString()}`;
+  }
+
+  // Helper function to format date
+  function formatDate(date) {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  </script>
+  <!-- Search and Filter Section - Fixed at the top -->
+  <div class="bg-white rounded-t-lg border-b border-gray-100 p-4 sticky top-0 left-0 right-0" style="border-bottom-color: rgba(249, 115, 22, 0.2); position: relative; z-index: 10;">
+    <div class="flex flex-col md:flex-row gap-4">
+      <!-- Search Input -->
+      <div class="flex-grow">
+        <div class="relative">
+          <input type="text" id="product-search" placeholder="Search by product name, description..."
+                 class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent">
+          <div class="absolute left-3 top-2.5 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap gap-2">
+        <!-- Product Status Filter -->
+        <div class="w-full sm:w-auto">
+          <select id="product-status-filter" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent">
+            <option value="">All Statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+
+        <!-- Featured Filter -->
+        <div class="w-full sm:w-auto">
+          <select id="featured-filter" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent">
+            <option value="">All Products</option>
+            <option value="true">Featured</option>
+            <option value="false">Not Featured</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Products table with horizontal scroll for mobile -->
+  <div id="products-table" class="hidden">
+    <div class="min-w-full overflow-x-auto overflow-y-visible scrollbar-hide">
+      <table class="min-w-full divide-y divide-gray-200 sm:table-fixed">
+        <thead id="products-table-head" class="bg-gray-50 hidden">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">
+              Product
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">
+              Price
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">
+              Stock
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">
+              Status
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody id="products-table-body" class="bg-gray-50/30 divide-y divide-gray-200">
+          <!-- Products will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Loading indicator - positioned below the filters -->
+  <div id="products-loading" class="py-6 sm:py-10 flex items-center justify-center z-20 bg-gradient-to-br from-gray-50 to-white rounded-b-lg shadow-md border-t border-gray-100">
+    <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+  </div>
+
+  <!-- No products message -->
+  <div id="no-products" class="hidden py-8 text-center bg-gradient-to-br from-gray-50 to-white rounded-b-lg border-t border-gray-100">
+    <p class="text-gray-500">No products found.</p>
+  </div>
+
+  <!-- Pagination controls -->
+  <div id="products-pagination" class="hidden py-4 px-6 bg-gradient-to-br from-gray-50 to-white rounded-b-lg border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
+    <div class="hidden sm:block text-sm text-gray-600" id="products-pagination-info-desktop">
+      Showing <span id="products-pagination-range-desktop">0-0</span> of <span id="products-pagination-total-desktop">0</span> products
+    </div>
+    <div class="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end">
+      <button id="products-prev-page" class="px-3 py-2 sm:py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-4 sm:w-4 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span class="hidden sm:inline">Previous</span>
+      </button>
+      <div class="flex flex-col sm:hidden items-center">
+        <span class="text-xs text-gray-600" id="products-pagination-info-mobile">
+          <span id="products-pagination-range">0-0</span> of <span id="products-pagination-total">0</span>
+        </span>
+        <span class="text-xs text-gray-700" id="products-pagination-pages-mobile">Page 1 of 1</span>
+      </div>
+      <span class="hidden sm:inline text-sm text-gray-700" id="products-pagination-pages">Page 1 of 1</span>
+      <button id="products-next-page" class="px-3 py-2 sm:py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+        <span class="hidden sm:inline">Next</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-4 sm:w-4 sm:ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

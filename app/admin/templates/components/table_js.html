@@ -1,0 +1,328 @@
+<!-- Shared JavaScript for Order and Product Tables with Vanilla JS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Global state to track the currently open dropdown
+      window.currentOpenDropdown = null;
+
+      // Function to position the dropdown relative to its button
+      window.positionDropdown = function(dropdown, button) {
+        if (!dropdown || !button) return;
+
+        // Get button position
+        const buttonRect = button.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Calculate available space
+        const spaceBelow = viewportHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+        const spaceRight = viewportWidth - buttonRect.right;
+        const spaceLeft = buttonRect.left;
+
+        // Set dropdown position - fixed positioning relative to viewport
+        dropdown.style.position = 'fixed';
+        dropdown.style.zIndex = '9999'; // Keep high z-index
+
+        // Reset any previously set dimensions
+        dropdown.style.height = 'auto';
+        dropdown.style.maxHeight = '';
+
+        // Get the actual content height without scrolling
+        const contentHeight = dropdown.scrollHeight;
+
+        // Position vertically - prefer below, but go above if not enough space
+        if (spaceBelow >= contentHeight || spaceBelow > spaceAbove) {
+          dropdown.style.top = `${buttonRect.bottom + 5}px`; // Add 5px gap
+          dropdown.style.bottom = 'auto';
+          // Set max height to prevent overflow
+          if (contentHeight > spaceBelow - 10) {
+            dropdown.style.maxHeight = `${spaceBelow - 10}px`;
+            dropdown.style.overflowY = 'auto';
+          } else {
+            dropdown.style.maxHeight = 'none';
+            dropdown.style.overflowY = 'visible';
+          }
+        } else {
+          dropdown.style.bottom = `${viewportHeight - buttonRect.top + 5}px`; // Add 5px gap
+          dropdown.style.top = 'auto';
+          // Set max height to prevent overflow
+          if (contentHeight > spaceAbove - 10) {
+            dropdown.style.maxHeight = `${spaceAbove - 10}px`;
+            dropdown.style.overflowY = 'auto';
+          } else {
+            dropdown.style.maxHeight = 'none';
+            dropdown.style.overflowY = 'visible';
+          }
+        }
+
+        // Position horizontally - prefer right align on small screens, align with button on larger
+        if (viewportWidth < 640) {
+          // On small screens, align to the right edge of the screen with some padding
+          dropdown.style.right = '10px';
+          dropdown.style.left = 'auto';
+          dropdown.style.width = '250px'; // Fixed width on mobile
+          dropdown.style.maxWidth = 'calc(100vw - 20px)'; // Prevent overflow
+        } else {
+          // On larger screens, align relative to the button
+          if (spaceRight < 200 && spaceLeft >= 200) {
+            // Not enough space to the right, position to the left
+            dropdown.style.right = `${viewportWidth - buttonRect.left + 5}px`; // Add 5px gap
+            dropdown.style.left = 'auto';
+          } else {
+            // Default: position to the right
+            dropdown.style.left = `${buttonRect.right - 200}px`; // Align right edge of dropdown with button
+            dropdown.style.right = 'auto';
+          }
+          dropdown.style.width = '200px'; // Fixed width on desktop
+        }
+
+        // Add transition for smooth repositioning
+        dropdown.style.transition = 'top 0.1s, left 0.1s, right 0.1s, bottom 0.1s';
+      };
+
+      // Function to toggle dropdown visibility
+      window.toggleDropdown = function(button) {
+        // Find the dropdown associated with this button
+        const dropdown = button.nextElementSibling;
+        if (!dropdown) return;
+
+        // Check if this dropdown is already open
+        const isOpen = !dropdown.classList.contains('hidden');
+
+        // Close any other open dropdown first
+        if (window.currentOpenDropdown && window.currentOpenDropdown !== dropdown) {
+          window.currentOpenDropdown.classList.add('hidden');
+          window.currentOpenDropdown.classList.add('opacity-0');
+          window.currentOpenDropdown.classList.add('scale-95');
+
+          // Remove highlight from the previous row
+          const prevRow = window.currentOpenDropdown.closest('tr');
+          if (prevRow) {
+            prevRow.classList.remove('has-open-dropdown');
+          }
+
+          window.currentOpenDropdown = null;
+        }
+
+        // Toggle this dropdown
+        if (isOpen) {
+          // Hide dropdown with animation
+          dropdown.classList.add('opacity-0');
+          dropdown.classList.add('scale-95');
+
+          // Wait for animation to complete before hiding
+          setTimeout(() => {
+            dropdown.classList.add('hidden');
+          }, 100);
+
+          // Remove highlight from row
+          const row = button.closest('tr');
+          if (row) {
+            row.classList.remove('has-open-dropdown');
+          }
+
+          window.currentOpenDropdown = null;
+        } else {
+          // Show dropdown with animation
+          dropdown.classList.remove('hidden');
+
+          // Force a reflow to ensure the transition works
+          dropdown.offsetHeight;
+
+          // Start animation
+          setTimeout(() => {
+            dropdown.classList.remove('opacity-0');
+            dropdown.classList.remove('scale-95');
+          }, 10);
+
+          // Position the dropdown
+          window.positionDropdown(dropdown, button);
+
+          // Add highlight to row
+          const row = button.closest('tr');
+          if (row) {
+            row.classList.add('has-open-dropdown');
+          }
+
+          // Set up event listeners for repositioning
+          window.setupRepositioningListeners(dropdown, button);
+
+          // Update current open dropdown
+          window.currentOpenDropdown = dropdown;
+        }
+      };
+
+      // Set up event listeners for repositioning the dropdown
+      window.setupRepositioningListeners = function(dropdown, button) {
+        // Use requestAnimationFrame for smooth scrolling
+        let ticking = false;
+        const scrollHandler = function() {
+          if (!ticking) {
+            window.requestAnimationFrame(function() {
+              if (dropdown && !dropdown.classList.contains('hidden')) {
+                window.positionDropdown(dropdown, button);
+              }
+              ticking = false;
+            });
+            ticking = true;
+          }
+        };
+
+        // Add event listeners with high performance options
+        window.addEventListener('scroll', scrollHandler, { passive: true });
+        document.addEventListener('scroll', scrollHandler, { passive: true });
+
+        // Handle window resize
+        window.addEventListener('resize', scrollHandler, { passive: true });
+
+        // Clean up event listeners when dropdown is hidden
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' &&
+                mutation.attributeName === 'class' &&
+                dropdown.classList.contains('hidden')) {
+              window.removeEventListener('scroll', scrollHandler);
+              document.removeEventListener('scroll', scrollHandler);
+              window.removeEventListener('resize', scrollHandler);
+              observer.disconnect();
+            }
+          });
+        });
+
+        observer.observe(dropdown, { attributes: true });
+      };
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(event) {
+        if (window.currentOpenDropdown && !window.currentOpenDropdown.contains(event.target)) {
+          // Check if the click was on a menu button
+          let isMenuButton = false;
+          let target = event.target;
+
+          // Check if the click was on a menu button or its child
+          while (target && !isMenuButton) {
+            if (target.classList && target.classList.contains('menu-button')) {
+              isMenuButton = true;
+            }
+            target = target.parentElement;
+          }
+
+          // Only close if not clicking on a menu button
+          if (!isMenuButton) {
+            // Hide dropdown with animation
+            window.currentOpenDropdown.classList.add('opacity-0');
+            window.currentOpenDropdown.classList.add('scale-95');
+
+            // Wait for animation to complete before hiding
+            setTimeout(() => {
+              window.currentOpenDropdown.classList.add('hidden');
+            }, 100);
+
+            // Remove highlight from row
+            const row = window.currentOpenDropdown.closest('tr');
+            if (row) {
+              row.classList.remove('has-open-dropdown');
+            }
+
+            window.currentOpenDropdown = null;
+          }
+        }
+      });
+
+      // Close dropdown on escape key
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && window.currentOpenDropdown) {
+          // Hide dropdown with animation
+          window.currentOpenDropdown.classList.add('opacity-0');
+          window.currentOpenDropdown.classList.add('scale-95');
+
+          // Wait for animation to complete before hiding
+          setTimeout(() => {
+            window.currentOpenDropdown.classList.add('hidden');
+          }, 100);
+
+          // Remove highlight from row
+          const row = window.currentOpenDropdown.closest('tr');
+          if (row) {
+            row.classList.remove('has-open-dropdown');
+          }
+
+          window.currentOpenDropdown = null;
+        }
+      });
+
+      // Function to show delete modal
+      window.showDeleteModal = function(id, name, type = 'order') {
+        const modalId = type === 'order' ? 'delete-order-modal' :
+                        type === 'product' ? 'delete-product-modal' : 'delete-user-modal';
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        // Move modal to body to ensure it's on top of everything
+        if (modal && modal.parentNode !== document.body) {
+          document.body.appendChild(modal);
+        }
+
+        const idField = modal.querySelector(`#delete-${type}-id`);
+        const nameField = modal.querySelector(`#delete-${type}-name`);
+        const confirmField = modal.querySelector(`#confirm-${type}-name`);
+        const errorField = modal.querySelector(`#delete-${type}-error`);
+
+        if (idField) idField.value = id;
+        if (nameField) nameField.textContent = name;
+        if (confirmField) confirmField.value = '';
+        if (errorField) errorField.classList.add('hidden');
+
+        // Reset delete button state
+        const confirmButton = modal.querySelector(`#confirm-delete-${type}`);
+        if (confirmButton) {
+          confirmButton.disabled = true;
+          confirmButton.classList.add('opacity-50', 'cursor-not-allowed');
+          confirmButton.textContent = `Delete ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+        }
+
+        // Show the modal
+        modal.classList.remove('hidden');
+
+        // Focus the input field
+        setTimeout(() => {
+          if (confirmField) confirmField.focus();
+        }, 100);
+      };
+
+      // Function to hide delete modal
+      window.hideDeleteModal = function(type = 'order') {
+        const modalId = type === 'order' ? 'delete-order-modal' :
+                        type === 'product' ? 'delete-product-modal' : 'delete-user-modal';
+        const modal = document.getElementById(modalId);
+        if (modal) modal.classList.add('hidden');
+      };
+
+      // Throttle function to limit how often a function is called
+      window.throttle = function(func, limit) {
+        let inThrottle;
+        return function() {
+          const args = arguments;
+          const context = this;
+          if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+          }
+        };
+      };
+
+      // Debounce function to prevent too many requests while typing
+      window.debounce = function(func, wait) {
+        let timeout;
+        return function() {
+          const context = this;
+          const args = arguments;
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            func.apply(context, args);
+          }, wait);
+        };
+      };
+    });
+  </script>

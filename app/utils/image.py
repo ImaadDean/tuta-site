@@ -793,6 +793,181 @@ async def validate_and_save_social_media_icon(file: UploadFile, max_size_mb: int
             detail=f"Error processing icon: {str(e)}"
         )
 
+async def save_uploaded_file(file: UploadFile, directory: str, filename_prefix: str, max_size: int = 5) -> str:
+    """
+    Save an uploaded file to the local filesystem
+
+    Args:
+        file: The uploaded file
+        directory: Directory to save the file in
+        filename_prefix: Prefix for the filename
+        max_size: Maximum file size in MB
+
+    Returns:
+        Path to the saved file relative to the static directory
+    """
+    try:
+        # Validate file
+        if not file.filename:
+            raise ValueError("Missing filename")
+
+        # Get file extension
+        _, ext = os.path.splitext(file.filename)
+        ext = ext.lower()
+
+        # Generate a unique filename
+        unique_id = str(uuid.uuid4())[:8]
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{filename_prefix}_{timestamp}_{unique_id}{ext}"
+
+        # Create full path
+        os.makedirs(directory, exist_ok=True)
+        file_path = os.path.join(directory, filename)
+
+        # Read file content
+        file.file.seek(0)
+        contents = await file.read()
+
+        # Check file size
+        size_mb = len(contents) / (1024 * 1024)
+        if size_mb > max_size:
+            raise ValueError(f"File size exceeds maximum allowed size of {max_size}MB")
+
+        # Optimize image if it's an image file
+        if file.content_type.startswith('image/'):
+            # Create a BytesIO object with the contents
+            file_obj = io.BytesIO(contents)
+
+            # Open and optimize the image
+            image = Image.open(file_obj)
+
+            # Resize if too large (max 1200px in any dimension)
+            max_dimension = 1200
+            if image.width > max_dimension or image.height > max_dimension:
+                if image.width > image.height:
+                    new_width = max_dimension
+                    new_height = int(image.height * (max_dimension / image.width))
+                else:
+                    new_height = max_dimension
+                    new_width = int(image.width * (max_dimension / image.height))
+
+                image = image.resize((new_width, new_height), Image.LANCZOS)
+
+            # Convert to RGB if RGBA (remove alpha channel)
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
+
+            # Save the optimized image
+            image.save(file_path, quality=85, optimize=True)
+        else:
+            # Save non-image files directly
+            with open(file_path, "wb") as f:
+                f.write(contents)
+
+        # Return the path relative to static directory
+        return file_path
+
+    except Exception as e:
+        print(f"Error saving uploaded file: {str(e)}")
+        raise e
+
+async def validate_and_save_comment_image(file: UploadFile, max_size_mb: int = 2, max_dimension: int = 800):
+    """
+    Validates and optimizes a comment image, then uploads to Cloudinary
+
+    Args:
+        file: The uploaded image file
+        max_size_mb: Maximum file size in MB (default: 2MB)
+        max_dimension: Maximum image dimension in pixels (default: 800px)
+
+    Returns:
+        Cloudinary secure URL for the uploaded image
+
+    Raises:
+        HTTPException: If validation fails or upload fails
+    """
+    try:
+        # Validate file extension
+        valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+        if not file.filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing filename"
+            )
+
+        file_extension = os.path.splitext(file.filename)[1].lower()
+
+        if not file_extension:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not determine file extension"
+            )
+
+        if file_extension not in valid_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file extension. Allowed extensions are: {', '.join(valid_extensions)}"
+            )
+
+        # Check if content-type is image
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file is not an image"
+            )
+
+        # Read file into memory to check size
+        file.file.seek(0)
+        contents = await file.read()
+        size_mb = len(contents) / (1024 * 1024)
+
+        if size_mb > max_size_mb:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Image size exceeds maximum allowed size of {max_size_mb}MB"
+            )
+
+        # Create a BytesIO object with the contents
+        file_obj = io.BytesIO(contents)
+
+        # Generate a unique filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        safe_filename = os.path.splitext(file.filename)[0].replace(' ', '_')
+        unique_filename = f"comment_{timestamp}_{unique_id}_{safe_filename}{file_extension}"
+
+        # Use cloudinary uploader with specific transformations for comments
+        result = cloudinary.uploader.upload(
+            file_obj,
+            folder=f"{settings.CLOUDINARY_BASE_FOLDER}/comments",
+            public_id=unique_filename,
+            overwrite=True,
+            resource_type="auto",
+            transformation=[
+                {"width": max_dimension, "height": max_dimension, "crop": "limit"},
+                {"quality": 80}
+            ]
+        )
+
+        if not result or 'secure_url' not in result:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to upload comment image to Cloudinary"
+            )
+
+        return result['secure_url']
+
+    except HTTPException as he:
+        # Re-raise HTTP exceptions
+        raise he
+    except Exception as e:
+        # Handle any other errors
+        print(f"Error processing comment image: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing image: {str(e)}"
+        )
+
 async def validate_and_save_review_image(file: UploadFile, max_size_mb: int = 5, max_dimension: int = 1200):
     """
     Validates and optimizes a review image, then uploads to Cloudinary

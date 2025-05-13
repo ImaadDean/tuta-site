@@ -9,8 +9,8 @@
       <h1 class="text-2xl font-semibold sm:text-3xl text-gray-900">Checkout</h1>
       <p class="text-gray-500 mt-1">Complete your purchase</p>
           </div>
-          <a 
-            href="/" 
+          <a
+            href="/"
       class="text-sm text-blue-600 flex items-center gap-1 hover:underline"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
@@ -20,7 +20,7 @@
             Back to shop
           </a>
         </div>
-        
+
         <!-- Checkout Form and Order Summary -->
         <div id="checkout-container" class="grid gap-8 lg:grid-cols-3">
           <div class="lg:col-span-2">
@@ -45,7 +45,7 @@
                         focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       />
                     </div>
-                    
+
                     <div class="relative space-y-1">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   Email <span class="text-red-500">*</span>
@@ -61,7 +61,7 @@
                         focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       />
                     </div>
-                    
+
                     <div class="relative space-y-1">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number <span class="text-red-500">*</span>
@@ -80,23 +80,23 @@
 
               {% if not current_user %}
               <div class="sm:col-span-2 flex items-center mt-4">
-                <p class="text-sm text-gray-600">Already have an account? 
-                  <a href="/auth/login?next=/checkout" class="text-blue-600 hover:text-blue-800 font-medium">Log in</a> 
+                <p class="text-sm text-gray-600">Already have an account?
+                  <a href="/auth/login?next=/checkout" class="text-blue-600 hover:text-blue-800 font-medium">Log in</a>
                   for a faster checkout experience and to track your order history.
                 </p>
               </div>
               {% endif %}
                   </div>
                 </div>
-                
+
                 <div>
             <h3 class="text-lg font-medium text-gray-900 mb-4">Delivery Address</h3>
-                  
+
             {% if current_user and addresses %}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Saved Addresses</label>
-                <select 
-                    id="savedAddresses" 
+                <select
+                    id="savedAddresses"
                     class="w-full px-3 py-2 rounded-md bg-white border border-gray-300
                             transition-all duration-200 outline-none
                         focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -104,9 +104,9 @@
                 >
                     <option value="">Enter a new address</option>
                     {% for address in addresses %}
-                    <option value="{{ loop.index0 }}" 
-                        data-address="{{ address.address }}" 
-                        data-city="{{ address.city }}" 
+                    <option value="{{ loop.index0 }}"
+                        data-address="{{ address.address }}"
+                        data-city="{{ address.city }}"
                         data-country="{{ address.country }}">
                         {{ address.name }}: {{ address.address }}, {{ address.city }}, {{ address.country }}
                     </option>
@@ -114,8 +114,8 @@
                 </select>
             </div>
             {% endif %}
-            
-                  
+
+
                   <div id="addressFormFields" class="grid gap-4 sm:grid-cols-2">
               <div class="relative space-y-1">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -131,7 +131,7 @@
                         focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       />
                     </div>
-                    
+
                     <div class="relative space-y-1">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   City <span class="text-red-500">*</span>
@@ -146,7 +146,7 @@
                         focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       />
                     </div>
-                    
+
                     <div class="relative space-y-1">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   Country <span class="text-red-500">*</span>
@@ -162,7 +162,7 @@
                       />
                     </div>
                   </div>
-                  
+
             {% if current_user %}
                   <div class="mt-4 flex items-center">
                     <input
@@ -175,7 +175,7 @@
                 Save this address for future orders
                     </label>
                   </div>
-                  
+
             <div id="address_name_field" class="mt-4 hidden">
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Address nickname (e.g. Home, Work)
@@ -192,7 +192,7 @@
             </div>
             {% endif %}
           </div>
-          
+
           <div class="space-y-4">
             <h3 class="text-lg font-medium text-gray-900">Payment Method</h3>
             <div class="grid gap-3">
@@ -222,7 +222,7 @@
                   </div>
                   </div>
                 </div>
-                
+
               <div class="relative rounded-lg border border-gray-200 p-4 transition-all duration-200
                         cursor-pointer hover:border-blue-500/40
                         bg-white hover:bg-blue-50"
@@ -245,7 +245,7 @@
                         </div>
                       </div>
                     </div>
-                    
+
               <!-- MTN Payment Option -->
               <div class="relative rounded-lg border border-gray-200 p-4 transition-all duration-200
                         cursor-pointer hover:border-blue-500/40
@@ -270,7 +270,7 @@
                 </div>
                   </div>
                 </div>
-                
+
             <!-- Cash on Delivery Instructions -->
             <div id="cash-instructions" class="mt-4 p-4 bg-green-50 border border-green-100 rounded-lg hidden">
               <h4 class="text-sm font-medium text-green-800 mb-2">Cash on Delivery:</h4>
@@ -313,12 +313,12 @@
               </form>
             </div>
           </div>
-          
+
     <!-- Order Summary -->
     <div class="lg:col-span-1">
       <div class="bg-white shadow-lg rounded-lg border border-gray-200 p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
-        
+
         <div class="space-y-4" x-data="{ cart: JSON.parse(localStorage.getItem('cart') || '[]') }">
   <template x-for="item in cart" :key="item.productKey || item.id">
   <div class="flex justify-between items-start py-3 border-b border-gray-100">
@@ -338,14 +338,14 @@
     <p class="text-sm font-medium text-gray-900" x-text="'UGX ' + new Intl.NumberFormat().format(item.price * item.quantity)"></p>
   </div>
 </template>
-          
+
           <div class="border-t border-gray-200 pt-4">
             <div class="flex justify-between text-lg">
               <span class="font-medium text-gray-900">Total</span>
               <span class="font-medium text-gray-900" x-text="'UGX ' + new Intl.NumberFormat().format(cart.reduce((total, item) => total + item.price * item.quantity, 0))"></span>
                 </div>
               </div>
-              
+
               <button
             type="submit"
             form="order-form"
@@ -368,11 +368,11 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
       </svg>
     </div>
-    
+
     <h2 class="text-2xl font-bold text-gray-800 mb-2">Order Successfully Placed!</h2>
     <p class="text-gray-600 mb-6">Thank you for your order. Your order number is <span id="success-order-number" class="font-medium text-gray-800"></span>.</p>
     <p class="text-gray-600 mb-6">You can use this order number to track the status of your delivery.</p>
-    
+
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
       <a id="success-view-order-link" href="#" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-all duration-200">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -381,7 +381,7 @@
         </svg>
         View Order Details
       </a>
-      
+
       <a href="/products" class="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-800 font-medium rounded-md hover:bg-gray-200 transition-all duration-200">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -389,7 +389,7 @@
         Continue Shopping
       </a>
     </div>
-    
+
     {% if not current_user %}
     <div class="mt-8 p-4 bg-blue-50 rounded-lg">
       <p class="text-blue-800 mb-2 font-medium">Create an account to track all your orders</p>
@@ -401,7 +401,7 @@
     {% endif %}
   </div>
             </div>
-            
+
 <!-- Processing overlay -->
 <div id="processing-overlay" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
   <div class="bg-white p-5 rounded-lg shadow-lg flex items-center">
@@ -428,7 +428,7 @@
         <p class="text-sm text-gray-500 mb-4">Your order has been placed successfully.</p>
         <p class="text-sm font-medium text-gray-900 mb-2">Order #: <span id="order-number" class="font-bold"></span></p>
         <p class="text-sm text-gray-600 mb-6">You can track your order status using this order number.</p>
-        
+
         <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <a id="view-order-link" href="#" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -444,7 +444,7 @@
             Continue Shopping
           </a>
           </div>
-        
+
         <div class="mt-4 text-center">
           <a id="track-order-link" href="/track?order_no=" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 inline-flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -468,13 +468,13 @@
     <span class="text-gray-700">Processing your order...</span>
               </div>
             </div>
-    
+
 <!-- Add JavaScript at the end of the content block -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
     // Select default payment method on page load
     selectPaymentMethod('cash');
-        
+
     // Set up event listener for saved addresses dropdown
         const savedAddressesSelect = document.getElementById('savedAddresses');
         if (savedAddressesSelect) {
@@ -484,7 +484,7 @@
       // Initial setup
       toggleAddressForm(savedAddressesSelect.value);
     }
-    
+
     // Set up event listener for save address checkbox
         const saveAddressCheckbox = document.getElementById('save_address');
         const addressNameField = document.getElementById('address_name_field');
@@ -497,86 +497,121 @@
             }
           });
         }
-        
+
     // Handle form submission
     const orderForm = document.getElementById('order-form');
     const loadingOverlay = document.getElementById('loading-overlay');
     const orderSuccess = document.getElementById('order-success');
-    
+
     if (orderForm) {
       orderForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         // Show loading overlay
         loadingOverlay.classList.remove('hidden');
-        
+
         // Get form data
         const formData = new FormData(orderForm);
-        
-        // Add cart data from localStorage
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        formData.append('cart', JSON.stringify(cart));
-        
-        // Submit the form via fetch API
-        fetch('/api/process-order', {
-          method: 'POST',
-          body: formData
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Error processing order');
+
+        // First save the address, then process the order
+        saveAddressThenProcessOrder(formData);
+      });
+    }
+
+    // Function to save address first, then process the order
+    function saveAddressThenProcessOrder(formData) {
+      // Step 1: Save the address
+      fetch('/api/save-address', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error saving address');
+        }
+        return response.json();
+      })
+      .then(addressData => {
+        if (addressData.success) {
+          // Step 2: Now process the order with the saved address information
+          const orderFormData = new FormData(orderForm);
+
+          // Add cart data from localStorage
+          const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+          orderFormData.append('cart', JSON.stringify(cart));
+
+          // Add address information from the save-address response
+          if (addressData.address_id) {
+            orderFormData.append('address_id', addressData.address_id);
           }
-          return response.json();
-        })
-        .then(data => {
-          // Hide loading overlay
-          loadingOverlay.classList.add('hidden');
-          
-          if (data.success) {
-            // Hide checkout container
-            document.getElementById('checkout-container').style.display = 'none';
-            
-            // Show success message
-            orderSuccess.classList.remove('hidden');
-            
-            // Set order number and links in both places
-            document.getElementById('order-number').textContent = data.order_no;
-            document.getElementById('success-order-number').textContent = data.order_no;
-            document.getElementById('view-order-link').href = `/order/by-number/${data.order_no}`;
-            document.getElementById('success-view-order-link').href = `/order/by-number/${data.order_no}`;
-            document.getElementById('track-order-link').href = `/track?order_no=${data.order_no}`;
-            
-            // Clear cart in localStorage
-            localStorage.setItem('cart', '[]');
-          } else {
-            alert(`Error processing order: ${data.error || 'Unknown error'}`);
+
+          if (addressData.shipping_address) {
+            orderFormData.append('shipping_address', JSON.stringify(addressData.shipping_address));
           }
-        })
-        .catch(error => {
-          console.error('Order processing error:', error);
-          
-          // Hide loading overlay
-          loadingOverlay.classList.add('hidden');
-          
-          // Show error message
-          alert('An error occurred while processing your order. Please try again.');
-        });
+
+          // Submit the order
+          return fetch('/api/process-order', {
+            method: 'POST',
+            body: orderFormData
+          });
+        } else {
+          throw new Error(addressData.error || 'Error saving address');
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error processing order');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Hide loading overlay
+        loadingOverlay.classList.add('hidden');
+
+        if (data.success) {
+          // Hide checkout container
+          document.getElementById('checkout-container').style.display = 'none';
+
+          // Show success message
+          orderSuccess.classList.remove('hidden');
+
+          // Set order number and links in both places
+          document.getElementById('order-number').textContent = data.order_no;
+          document.getElementById('success-order-number').textContent = data.order_no;
+          document.getElementById('view-order-link').href = `/order/by-number/${data.order_no}`;
+          document.getElementById('success-view-order-link').href = `/order/by-number/${data.order_no}`;
+          document.getElementById('track-order-link').href = `/track?order_no=${data.order_no}`;
+
+          // Clear cart in localStorage
+          localStorage.setItem('cart', '[]');
+        } else {
+          alert(`Error processing order: ${data.error || 'Unknown error'}`);
+        }
+      })
+      .catch(error => {
+        console.error('Order processing error:', error);
+
+        // Hide loading overlay
+        loadingOverlay.classList.add('hidden');
+
+        // Show error message
+        alert('An error occurred while processing your order. Please try again.');
       });
     }
   });
-  
+
   // Function to toggle address form visibility
   function toggleAddressForm(value) {
     const addressFormFields = document.getElementById('addressFormFields');
     const saveAddressOption = document.getElementById('save_address')?.parentElement;
     const addressNameField = document.getElementById('address_name_field');
-    
+
     if (value === '') {
       // Clear form fields for new address
       document.getElementById('address').value = '';
       document.getElementById('city').value = '';
       document.getElementById('country').value = '';
-      
+
       // Show address form fields and save option
       addressFormFields.style.display = 'grid';
       if (saveAddressOption) saveAddressOption.style.display = 'flex';
@@ -586,14 +621,14 @@
       document.getElementById('address').value = option.dataset.address;
       document.getElementById('city').value = option.dataset.city;
       document.getElementById('country').value = option.dataset.country;
-      
+
       // Show address form but hide save option
       addressFormFields.style.display = 'grid';
       if (saveAddressOption) saveAddressOption.style.display = 'none';
       if (addressNameField) addressNameField.classList.add('hidden');
     }
   }
-  
+
   // Function to select payment method
   function selectPaymentMethod(method) {
     // Remove selected style from all payment methods
@@ -604,22 +639,22 @@
       radio.classList.remove('border-blue-500');
       radio.classList.add('border-gray-300');
     });
-    
+
     // Add selected style to clicked payment method
     const selectedMethod = document.querySelector(`[data-payment="${method}"]`);
     const radio = selectedMethod.querySelector('.payment-radio');
     radio.innerHTML = '<div class="w-3 h-3 rounded-full bg-blue-500"></div>';
     radio.classList.remove('border-gray-300');
     radio.classList.add('border-blue-500');
-    
+
     // Hide all payment instructions
     document.getElementById('cash-instructions').classList.add('hidden');
     document.getElementById('airtel-instructions').classList.add('hidden');
     document.getElementById('mtn-instructions').classList.add('hidden');
-    
+
     // Show only the relevant payment instructions for the selected method
     document.getElementById(`${method}-instructions`).classList.remove('hidden');
-    
+
     // Add hidden input for payment method
     let paymentInput = document.getElementById('payment_method');
     if (!paymentInput) {
