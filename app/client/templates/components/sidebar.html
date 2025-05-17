@@ -19,7 +19,7 @@
     <!-- Loading skeleton -->
     <template x-if="loading">
       <div class="space-y-3">
-        <template x-for="i in 3" :key="i">
+        <template x-for="i in 6" :key="i">
           <div class="animate-pulse">
             <div class="flex items-center gap-2.5 py-2 px-2">
               <div class="w-[30px] h-[30px] bg-gray-200 rounded-md"></div>
@@ -95,7 +95,7 @@
                 <template x-for="category in collection.categories" :key="category.id">
                   <li class="py-1">
                     <a
-                      :href="'/category/' + category.id"
+                      :href="'/categories/' + category.id"
                       class="flex justify-between items-center text-gray-600 text-sm hover:text-blue-600 transition-colors px-2 py-1 rounded hover:bg-gray-50"
                     >
                       <p class="capitalize" x-text="category.name"></p>

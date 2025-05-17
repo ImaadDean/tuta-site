@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="bg-white" x-data="categoryDetailPage">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Error message if any -->
+    {% if error_message %}
+    <div class="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
+      <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Category Banner -->
+    <div class="relative mb-8 rounded-lg overflow-hidden" x-show="categoryData.banner">
+      <template x-if="categoryData.banner">
+        <div>
+          <img
+            :src="categoryData.banner.image_url"
+            :alt="categoryData.banner.title"
+            class="w-full h-48 md:h-64 lg:h-80 object-cover"
+          />
+          <div class="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-center">
+            <div class="text-white p-6 md:p-10 max-w-2xl">
+              <h1 class="text-2xl md:text-4xl font-bold mb-2" x-text="categoryData.banner.title || categoryData.name"></h1>
+              <p class="text-lg md:text-xl opacity-90" x-text="categoryData.banner.subtitle || ''"></p>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Category Header (when no banner) -->
+    <div class="mb-8" x-show="!categoryData.banner">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">
+        <span x-text="categoryData.name">{{ category.name }}</span>
+      </h1>
+      <p class="text-gray-600 max-w-3xl" x-text="categoryData.description || 'Browse products in this category'">
+        {{ category.description or 'Browse products in this category' }}
+      </p>
+    </div>
+
+    <!-- Products section -->
+    <div class="mb-12">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">Products</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-500" x-text="'Showing ' + products.length + ' of ' + categoryData.product_count + ' products'"></span>
+        </div>
+      </div>
+
+      <!-- Loading skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" x-show="loading">
+        <template x-for="i in 8" :key="i">
+          <div class="animate-pulse">
+            <div class="bg-gray-200 h-48 rounded-lg mb-3"></div>
+            <div class="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div class="h-6 bg-gray-200 rounded w-1/4"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Products grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" x-show="!loading">
+        <template x-if="products.length > 0">
+          <template x-for="product in products" :key="product.id">
+            <div class="group border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <a :href="'/products/' + product.id" class="block">
+                <div class="relative h-48 bg-gray-100">
+                  <img
+                    :src="product.image_url || '/static/images/product-placeholder.jpg'"
+                    :alt="product.name"
+                    class="w-full h-full object-cover"
+                  />
+                  <!-- Product badges -->
+                  <div class="absolute top-2 left-2 flex flex-col gap-1">
+                    <span
+                      x-show="product.is_new"
+                      class="bg-emerald-500 text-white text-xs font-medium px-2 py-0.5 rounded-full"
+                    >New</span>
+                    <span
+                      x-show="product.is_bestseller"
+                      class="bg-amber-500 text-white text-xs font-medium px-2 py-0.5 rounded-full"
+                    >Bestseller</span>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <div class="flex items-center gap-1 mb-1" x-show="product.brand_name">
+                    <span class="text-xs text-gray-500" x-text="product.brand_name"></span>
+                  </div>
+                  <h3 class="text-sm font-medium text-gray-900 group-hover:text-blue-600 line-clamp-2" x-text="product.name"></h3>
+                  <div class="mt-2 flex items-center">
+                    <div class="flex items-center">
+                      <template x-for="i in 5" :key="i">
+                        <svg class="w-3 h-3" :class="i <= Math.round(product.rating_avg) ? 'text-amber-400' : 'text-gray-300'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 20">
+                          <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z"/>
+                        </svg>
+                      </template>
+                      <span class="ml-1 text-xs text-gray-500" x-text="product.review_count + ' reviews'"></span>
+                    </div>
+                  </div>
+                  <div class="mt-2 flex items-center justify-between">
+                    <div>
+                      <template x-if="product.discount_price">
+                        <div class="flex items-center gap-1">
+                          <span class="text-sm font-medium text-gray-900" x-text="'UGX ' + product.discount_price.toLocaleString()"></span>
+                          <span class="text-xs text-gray-500 line-through" x-text="'UGX ' + product.price.toLocaleString()"></span>
+                        </div>
+                      </template>
+                      <template x-if="!product.discount_price">
+                        <span class="text-sm font-medium text-gray-900" x-text="'UGX ' + product.price.toLocaleString()"></span>
+                      </template>
+                    </div>
+                    <span
+                      class="text-xs font-medium px-2 py-0.5 rounded-full"
+                      :class="product.in_stock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                      x-text="product.in_stock ? 'In stock' : 'Out of stock'"
+                    ></span>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </template>
+        </template>
+
+        <!-- Empty state -->
+        <template x-if="!loading && products.length === 0">
+          <div class="col-span-full text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+            <p class="mt-1 text-sm text-gray-500">There are no products in this category yet.</p>
+          </div>
+        </template>
+      </div>
+
+      <!-- Load more button -->
+      <div class="mt-8 text-center" x-show="!loading && products.length > 0 && products.length < categoryData.product_count">
+        <button
+          @click="loadMoreProducts"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <span x-show="!loadingMore">Load more products</span>
+          <span x-show="loadingMore" class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('categoryDetailPage', () => ({
+      categoryData: {
+        id: '{{ category.id if category else "" }}',
+        name: '{{ category.name if category else "" }}',
+        description: '{{ category.description if category and category.description else "" }}',
+        product_count: {{ category.product_count if category else 0 }},
+        banner: null
+      },
+      products: [],
+      loading: true,
+      loadingMore: false,
+      productsLimit: 12,
+      productsOffset: 0,
+
+      init() {
+        this.loadCategoryDetails();
+      },
+
+      loadCategoryDetails() {
+        this.loading = true;
+
+        fetch(`/api/categories/${this.categoryData.id}?with_products=true&products_limit=${this.productsLimit}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              this.categoryData = data.category;
+              this.products = data.category.products || [];
+              console.log('Loaded category details:', this.categoryData);
+            } else {
+              console.error('Error loading category details:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching category details:', error);
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+      },
+
+      loadMoreProducts() {
+        this.loadingMore = true;
+        this.productsOffset += this.productsLimit;
+
+        fetch(`/api/products?category_id=${this.categoryData.id}&limit=${this.productsLimit}&skip=${this.productsOffset}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              this.products = [...this.products, ...data.products];
+              console.log('Loaded more products:', data.products.length);
+            } else {
+              console.error('Error loading more products:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching more products:', error);
+          })
+          .finally(() => {
+            this.loadingMore = false;
+          });
+      }
+    }));
+  });
+</script>
+{% endblock %}

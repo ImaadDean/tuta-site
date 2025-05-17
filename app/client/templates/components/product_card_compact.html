@@ -1,0 +1,111 @@
+<!-- Compact Product Card Template for sidebar sections -->
+<div class="flex items-center gap-4 p-4 border border-gray-200 rounded-md hover:shadow-md transition-shadow">
+  <a :href="'/product/' + product.id" class="flex-shrink-0 relative">
+    <img
+      :src="product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : '/static/images/product-placeholder.jpg'"
+      :alt="product.name"
+      class="w-[75px] h-[75px] object-cover rounded-md"
+    />
+
+    <!-- No badges in compact card as requested -->
+
+    <!-- Out of stock overlay -->
+    <template x-if="product.stock <= 0 || !product.in_stock">
+      <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md">
+        <div class="bg-white text-gray-800 font-medium px-1.5 py-0.5 rounded-full text-[10px]">
+          Out of Stock
+        </div>
+      </div>
+    </template>
+  </a>
+
+  <div class="flex-1">
+    <a :href="'/product/' + product.id" class="block mb-1">
+      <h4 class="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors" x-text="product.name"></h4>
+    </a>
+
+    <div class="flex items-center justify-between mb-1">
+      <div class="flex text-yellow-500">
+        <template x-for="i in 5" :key="i">
+          <template x-if="i <= Math.floor(product.rating_avg)">
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+          </template>
+          <template x-if="i > Math.floor(product.rating_avg)">
+            <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+          </template>
+        </template>
+      </div>
+
+      <button
+        @click="$store.favorites.toggleFavorite(product.id)"
+        class="p-1.5 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors focus:outline-none"
+        title="Add to favorites"
+        :class="{ 'text-red-500 bg-red-50 hover:bg-red-100': $store.favorites.isFavorite(product.id) }"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke="$store.favorites.isFavorite(product.id) ? 'none' : 'currentColor'" :fill="$store.favorites.isFavorite(product.id) ? 'currentColor' : 'none'">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <template x-if="product.old_price && product.old_price > product.price">
+        <del class="text-gray-500 text-sm" x-text="'UGX ' + product.old_price.toLocaleString()"></del>
+      </template>
+      <p class="text-sm font-semibold text-gray-900" x-text="'UGX ' + product.price.toLocaleString()"></p>
+      <div class="ml-auto">
+        <template x-if="product.stock > 0 && product.in_stock">
+          <button
+            x-data
+            @click="
+              $store.cart.addToCart({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                image: product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : '',
+                stock: product.stock,
+                variants: product.variants && product.variants.length > 0 ? {
+                  [product.variants[0].type]: {
+                    id: product.variants[0].id,
+                    value: product.variants[0].value,
+                    display_name: product.variants[0].display_name || product.variants[0].value,
+                    price: product.variants[0].price || product.price
+                  }
+                } : {},
+                variantId: product.variants && product.variants.length > 0 ? product.variants[0].id : null,
+                quantity: 1
+              });
+              $dispatch('show-notification', {
+                message: product.name + ' added to cart',
+                type: 'success'
+              });
+            "
+            class="inline-flex items-center text-white bg-blue-600 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md hover:bg-blue-700 transition-colors focus:outline-none text-xs"
+            title="Add to cart"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span class="md:hidden">Add</span>
+          </button>
+        </template>
+        <template x-if="product.stock <= 0 || !product.in_stock">
+          <button
+            class="inline-flex items-center text-gray-400 bg-gray-100 md:rounded-full md:p-1.5 md:w-8 md:h-8 md:justify-center px-2 py-1 rounded-md cursor-not-allowed text-xs"
+            disabled
+            title="Out of Stock"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:mr-0 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span class="md:hidden">Out of stock</span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>

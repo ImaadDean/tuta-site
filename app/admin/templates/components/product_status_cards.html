@@ -1,0 +1,166 @@
+<!-- Product Status Cards Component -->
+<div class="mb-8 overflow-x-auto pb-4 scrollbar-hide">
+  <div class="flex flex-nowrap gap-4 justify-between lg:justify-start">
+    <!-- Bestsellers Card - Gold Theme -->
+    <div class="flex-none w-60 sm:w-64 lg:w-52 xl:w-60 bg-gradient-to-br from-amber-50 to-white rounded-xl shadow-lg overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-amber-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </div>
+          <span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">Products</span>
+        </div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">Bestsellers</h3>
+        <div class="flex items-baseline">
+          <h2 class="text-2xl font-bold text-gray-800 mr-2" id="bestseller-count">Loading...</h2>
+          <span class="text-xs text-gray-500" id="bestseller-subtext">products</span>
+        </div>
+        <div class="mt-4 pt-3 border-t border-gray-100">
+          <a href="/admin/products?is_bestseller=true" class="text-sm text-amber-600 hover:text-amber-800 flex items-center">
+            View bestsellers
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trending Card - Teal Theme -->
+    <div class="flex-none w-60 sm:w-64 lg:w-52 xl:w-60 bg-gradient-to-br from-teal-50 to-white rounded-xl shadow-lg overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-teal-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <span class="px-2 py-1 bg-teal-100 text-teal-800 text-xs font-medium rounded-full">Products</span>
+        </div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">Trending</h3>
+        <div class="flex items-baseline">
+          <h2 class="text-2xl font-bold text-gray-800 mr-2" id="trending-count">Loading...</h2>
+          <span class="text-xs text-gray-500" id="trending-subtext">products</span>
+        </div>
+        <div class="mt-4 pt-3 border-t border-gray-100">
+          <a href="/admin/products?is_trending=true" class="text-sm text-teal-600 hover:text-teal-800 flex items-center">
+            View trending
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Rated Card - Indigo Theme -->
+    <div class="flex-none w-60 sm:w-64 lg:w-52 xl:w-60 bg-gradient-to-br from-indigo-50 to-white rounded-xl shadow-lg overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-indigo-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+          </div>
+          <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">Products</span>
+        </div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">Top Rated</h3>
+        <div class="flex items-baseline">
+          <h2 class="text-2xl font-bold text-gray-800 mr-2" id="top-rated-count">Loading...</h2>
+          <span class="text-xs text-gray-500" id="top-rated-subtext">products</span>
+        </div>
+        <div class="mt-4 pt-3 border-t border-gray-100">
+          <a href="/admin/products?is_top_rated=true" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center">
+            View top rated
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Arrivals Card - Pink Theme -->
+    <div class="flex-none w-60 sm:w-64 lg:w-52 xl:w-60 bg-gradient-to-br from-pink-50 to-white rounded-xl shadow-lg overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-pink-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+            </svg>
+          </div>
+          <span class="px-2 py-1 bg-pink-100 text-pink-800 text-xs font-medium rounded-full">Products</span>
+        </div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">New Arrivals</h3>
+        <div class="flex items-baseline">
+          <h2 class="text-2xl font-bold text-gray-800 mr-2" id="new-arrivals-count">Loading...</h2>
+          <span class="text-xs text-gray-500" id="new-arrivals-subtext">products</span>
+        </div>
+        <div class="mt-4 pt-3 border-t border-gray-100">
+          <a href="/admin/products?is_new=true" class="text-sm text-pink-600 hover:text-pink-800 flex items-center">
+            View new arrivals
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Elements for product status cards
+    const bestsellerCount = document.getElementById('bestseller-count');
+    const bestsellerSubtext = document.getElementById('bestseller-subtext');
+    const trendingCount = document.getElementById('trending-count');
+    const trendingSubtext = document.getElementById('trending-subtext');
+    const topRatedCount = document.getElementById('top-rated-count');
+    const topRatedSubtext = document.getElementById('top-rated-subtext');
+    const newArrivalsCount = document.getElementById('new-arrivals-count');
+    const newArrivalsSubtext = document.getElementById('new-arrivals-subtext');
+
+    // Hide all subtexts until data is loaded
+    bestsellerSubtext.style.display = 'none';
+    trendingSubtext.style.display = 'none';
+    topRatedSubtext.style.display = 'none';
+    newArrivalsSubtext.style.display = 'none';
+
+    // Fetch product counts
+    fetch('/api/product-counts')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          // Update the product status cards with the fetched data
+          bestsellerCount.textContent = data.counts.bestsellers;
+          trendingCount.textContent = data.counts.trending;
+          topRatedCount.textContent = data.counts.top_rated;
+          newArrivalsCount.textContent = data.counts.new_arrivals;
+
+          // Show subtexts after data is loaded
+          bestsellerSubtext.style.display = '';
+          trendingSubtext.style.display = '';
+          topRatedSubtext.style.display = '';
+          newArrivalsSubtext.style.display = '';
+        } else {
+          throw new Error('Failed to fetch product counts');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching product counts:', error);
+        // Set error message in the product status cards
+        bestsellerCount.textContent = 'Error';
+        trendingCount.textContent = 'Error';
+        topRatedCount.textContent = 'Error';
+        newArrivalsCount.textContent = 'Error';
+      });
+  });
+</script>

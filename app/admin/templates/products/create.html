@@ -5,25 +5,57 @@ block extra_css %}
   href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
 />
 <style>
+  /* Required field indicator */
   .required-field::after {
     content: "*";
     color: #ef4444;
     margin-left: 4px;
   }
 
+  /* Form section styling */
+  .form-section {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+
+  .form-section:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .section-header {
+    background-color: #f9fafb;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .section-body {
+    padding: 1.5rem;
+  }
+
+  /* Image preview styling */
   .image-preview {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     object-fit: cover;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+  }
+
+  .image-preview:hover {
+    transform: scale(1.05);
   }
 
   .preview-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 12px;
+    margin-top: 12px;
   }
 
   .preview-item {
@@ -37,15 +69,23 @@ block extra_css %}
     background-color: #ef4444;
     color: white;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
   }
 
+  .remove-image:hover {
+    background-color: #dc2626;
+    transform: scale(1.1);
+  }
+
+  /* Tags styling */
   .tag-container {
     display: flex;
     flex-wrap: wrap;
@@ -54,29 +94,201 @@ block extra_css %}
   }
 
   .tag-item {
-    background-color: #e5e7eb;
+    background-color: #f3f4f6;
     border-radius: 16px;
-    padding: 4px 12px;
+    padding: 6px 12px;
     display: flex;
     align-items: center;
     font-size: 14px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+  }
+
+  .tag-item:hover {
+    background-color: #e5e7eb;
   }
 
   .tag-remove {
-    margin-left: 6px;
+    margin-left: 8px;
     cursor: pointer;
     font-weight: bold;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    transition: all 0.2s ease;
+  }
+
+  .tag-remove:hover {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  /* Variant styling */
+  .variant-row {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .variant-row:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-color: #d1d5db;
+  }
+
+  .remove-variant {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0.25rem;
+    background-color: #ef4444;
+    color: white;
+    transition: all 0.2s ease;
+  }
+
+  .remove-variant:hover {
+    background-color: #dc2626;
+  }
+
+  /* Custom select styling */
+  .custom-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  /* Custom checkbox styling */
+  .custom-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 0.25rem;
+    border: 2px solid #d1d5db;
+    transition: all 0.2s ease;
+  }
+
+  .custom-checkbox:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+
+  /* Form controls */
+  .form-control {
+    transition: all 0.2s ease;
+    border: 1px solid #d1d5db;
+  }
+
+  .form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  }
+
+  /* File input styling */
+  .file-input-container {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .file-input-button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .file-input-button:hover {
+    background-color: #e5e7eb;
+  }
+
+  .file-input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .file-name {
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  /* Button styling */
+  .btn {
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .btn:hover:after {
+    transform: translateY(0);
+  }
+
+  /* Multi-select styling */
+  .multi-select {
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    max-height: 10rem;
+    overflow-y: auto;
+  }
+
+  .multi-select option {
+    padding: 0.5rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .multi-select option:checked {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .multi-select option:hover {
+    background-color: #f3f4f6;
   }
 </style>
 {% endblock %} {% block content %}
-<div class="bg-white p-6 rounded-lg shadow-md">
+<div class="max-w-5xl mx-auto">
   <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Add New Product</h1>
-    <p class="text-gray-600">Create a new product in your inventory</p>
+    <h1 class="text-3xl font-bold text-gray-900">Add New Product</h1>
+    <p class="text-gray-600 mt-2">Create a new product in your inventory</p>
   </div>
 
   {% if error %}
-  <div class="p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
+  <div class="p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50 border border-red-200" role="alert">
     <span class="font-medium">Error!</span> {{ error }}
   </div>
   {% endif %}
@@ -86,317 +298,505 @@ block extra_css %}
     method="POST"
     enctype="multipart/form-data"
     id="productForm"
+    class="space-y-6"
   >
     <!-- Basic Information -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Basic Information
-      </h2>
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Basic Information
+        </h2>
+      </div>
+      <div class="section-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label
+              for="name"
+              class="block mb-2 text-sm font-medium text-gray-900 required-field"
+              >Product Name</label
+            >
+            <input
+              type="text"
+              id="name"
+              name="name"
+              placeholder="Enter product name"
+              class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+              required
+            />
+          </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label
-            for="name"
-            class="block mb-2 text-sm font-medium text-gray-900 required-field"
-            >Product Name</label
-          >
-          <input
-            type="text"
-            id="name"
-            name="name"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-            required
-          />
+          <div>
+            <label
+              for="brand_id"
+              class="block mb-2 text-sm font-medium text-gray-900"
+              >Brand</label
+            >
+            <select
+              id="brand_id"
+              name="brand_id"
+              class="custom-select form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+            >
+              <option value="">Select a brand (optional)</option>
+              {% for brand in brands %}
+              <option value="{{ brand.id }}">{{ brand.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
 
-        <div>
+        <div class="mt-6">
           <label
-            for="brand_id"
+            for="collection_id"
             class="block mb-2 text-sm font-medium text-gray-900"
-            >Brand</label
+            >Collection</label
           >
           <select
-            id="brand_id"
-            name="brand_id"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            id="collection_id"
+            name="collection_id"
+            class="custom-select form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
           >
-            <option value="">Select a brand (optional)</option>
-            {% for brand in brands %}
-            <option value="{{ brand.id }}">{{ brand.name }}</option>
+            <option value="">Select a collection (optional)</option>
+            {% for collection in collections %}
+            <option value="{{ collection.id }}">{{ collection.name }}</option>
             {% endfor %}
           </select>
         </div>
-      </div>
 
-      <div class="mt-4">
-        <label
-          for="collection_id"
-          class="block mb-2 text-sm font-medium text-gray-900"
-          >Collection</label
-        >
-        <select
-          id="collection_id"
-          name="collection_id"
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-        >
-          <option value="">Select a collection (optional)</option>
-          {% for collection in collections %}
-          <option value="{{ collection.id }}">{{ collection.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+        <div class="mt-6">
+          <label
+            for="short_description"
+            class="block mb-2 text-sm font-medium text-gray-900"
+            >Short Description</label
+          >
+          <input
+            type="text"
+            id="short_description"
+            name="short_description"
+            placeholder="Brief description for product listings"
+            class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+          />
+          <p class="mt-1 text-sm text-gray-500">
+            Brief description for product listings (optional)
+          </p>
+        </div>
 
-      <div class="mt-4">
-        <label
-          for="short_description"
-          class="block mb-2 text-sm font-medium text-gray-900"
-          >Short Description</label
-        >
-        <input
-          type="text"
-          id="short_description"
-          name="short_description"
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-        />
-        <p class="mt-1 text-sm text-gray-500">
-          Brief description for product listings (optional)
-        </p>
-      </div>
-
-      <div class="mb-6">
-        <label for="long_description" class="block text-sm font-medium text-gray-700">Long Description</label>
-        <textarea id="long_description" name="long_description" rows="5"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
-        <p class="mt-1 text-xs text-gray-500">
-          Full product description, can include HTML formatting.
-        </p>
-        <input type="hidden" id="price" name="price" value="0" />
+        <div class="mt-6">
+          <label for="long_description" class="block mb-2 text-sm font-medium text-gray-900">Long Description</label>
+          <textarea
+            id="long_description"
+            name="long_description"
+            rows="6"
+            placeholder="Full product description with details"
+            class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"></textarea>
+          <p class="mt-1 text-sm text-gray-500">
+            Full product description, can include HTML formatting.
+          </p>
+          <input type="hidden" id="price" name="price" value="0" />
+        </div>
       </div>
     </div>
 
     <!-- Perfume Information -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Perfume Information
-      </h2>
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Perfume Information
+        </h2>
+      </div>
+      <div class="section-body">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <input
+              type="checkbox"
+              id="is_perfume"
+              name="is_perfume"
+              class="custom-checkbox w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            <label for="is_perfume" class="ml-3 text-sm font-medium text-gray-900">
+              This is a Perfume Product
+            </label>
+          </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="flex items-center">
-          <input
-            type="checkbox"
-            id="is_perfume"
-            name="is_perfume"
-            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-          />
-          <label for="is_perfume" class="ml-2 text-sm font-medium text-gray-900">
-            This is a Perfume Product
-          </label>
-        </div>
-
-        <div id="scentSelection" class="hidden">
-          <label
-            for="scent_ids"
-            class="block mb-2 text-sm font-medium text-gray-900"
-            >Scents</label
-          >
-          <select
-            id="scent_ids"
-            name="scent_ids"
-            multiple
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-            size="5"
-          >
-            {% for scent in scents %}
-            <option value="{{ scent.id }}">{{ scent.name }}</option>
-            {% endfor %}
-          </select>
-          <p class="mt-1 text-sm text-gray-500">
-            Hold Ctrl/Cmd to select multiple scents
-          </p>
+          <div id="scentSelection" class="hidden">
+            <label
+              for="scent_ids"
+              class="block mb-2 text-sm font-medium text-gray-900"
+              >Scents</label
+            >
+            <select
+              id="scent_ids"
+              name="scent_ids"
+              multiple
+              class="multi-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              size="5"
+            >
+              {% for scent in scents %}
+              <option value="{{ scent.id }}">{{ scent.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="mt-2 text-sm text-gray-500 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Hold Ctrl/Cmd to select multiple scents
+            </p>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Inventory -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Inventory
-      </h2>
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Inventory
+        </h2>
+      </div>
+      <div class="section-body">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label
+              for="stock_quantity"
+              class="block mb-2 text-sm font-medium text-gray-900 required-field"
+              >Items in Stock</label
+            >
+            <div class="relative">
+              <input
+                type="number"
+                id="stock_quantity"
+                name="stock_quantity"
+                min="0"
+                step="1"
+                class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+                value="0"
+                required
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <span class="text-gray-500">units</span>
+              </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">
+              Current available quantity in stock
+            </p>
+          </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label
-            for="stock_quantity"
-            class="block mb-2 text-sm font-medium text-gray-900 required-field"
-            >Items in Stock</label
-          >
-          <input
-            type="number"
-            id="stock_quantity"
-            name="stock_quantity"
-            min="0"
-            step="1"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-            value="0"
-            required
-          />
+          <div class="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex flex-col">
+              <div class="flex items-center mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-medium text-gray-900">Inventory Status</span>
+              </div>
+              <p class="text-sm text-gray-600">
+                Stock status will be automatically set based on the quantity and variants.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Images -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Product Images
-      </h2>
-
-      <div class="mb-4">
-        <label
-          class="block mb-2 text-sm font-medium text-gray-900 required-field"
-          >Upload Images</label
-        >
-        <input
-          type="file"
-          id="images"
-          name="images"
-          accept="image/*"
-          multiple
-          class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-          required
-        />
-        <p class="mt-1 text-sm text-gray-500">
-          Upload up to 10 images (JPG, PNG, GIF, WEBP). Max 5MB each.
-        </p>
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Product Images
+        </h2>
       </div>
+      <div class="section-body">
+        <div class="mb-4">
+          <label
+            class="block mb-2 text-sm font-medium text-gray-900 required-field"
+            >Upload Images</label
+          >
+          <div class="flex flex-col">
+            <div class="file-input-container">
+              <div class="file-input-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Choose Images
+                <input
+                  type="file"
+                  id="images"
+                  name="images"
+                  accept="image/*"
+                  multiple
+                  class="file-input"
+                  required
+                />
+              </div>
+              <span id="file-name" class="file-name">No files selected</span>
+            </div>
+            <p class="mt-3 text-sm text-gray-500 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Upload up to 10 images (JPG, PNG, GIF, WEBP). Max 5MB each.
+            </p>
+          </div>
+        </div>
 
-      <div id="imagePreviewContainer" class="preview-container"></div>
+        <div id="imagePreviewContainer" class="preview-container"></div>
+      </div>
     </div>
 
-    <!-- Categories -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Categories & Tags
-      </h2>
-
-      <div class="mb-4">
-        <label class="block mb-2 text-sm font-medium text-gray-900"
-          >Categories</label
-        >
-        <select
-          id="category_ids"
-          name="category_ids"
-          multiple
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          size="5"
-        >
-          {% for category in categories %}
-          <option value="{{ category.id }}">{{ category.name }}</option>
-          {% endfor %}
-        </select>
-        <p class="mt-1 text-sm text-gray-500">
-          Hold Ctrl/Cmd to select multiple categories
-        </p>
+    <!-- Categories & Tags -->
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Categories & Tags
+        </h2>
       </div>
+      <div class="section-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900">Categories</label>
+            <div class="mb-3">
+              <div class="flex items-center gap-2">
+                <div class="relative flex-grow">
+                  <input
+                    type="text"
+                    id="categorySearch"
+                    placeholder="Search categories..."
+                    class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+                  >
+                  <div id="categoryDropdown" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-40 overflow-y-auto">
+                    <!-- Categories will be populated here by JavaScript -->
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  id="clearCategoriesBtn"
+                  class="btn flex-shrink-0 flex items-center text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-4 py-3 text-center"
+                  title="Clear all categories"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
 
-      <div class="mb-4">
-        <label
-          for="tags_input"
-          class="block mb-2 text-sm font-medium text-gray-900"
-          >Tags</label
-        >
-        <div class="flex items-center">
-          <input
-            type="text"
-            id="tagInput"
-            placeholder="Enter a tag"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          />
-          <button
-            type="button"
-            id="addTagBtn"
-            class="ml-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-          >
-            Add Tag
-          </button>
+            <!-- Selected categories display -->
+            <div id="selectedCategoriesContainer" class="p-3 bg-gray-50 border border-gray-200 rounded-lg min-h-[100px] max-h-[200px] overflow-y-auto">
+              <div class="flex justify-between items-center mb-2">
+                <p id="noCategoriesMessage" class="text-gray-500 text-sm">No categories selected</p>
+                <p id="categoryCount" class="text-xs text-gray-500 hidden">Selected: <span id="selectedCategoryCount">0</span></p>
+              </div>
+              <div id="selectedCategories" class="flex flex-wrap gap-2">
+                <!-- Selected categories will be displayed here -->
+              </div>
+            </div>
+
+            <!-- Hidden select for form submission -->
+            <select
+              id="category_ids"
+              name="category_ids"
+              multiple
+              class="hidden"
+            >
+              {% for category in categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label
+              for="tags_input"
+              class="block mb-2 text-sm font-medium text-gray-900"
+              >Tags</label
+            >
+            <div class="flex items-center">
+              <input
+                type="text"
+                id="tagInput"
+                placeholder="Enter a tag and press Enter or Add"
+                class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+              />
+              <button
+                type="button"
+                id="addTagBtn"
+                class="ml-2 btn text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-3 text-center"
+              >
+                Add
+              </button>
+            </div>
+            <div id="tagContainer" class="tag-container mt-3 min-h-[40px] p-2 border border-gray-200 rounded-lg bg-gray-50"></div>
+            <input type="hidden" id="tags" name="tags" />
+            <p class="mt-2 text-sm text-gray-500">
+              Tags help customers find your products more easily
+            </p>
+          </div>
         </div>
-        <div id="tagContainer" class="tag-container mt-2"></div>
-        <input type="hidden" id="tags" name="tags" />
       </div>
     </div>
 
     <!-- Variants -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Product Variants
-      </h2>
-
-      <div id="variantsContainer">
-        <!-- Variant rows will be added here -->
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Product Variants
+        </h2>
       </div>
+      <div class="section-body">
 
-      <button
-        type="button"
-        id="addVariantBtn"
-        class="mt-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-      >
-        Add Variant
-      </button>
+
+        <!-- Variant Type Selection -->
+        <div class="mb-6 p-5 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div class="flex items-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <h3 class="text-md font-medium text-gray-900">Add Variant Type</h3>
+          </div>
+
+          <p class="mb-3 text-sm text-gray-600">Add variants like Size, Color, Volume, or Material with their specific prices. Each product must have at least one variant.</p>
+
+          <!-- Select Variant Type -->
+          <div id="variantTypeSelectorContainer">
+            <label class="block mb-2 text-sm font-medium text-gray-900">Select Variant Type</label>
+            <div class="flex items-center gap-2">
+              <select id="variantTypeSelector" class="custom-select form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3">
+                <option value="" selected>Select existing or create new</option>
+              </select>
+              <button type="button" id="addNewTypeBtn" class="btn flex-shrink-0 flex items-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-3 text-center" title="Create New Type">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- New Variant Type -->
+          <div id="newTypeInputContainer" class="hidden">
+            <label class="block mb-2 text-sm font-medium text-gray-900">New Variant Type</label>
+            <div class="flex items-center gap-2">
+              <input type="text" id="newTypeInput" placeholder="e.g. Size, Color, Volume" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3">
+              <button type="button" id="saveNewTypeBtn" class="btn flex-shrink-0 flex items-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-3 text-center" title="Save Type">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+              <button type="button" id="cancelNewTypeBtn" class="btn flex-shrink-0 flex items-center text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-4 py-3 text-center" title="Cancel">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Variant Groups Container -->
+        <div id="variantGroupsContainer">
+          <!-- Variant groups will be added here -->
+        </div>
+
+        <!-- Current Variant Values -->
+        <div id="currentVariantGroup" class="mb-6 hidden">
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+              <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <h3 class="text-md font-medium text-gray-900" id="currentVariantTypeDisplay"></h3>
+              </div>
+              <button type="button" id="addVariantValueBtn" class="btn flex items-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Value
+              </button>
+            </div>
+            <div id="variantValuesContainer" class="p-4 space-y-3">
+              <!-- Variant values will be added here -->
+            </div>
+          </div>
+        </div>
+
+
+      </div>
     </div>
 
     <!-- Status -->
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-        Product Status
-      </h2>
-
-      <div>
-        <label for="status" class="block mb-2 text-sm font-medium text-gray-900"
-          >Status</label
-        >
-        <select
-          id="status"
-          name="status"
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-        >
-          <option value="published" selected>Published</option>
-          <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
-        </select>
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Product Status
+        </h2>
       </div>
+      <div class="section-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label for="status" class="block mb-2 text-sm font-medium text-gray-900"
+              >Status</label
+            >
+            <select
+              id="status"
+              name="status"
+              class="custom-select form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+            >
+              <option value="published" selected>Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+            <p class="mt-2 text-sm text-gray-500">
+              Published products are visible to customers
+            </p>
+          </div>
 
-      <div class="mt-4 flex flex-col gap-4">
-        <h3 class="text-sm font-medium text-gray-900">Product Flags</h3>
-        
-        <div class="flex items-center">
-          <input
-            type="checkbox"
-            id="featured"
-            name="featured"
-            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-          />
-          <label for="featured" class="ml-2 text-sm font-medium text-gray-900">
-            Featured Product
-          </label>
-          <span class="ml-2 text-xs text-gray-500">
-            (Featured products appear in special sections on the homepage and category pages)
-          </span>
+          <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h3 class="text-sm font-medium text-gray-900 mb-3">Product Flags</h3>
+            <div class="space-y-4">
+              <div class="flex items-start">
+                <div class="flex items-center h-5">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    name="featured"
+                    class="custom-checkbox w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                </div>
+                <div class="ml-3 text-sm">
+                  <label for="featured" class="font-medium text-gray-900">Featured Product</label>
+                  <p class="text-gray-500">Featured products appear in special sections on the homepage and category pages</p>
+                </div>
+              </div>
+
+              <!-- Hidden inputs for trending and top rated with default value of false -->
+              <input type="hidden" id="is_trending" name="is_trending" value="false">
+              <input type="hidden" id="is_top_rated" name="is_top_rated" value="false">
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Submit Button -->
-    <div class="flex justify-end">
-      <a
-        href="/admin/products"
-        class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
-        >Cancel</a
-      >
-      <button
-        type="submit"
-        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
-      >
-        Create Product
-      </button>
+    <div class="form-section">
+      <div class="section-body flex justify-between items-center">
+        <a
+          href="/admin/products"
+          class="btn flex items-center text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-3"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Products
+        </a>
+        <button
+          type="submit"
+          class="btn flex items-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-3"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Create Product
+        </button>
+      </div>
     </div>
   </form>
 </div>
@@ -404,6 +804,208 @@ block extra_css %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // Categories search and selection functionality
+    const categorySearch = document.getElementById("categorySearch");
+    const categoryDropdown = document.getElementById("categoryDropdown");
+    const selectedCategoriesContainer = document.getElementById("selectedCategoriesContainer");
+    const selectedCategories = document.getElementById("selectedCategories");
+    const noCategoriesMessage = document.getElementById("noCategoriesMessage");
+    const categorySelect = document.getElementById("category_ids");
+    const clearCategoriesBtn = document.getElementById("clearCategoriesBtn");
+
+    // Store all categories
+    const allCategories = [];
+
+    // Get all categories from the select element
+    Array.from(categorySelect.options).forEach(option => {
+      allCategories.push({
+        id: option.value,
+        name: option.textContent
+      });
+    });
+
+    // Function to show the dropdown
+    function showCategoryDropdown() {
+      categoryDropdown.classList.remove("hidden");
+    }
+
+    // Function to hide the dropdown
+    function hideCategoryDropdown() {
+      setTimeout(() => {
+        categoryDropdown.classList.add("hidden");
+      }, 200);
+    }
+
+    // Function to filter categories based on search
+    function filterCategories(searchText) {
+      categoryDropdown.innerHTML = "";
+
+      // Get currently selected category IDs
+      const selectedIds = Array.from(selectedCategories.children).map(badge => badge.dataset.id);
+
+      // Filter categories that match search text and aren't already selected
+      const filteredCategories = allCategories.filter(category =>
+        category.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+
+      if (filteredCategories.length === 0) {
+        const noResults = document.createElement("div");
+        noResults.className = "p-2 text-gray-500 text-sm";
+        noResults.textContent = "No categories found";
+        categoryDropdown.appendChild(noResults);
+        return;
+      }
+
+      filteredCategories.forEach(category => {
+        const item = document.createElement("div");
+
+        // Check if category is already selected
+        const isAlreadySelected = selectedIds.includes(category.id);
+
+        if (isAlreadySelected) {
+          // Show as disabled/selected
+          item.className = "p-2 text-gray-400 bg-gray-50 flex items-center";
+          item.innerHTML = `
+            ${category.name}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          `;
+        } else {
+          // Show as selectable
+          item.className = "p-2 hover:bg-gray-100 cursor-pointer transition-colors";
+          item.textContent = category.name;
+
+          item.addEventListener("click", function() {
+            addCategory(category.id, category.name);
+            categorySearch.value = "";
+            hideCategoryDropdown();
+          });
+        }
+
+        item.dataset.id = category.id;
+        item.dataset.name = category.name;
+
+        categoryDropdown.appendChild(item);
+      });
+    }
+
+    // Function to add a category
+    function addCategory(id, name) {
+      // Check if already selected
+      if (isSelected(id)) return;
+
+      // Hide the no categories message
+      noCategoriesMessage.classList.add("hidden");
+
+      // Show the category count
+      document.getElementById("categoryCount").classList.remove("hidden");
+
+      // Create category badge
+      const badge = document.createElement("div");
+      badge.className = "bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full flex items-center";
+      badge.dataset.id = id;
+      badge.innerHTML = `
+        ${name}
+        <button type="button" class="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none" aria-label="Remove category">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      `;
+
+      // Add remove event
+      const removeBtn = badge.querySelector("button");
+      removeBtn.addEventListener("click", function() {
+        removeCategory(id);
+      });
+
+      // Add to container
+      selectedCategories.appendChild(badge);
+
+      // Update the hidden select
+      updateCategorySelect();
+
+      // Update the count
+      updateCategoryCount();
+
+      // Scroll to show the new badge if needed
+      selectedCategoriesContainer.scrollTop = selectedCategoriesContainer.scrollHeight;
+    }
+
+    // Function to remove a category
+    function removeCategory(id) {
+      const badge = selectedCategories.querySelector(`[data-id="${id}"]`);
+      if (badge) {
+        badge.remove();
+      }
+
+      // Show no categories message if empty
+      if (selectedCategories.children.length === 0) {
+        noCategoriesMessage.classList.remove("hidden");
+        document.getElementById("categoryCount").classList.add("hidden");
+      }
+
+      // Update the hidden select
+      updateCategorySelect();
+
+      // Update the count
+      updateCategoryCount();
+    }
+
+    // Function to update the category count
+    function updateCategoryCount() {
+      const count = selectedCategories.children.length;
+      document.getElementById("selectedCategoryCount").textContent = count;
+    }
+
+    // Function to check if a category is already selected
+    function isSelected(id) {
+      return selectedCategories.querySelector(`[data-id="${id}"]`) !== null;
+    }
+
+    // Function to update the hidden select
+    function updateCategorySelect() {
+      // Deselect all options
+      Array.from(categorySelect.options).forEach(option => {
+        option.selected = false;
+      });
+
+      // Select options based on selected categories
+      const selectedIds = Array.from(selectedCategories.children).map(badge => badge.dataset.id);
+
+      selectedIds.forEach(id => {
+        const option = categorySelect.querySelector(`option[value="${id}"]`);
+        if (option) {
+          option.selected = true;
+        }
+      });
+    }
+
+    // Function to clear all categories
+    function clearAllCategories() {
+      selectedCategories.innerHTML = "";
+      noCategoriesMessage.classList.remove("hidden");
+      document.getElementById("categoryCount").classList.add("hidden");
+      updateCategorySelect();
+      updateCategoryCount();
+    }
+
+    // Event listeners
+    categorySearch.addEventListener("focus", function() {
+      filterCategories(this.value);
+      showCategoryDropdown();
+    });
+
+    categorySearch.addEventListener("input", function() {
+      filterCategories(this.value);
+      showCategoryDropdown();
+    });
+
+    categorySearch.addEventListener("blur", hideCategoryDropdown);
+
+    clearCategoriesBtn.addEventListener("click", clearAllCategories);
+
     // Perfume checkbox functionality
     const isPerfumeCheckbox = document.getElementById("is_perfume");
     const scentSelection = document.getElementById("scentSelection");
@@ -484,13 +1086,19 @@ block extra_css %}
     // Image preview functionality
     const imageInput = document.getElementById("images");
     const previewContainer = document.getElementById("imagePreviewContainer");
+    const fileNameDisplay = document.getElementById("file-name");
 
     imageInput.addEventListener("change", function () {
       previewContainer.innerHTML = "";
 
-      if (this.files) {
+      if (this.files && this.files.length > 0) {
         const maxFiles = 10;
         const files = Array.from(this.files).slice(0, maxFiles);
+
+        // Update file name display
+        fileNameDisplay.textContent = files.length === 1
+          ? files[0].name
+          : `${files.length} files selected`;
 
         files.forEach((file, index) => {
           const reader = new FileReader();
@@ -502,16 +1110,26 @@ block extra_css %}
             const img = document.createElement("img");
             img.src = e.target.result;
             img.className = "image-preview";
+            img.alt = `Preview ${index + 1}`;
 
             const removeBtn = document.createElement("div");
             removeBtn.className = "remove-image";
             removeBtn.innerHTML = "×";
             removeBtn.dataset.index = index;
+            removeBtn.setAttribute("aria-label", "Remove image");
 
             removeBtn.addEventListener("click", function () {
               previewItem.remove();
               // Note: This doesn't actually remove the file from the input
               // In a real implementation, you'd need to create a new FileList
+
+              // Update the file count display
+              const remainingPreviews = document.querySelectorAll('.preview-item').length;
+              if (remainingPreviews === 0) {
+                fileNameDisplay.textContent = "No files selected";
+              } else {
+                fileNameDisplay.textContent = `${remainingPreviews} files selected`;
+              }
             });
 
             previewItem.appendChild(img);
@@ -521,17 +1139,32 @@ block extra_css %}
 
           reader.readAsDataURL(file);
         });
+      } else {
+        fileNameDisplay.textContent = "No files selected";
       }
     });
 
-    // Variants functionality
-    const variantsContainer = document.getElementById("variantsContainer");
-    const addVariantBtn = document.getElementById("addVariantBtn");
-    let variantCount = 0;
+    // Enhanced Variants functionality
+    const variantGroupsContainer = document.getElementById("variantGroupsContainer");
+    const variantTypeSelector = document.getElementById("variantTypeSelector");
+    const addNewTypeBtn = document.getElementById("addNewTypeBtn");
+    const newTypeInputContainer = document.getElementById("newTypeInputContainer");
+    const newTypeInput = document.getElementById("newTypeInput");
+    const saveNewTypeBtn = document.getElementById("saveNewTypeBtn");
+    const cancelNewTypeBtn = document.getElementById("cancelNewTypeBtn");
+    const currentVariantGroup = document.getElementById("currentVariantGroup");
+    const currentVariantTypeDisplay = document.getElementById("currentVariantTypeDisplay");
+    const variantValuesContainer = document.getElementById("variantValuesContainer");
+    const addVariantValueBtn = document.getElementById("addVariantValueBtn");
+    const addVariantGroupBtn = document.getElementById("addVariantGroupBtn");
 
+    // Store variant types and their values
+    const variantTypes = {};
+    let currentVariantType = "";
+    let variantValueCount = 0;
+
+    // Function to update the product price based on all variants
     function updateProductPrice() {
-      // Since we're storing prices in variants, we don't need a separate base price field anymore.
-      // Just keeping a hidden field with a default value for backward compatibility with the form.
       const variantPriceInputs = document.querySelectorAll(".variant-price");
       let highestPrice = 0;
 
@@ -542,74 +1175,334 @@ block extra_css %}
         }
       });
 
-      // Update the hidden price input with a value of 0 - the actual prices are in variants
+      // Update the hidden price input
       document.getElementById("price").value = 0;
     }
 
-    addVariantBtn.addEventListener("click", function () {
-      const variantRow = document.createElement("div");
-      variantRow.className =
-        "variant-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 border border-gray-200 rounded-lg relative";
-      variantRow.dataset.index = variantCount;
+    // Function to show the new type input
+    addNewTypeBtn.addEventListener("click", function() {
+      variantTypeSelectorContainer.classList.add("hidden");
+      newTypeInputContainer.classList.remove("hidden");
+      newTypeInput.focus();
+    });
 
-      variantRow.innerHTML = `
-              <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900">Variant Type</label>
-                <input type="text" name="variant_types" placeholder="e.g. Size, Color" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
-              </div>
-              <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900">Variant Value</label>
-                <input type="text" name="variant_values" placeholder="e.g. Small, Red" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
-              </div>
-              <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900">Price</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <span class="text-gray-500">$</span>
-                  </div>
-                  <input type="number" name="variant_prices" step="0.01" min="0" placeholder="0.00" class="variant-price bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 p-2.5" required>
-                </div>
-              </div>
-              <button type="button" class="remove-variant text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 text-center absolute top-2 right-2">Remove</button>
-            `;
+    // Function to cancel adding a new type
+    cancelNewTypeBtn.addEventListener("click", function() {
+      newTypeInputContainer.classList.add("hidden");
+      variantTypeSelectorContainer.classList.remove("hidden");
+      newTypeInput.value = "";
+    });
 
-      const removeBtn = variantRow.querySelector(".remove-variant");
-      removeBtn.addEventListener("click", function () {
-        variantRow.remove();
+    // Function to save a new variant type
+    saveNewTypeBtn.addEventListener("click", function() {
+      const newType = newTypeInput.value.trim();
+      if (!newType) {
+        alert("Please enter a variant type");
+        return;
+      }
+
+      // Check if type already exists
+      if (variantTypes[newType]) {
+        alert("This variant type already exists");
+        return;
+      }
+
+      // Add to variant types
+      variantTypes[newType] = [];
+
+      // Add to dropdown
+      const option = document.createElement("option");
+      option.value = newType;
+      option.textContent = newType;
+      variantTypeSelector.appendChild(option);
+
+      // Select the new option
+      variantTypeSelector.value = newType;
+
+      // Hide input, show selector
+      newTypeInputContainer.classList.add("hidden");
+      variantTypeSelectorContainer.classList.remove("hidden");
+      newTypeInput.value = "";
+
+      // Set as current variant type
+      setCurrentVariantType(newType);
+    });
+
+    // Function to handle variant type selection
+    variantTypeSelector.addEventListener("change", function() {
+      const selectedType = this.value;
+      if (selectedType) {
+        setCurrentVariantType(selectedType);
+      } else {
+        currentVariantGroup.classList.add("hidden");
+      }
+    });
+
+    // Function to set the current variant type
+    function setCurrentVariantType(type) {
+      currentVariantType = type;
+      currentVariantTypeDisplay.textContent = type;
+      currentVariantGroup.classList.remove("hidden");
+
+      // Clear and rebuild the values container
+      variantValuesContainer.innerHTML = "";
+
+      // Add existing values if any
+      if (variantTypes[type] && variantTypes[type].length > 0) {
+        variantTypes[type].forEach(value => {
+          addVariantValueToUI(value.value, value.price);
+        });
+      }
+    }
+
+    // Function to add a variant value
+    addVariantValueBtn.addEventListener("click", function() {
+      addVariantValueToUI("", "");
+    });
+
+    // Function to add a variant value to the UI
+    function addVariantValueToUI(value = "", price = "") {
+      const valueRow = document.createElement("div");
+      valueRow.className = "variant-value-row bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all hover:shadow-md";
+      valueRow.dataset.index = variantValueCount;
+
+      valueRow.innerHTML = `
+        <div class="flex flex-wrap items-center gap-4 relative">
+          <div class="flex-grow">
+            <label class="block mb-2 text-sm font-medium text-gray-900">Value for ${currentVariantType}</label>
+            <input
+              type="text"
+              name="variant_values"
+              placeholder="e.g. Small, Red, 100ml"
+              class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+              value="${value}"
+              required
+            >
+            <input type="hidden" name="variant_types" value="${currentVariantType}">
+          </div>
+          <div class="w-40">
+            <label class="block mb-2 text-sm font-medium text-gray-900">Price (UGX)</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <span class="text-gray-500">UGX</span>
+              </div>
+              <input
+                type="number"
+                name="variant_prices"
+                step="1"
+                min="0"
+                placeholder="0"
+                class="variant-price form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 p-3"
+                value="${price}"
+                required
+              >
+            </div>
+          </div>
+          <button
+            type="button"
+            class="remove-variant-value absolute top-0 right-0 flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm w-6 h-6 text-center"
+            aria-label="Remove variant value"
+            title="Remove this variant value"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      `;
+
+      // Add event listeners
+      const removeBtn = valueRow.querySelector(".remove-variant-value");
+      removeBtn.addEventListener("click", function() {
+        // Remove from UI
+        valueRow.remove();
+
+        // Update variant types object
+        updateVariantTypesFromUI();
+
+        // Update product price
+        updateProductPrice();
+
+        // If no values left, hide the group
+        if (variantValuesContainer.children.length === 0) {
+          // Remove this type from the dropdown if it has no values
+          removeVariantTypeIfEmpty(currentVariantType);
+        }
+      });
+
+      // Add input event listeners
+      const valueInput = valueRow.querySelector('input[name="variant_values"]');
+      const priceInput = valueRow.querySelector(".variant-price");
+
+      valueInput.addEventListener("input", updateVariantTypesFromUI);
+      priceInput.addEventListener("input", function() {
+        updateVariantTypesFromUI();
         updateProductPrice();
       });
 
-      const priceInput = variantRow.querySelector(".variant-price");
-      priceInput.addEventListener("input", updateProductPrice);
+      // Add to container
+      variantValuesContainer.appendChild(valueRow);
+      variantValueCount++;
 
-      variantsContainer.appendChild(variantRow);
-      variantCount++;
-    });
+      // Focus on the value input if it's empty
+      if (!value) {
+        valueInput.focus();
+      }
 
-    // Form validation
+      // Update variant types object
+      updateVariantTypesFromUI();
+    }
+
+    // Function to update the variant types object from UI
+    function updateVariantTypesFromUI() {
+      // Clear current values for this type
+      variantTypes[currentVariantType] = [];
+
+      // Get all value rows
+      const valueRows = variantValuesContainer.querySelectorAll(".variant-value-row");
+
+      // Update the variant types object
+      valueRows.forEach(row => {
+        const valueInput = row.querySelector('input[name="variant_values"]');
+        const priceInput = row.querySelector(".variant-price");
+
+        if (valueInput.value.trim()) {
+          variantTypes[currentVariantType].push({
+            value: valueInput.value.trim(),
+            price: priceInput.value || 0
+          });
+        }
+      });
+    }
+
+    // Function to remove a variant type if it has no values
+    function removeVariantTypeIfEmpty(type) {
+      if (variantTypes[type].length === 0) {
+        // Remove from dropdown
+        const option = variantTypeSelector.querySelector(`option[value="${type}"]`);
+        if (option) {
+          option.remove();
+        }
+
+        // Remove from variant types object
+        delete variantTypes[type];
+
+        // Hide current variant group
+        currentVariantGroup.classList.add("hidden");
+
+        // Reset selector
+        variantTypeSelector.value = "";
+
+        // Clear current variant type
+        currentVariantType = "";
+      }
+    }
+
+    // Function to reset variant selection
+    function resetVariantSelection() {
+      // Reset the selector to add a new type
+      variantTypeSelector.value = "";
+      currentVariantGroup.classList.add("hidden");
+      currentVariantType = "";
+    }
+
+    // Function to validate variants before form submission
+    function validateVariants() {
+      // Check if there are any variant types
+      if (Object.keys(variantTypes).length === 0) {
+        return false;
+      }
+
+      // Check if all variant types have at least one value
+      for (const type in variantTypes) {
+        if (variantTypes[type].length === 0) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // Initialize with a new variant type
+    setTimeout(() => {
+      addNewTypeBtn.click();
+    }, 500);
+
+    // Form validation with better user feedback
     const productForm = document.getElementById("productForm");
 
     productForm.addEventListener("submit", function (e) {
       // Update product price from variants before submission
       updateProductPrice();
 
-      // Check if at least one variant is added
-      const variantRows = document.querySelectorAll(".variant-row");
-      if (variantRows.length === 0) {
+      // Create a function to show error messages
+      function showErrorMessage(message, focusElement) {
+        const errorMessage = document.createElement("div");
+        errorMessage.className = "p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50 border border-red-200";
+        errorMessage.setAttribute("role", "alert");
+        errorMessage.innerHTML = `
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span class="font-medium">Error!</span> ${message}
+          </div>
+        `;
+
+        // Insert the error at the top of the form
+        productForm.insertBefore(errorMessage, productForm.firstChild);
+
+        // Scroll to the error message
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Focus on the specified element
+        if (focusElement) {
+          focusElement.focus();
+        }
+
+        // Remove the error message after 5 seconds
+        setTimeout(() => {
+          errorMessage.remove();
+        }, 5000);
+      }
+
+      // Check if variants are valid
+      if (!validateVariants()) {
         e.preventDefault();
-        alert("Please add at least one product variant");
+
+        // Show error message
+        showErrorMessage("Please add at least one variant type with at least one value.", addNewTypeBtn);
         return false;
       }
 
       // Check if at least one image is selected
       if (imageInput.files.length === 0) {
         e.preventDefault();
-        alert("Please select at least one product image");
+
+        // Show error message
+        showErrorMessage("Please select at least one product image.", imageInput);
         return false;
       }
 
       return true;
     });
+
+    // Add a variant value when a new type is created
+    function addFirstVariantValue() {
+      setTimeout(() => {
+        if (currentVariantType && variantTypes[currentVariantType].length === 0) {
+          addVariantValueBtn.click();
+        }
+      }, 100);
+    }
+
+    // Add event listener to add first variant value
+    saveNewTypeBtn.addEventListener("click", addFirstVariantValue);
+
+    // Initialize with a new variant type
+    setTimeout(() => {
+      addNewTypeBtn.click();
+    }, 500);
   });
 </script>
 {% endblock %}

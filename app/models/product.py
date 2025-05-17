@@ -117,6 +117,8 @@ class Product(Document):
     featured: bool = False
     is_new: bool = False
     is_bestseller: bool = False
+    is_trending: bool = False
+    is_top_rated: bool = False
     variants: Dict[str, List[VariantValue]] = {}  # Updated to use VariantValue model
     total_stock_lifetime: int = 0
     in_transit: int = 0
@@ -133,10 +135,17 @@ class Product(Document):
             "featured",
             "is_new",
             "is_bestseller",
+            "is_trending",
+            "is_top_rated",
             "brand_id",
             "category_ids",
             "is_perfume",
-            "scent_ids"
+            "scent_ids",
+            "view_count",
+            "rating_avg",
+            "review_count",
+            "sale_count",
+            "created_at"
         ]
 
     # Define validation and example data
@@ -177,12 +186,82 @@ class Product(Document):
     @classmethod
     async def get_published_products(cls) -> List["Product"]:
         """Get all published products"""
-        return await cls.find({"status": "published"}).to_list()
+        return await cls.find({
+            "status": "published",
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).to_list()
 
     @classmethod
     async def get_featured_products(cls) -> List["Product"]:
         """Get featured products for homepage display"""
-        return await cls.find({"status": "published", "featured": True}).to_list()
+        return await cls.find({
+            "status": "published",
+            "featured": True,
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).to_list()
+
+    @classmethod
+    async def get_product_counts(cls):
+        """Get counts of products by special status (bestseller, trending, top rated, new arrivals).
+
+        Returns:
+            Dict with counts for each product type
+        """
+        try:
+            # Base query for published products
+            base_query = {
+                "status": "published",
+                "$and": [
+                    {"name": {"$ne": "template"}},
+                    {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+                ]
+            }
+
+            # Get total count of published products
+            total_count = await cls.find(base_query).count()
+
+            # Get count of bestseller products
+            bestseller_query = base_query.copy()
+            bestseller_query["is_bestseller"] = True
+            bestseller_count = await cls.find(bestseller_query).count()
+
+            # Get count of trending products
+            trending_query = base_query.copy()
+            trending_query["is_trending"] = True
+            trending_count = await cls.find(trending_query).count()
+
+            # Get count of top rated products
+            top_rated_query = base_query.copy()
+            top_rated_query["is_top_rated"] = True
+            top_rated_count = await cls.find(top_rated_query).count()
+
+            # Get count of new arrival products
+            new_arrival_query = base_query.copy()
+            new_arrival_query["is_new"] = True
+            new_arrival_count = await cls.find(new_arrival_query).count()
+
+            return {
+                "total": total_count,
+                "bestsellers": bestseller_count,
+                "trending": trending_count,
+                "top_rated": top_rated_count,
+                "new_arrivals": new_arrival_count
+            }
+        except Exception as e:
+            print(f"Error getting product counts: {str(e)}")
+            return {
+                "total": 0,
+                "bestsellers": 0,
+                "trending": 0,
+                "top_rated": 0,
+                "new_arrivals": 0
+            }
 
     @classmethod
     async def get_bestsellers(cls, limit: int = 8) -> List["Product"]:
@@ -195,10 +274,17 @@ class Product(Document):
             List of bestseller products with sale_count > 0, sorted by sale_count
         """
         try:
-            # Only get products with sale_count > 0
+            # Only get products with sale_count > 0, excluding template products
             print(f"Getting bestsellers with sale_count > 0")
             top_selling = await cls.find(
-                {"status": "published", "sale_count": {"$gt": 0}}
+                {
+                    "status": "published",
+                    "sale_count": {"$gt": 0},
+                    "$and": [
+                        {"name": {"$ne": "template"}},
+                        {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+                    ]
+                }
             ).sort([("sale_count", -1)]).limit(limit).to_list()
 
             print(f"Found {len(top_selling)} products with sale_count > 0")
@@ -219,22 +305,50 @@ class Product(Document):
     @classmethod
     async def get_by_category(cls, category_id: str) -> List["Product"]:
         """Get products by category ID"""
-        return await cls.find({"category_ids": category_id, "status": "published"}).to_list()
+        return await cls.find({
+            "category_ids": category_id,
+            "status": "published",
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).to_list()
 
     @classmethod
     async def get_by_brand(cls, brand_id: str) -> List["Product"]:
         """Get products by brand ID"""
-        return await cls.find({"brand_id": brand_id, "status": "published"}).to_list()
+        return await cls.find({
+            "brand_id": brand_id,
+            "status": "published",
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).to_list()
 
     @classmethod
     async def get_perfumes(cls) -> List["Product"]:
         """Get all perfume products"""
-        return await cls.find({"is_perfume": True, "status": "published"}).to_list()
+        return await cls.find({
+            "is_perfume": True,
+            "status": "published",
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).to_list()
 
     @classmethod
     async def get_by_scent(cls, scent_id: str) -> List["Product"]:
         """Get products by scent ID"""
-        return await cls.find({"scent_id": scent_id, "status": "published"}).to_list()
+        return await cls.find({
+            "scent_id": scent_id,
+            "status": "published",
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).to_list()
 
     # Update timestamps on save
     async def save(self, *args, **kwargs):
@@ -250,6 +364,71 @@ class Product(Document):
         """
         self.sale_count = getattr(self, "sale_count", 0) + quantity
         await self.save()
+
+    @classmethod
+    async def update_all_bestseller_statuses(cls):
+        """Update bestseller status for all products based on sale_count.
+
+        This method identifies bestseller products based on their sale_count and
+        updates their is_bestseller flag accordingly. A product is considered a
+        bestseller if it's in the top 10% of products by sale count or has a sale_count
+        above a minimum threshold.
+
+        Returns:
+            Tuple[int, int]: Count of bestsellers and non-bestsellers updated
+        """
+        try:
+            # Get all published products, excluding templates
+            all_products = await cls.find({
+                "status": "published",
+                "$and": [
+                    {"name": {"$ne": "template"}},
+                    {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+                ]
+            }).to_list()
+
+            if not all_products:
+                print("No products found to update bestseller status")
+                return 0, 0
+
+            # Sort products by sale_count in descending order
+            all_products.sort(key=lambda p: getattr(p, "sale_count", 0), reverse=True)
+
+            # Define thresholds for bestseller status
+            min_sale_count = 1  # Minimum sales to be considered a bestseller
+
+            # Set a fixed number of bestsellers (4) as requested
+            bestseller_count = 4
+
+            # Track counts for reporting
+            updated_bestsellers = 0
+            updated_non_bestsellers = 0
+
+            # Update all products
+            for i, product in enumerate(all_products):
+                sale_count = getattr(product, "sale_count", 0)
+                is_bestseller = getattr(product, "is_bestseller", False)
+
+                # Determine if this product should be a bestseller
+                should_be_bestseller = (i < bestseller_count) and (sale_count >= min_sale_count)
+
+                # Only update if the status needs to change
+                if should_be_bestseller != is_bestseller:
+                    product.is_bestseller = should_be_bestseller
+                    await product.save()
+
+                    if should_be_bestseller:
+                        updated_bestsellers += 1
+                        print(f"Marked as bestseller: {product.name} (sale_count: {sale_count})")
+                    else:
+                        updated_non_bestsellers += 1
+                        print(f"Removed bestseller status: {product.name} (sale_count: {sale_count})")
+
+            return updated_bestsellers, updated_non_bestsellers
+
+        except Exception as e:
+            print(f"Error updating bestseller statuses: {str(e)}")
+            return 0, 0
 
     # Method to get categories for this product
     async def get_categories(self) -> List:

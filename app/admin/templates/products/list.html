@@ -2,6 +2,20 @@
 {% block title %}Products{% endblock %}
 
 {% block content %}
+
+  <!-- Product Status Cards -->
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl font-semibold">Product Status</h2>
+    <a href="/admin/products" class="text-sm text-gray-600 hover:text-gray-800 flex items-center">
+      Manage products
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </a>
+  </div>
+
+  <!-- Include Product Status Cards Component -->
+  {% include 'components/product_status_cards.html' %}
 <div class="container mx-auto">
   <!-- Header section with title and add button -->
   <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">

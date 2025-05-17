@@ -86,6 +86,8 @@ async def create_product(
     tags: Optional[str] = Form(None),
     status: str = Form("published"),
     featured: bool = Form(False),
+    is_trending: bool = Form(False),
+    is_top_rated: bool = Form(False),
     is_perfume: bool = Form(False),
     scent_id: Optional[str] = Form(None),
     variant_types: List[str] = Form([]),
@@ -150,6 +152,8 @@ async def create_product(
             "tags": tag_list,
             "status": status,
             "featured": featured,
+            "is_trending": is_trending,
+            "is_top_rated": is_top_rated,
             "is_perfume": is_perfume,
             "scent_id": scent_id if scent_id and scent_id.strip() else None,
             "last_restocked": datetime.now(),
@@ -330,6 +334,8 @@ async def edit_product(
     tags: Optional[str] = Form(None),
     status: str = Form("published"),
     featured: bool = Form(False),
+    is_trending: bool = Form(False),
+    is_top_rated: bool = Form(False),
     collection_id: Optional[str] = Form(None),
     is_perfume: bool = Form(False),
     scent_ids: List[str] = Form([]),
@@ -406,6 +412,8 @@ async def edit_product(
         product.tags = tag_list
         product.status = status
         product.featured = featured
+        product.is_trending = is_trending
+        product.is_top_rated = is_top_rated
         product.is_perfume = is_perfume
         product.scent_ids = [scent_id for scent_id in scent_ids if scent_id and scent_id.strip()]
         product.variants = variants

@@ -59,101 +59,41 @@ async def get_products(
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
     sort: Optional[str] = None,
-    db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_active_client)
 ):
-    # Build the query for products
-    query = {"status": "published"}
+    """
+    Render the products page with client-side data loading
+    """
+    # Map sort parameter to API sort_by and sort_order
+    sort_mapping = {
+        None: {"sort_by": "created_at", "sort_order": "desc"},  # Default: newest first
+        "price_low": {"sort_by": "price", "sort_order": "asc"},
+        "price_high": {"sort_by": "price", "sort_order": "desc"},
+        "rating": {"sort_by": "rating_avg", "sort_order": "desc"},
+        "popular": {"sort_by": "view_count", "sort_order": "desc"}
+    }
 
-    # Apply category filter if provided
-    if category and category != "All":
-        query["tags"] = {"$regex": category, "$options": "i"}
+    # Get sort parameters
+    sort_params = sort_mapping.get(sort, sort_mapping[None])
 
-    # Apply price filters if provided - using variants pricing
-    # This is a simplification since variant pricing is more complex
-    # A more accurate approach would require a more complex aggregation query
+    # Get all categories for the sidebar
+    # We'll fetch this from the API in the client-side, but for now we'll pass an empty list
+    category_options = ["All"]  # This will be populated client-side
 
-    # Decide the sort field and direction
-    sort_field = "-created_at"  # Default sort by newest
-    if sort == "price_low":
-        sort_field = "base_price"  # Assuming base_price is indexed or calculated
-    elif sort == "price_high":
-        sort_field = "-base_price"
-    elif sort == "rating":
-        sort_field = "-rating_avg"
-    elif sort == "popular":
-        sort_field = "-view_count"  # Sort by popularity using view_count
-
-    # Add debug logging
-    logger.info(f"Fetching products with query: {query}, sort: {sort_field}")
-
-    # Execute the query
-    products_db = await Product.find(query).sort(sort_field).to_list()
-
-    # Log the results
-    logger.info(f"Found {len(products_db)} products")
-    if len(products_db) > 0:
-        logger.info(f"First product: {products_db[0].name}, ID: {products_db[0].id}")
-    else:
-        logger.warning("No products found. This may indicate a database connection issue or filtering problem.")
-        # Let's verify database connection by running a basic query
-        try:
-            await db.command("ping")
-            logger.info("Database connection is working")
-        except Exception as e:
-            logger.error(f"Database connection failed: {str(e)}")
-
-    # Get all unique categories from the product tags
-    all_tags = []
-    for product in products_db:
-        if product.tags:
-            all_tags.extend(product.tags)
-
-    # Remove duplicates using a set
-    unique_tags = set(all_tags)
-
-    # Format categories for display
-    category_options = ["All"] + sorted(list(unique_tags))
-
-    # Format products for the template
-    formatted_products = []
-    for product in products_db:
-        # Get primary category from tags
-        primary_category = product.tags[0] if product.tags and len(product.tags) > 0 else "Uncategorized"
-
-        # Ensure we have at least one image or use default
-        image_urls = product.image_urls or []
-        if not image_urls:
-            image_urls = [DEFAULT_IMAGE_PATH]
-
-        # Get price from variants
-        price = product.base_price
-
-        formatted_products.append({
-            "id": str(product.id),
-            "name": product.name,
-            "price": price,
-            "rating": getattr(product, 'rating_avg', 0),
-            "review_count": getattr(product, 'review_count', 0),
-            "view_count": getattr(product, 'view_count', 0),  # Add view_count
-            "category": primary_category,
-            "image_urls": image_urls,
-            "bestseller": getattr(product, 'is_bestseller', False),
-            "new": getattr(product, 'is_new', False),
-            "stock": getattr(product, 'stock', 0)
-        })
-
-    # Return the rendered template
+    # Return the template with minimal initial data
+    # The actual products will be loaded via API
     return templates.TemplateResponse(
         "products/products.html",
         {
             "request": request,
-            "perfumes": formatted_products,
+            "perfumes": [],  # Empty initial list, will be loaded via API
             "category_options": category_options,
             "current_category": category or "All",
             "min_price": min_price,
-            "max_price": max_price,
+            "max_price": max_price or 1000000,  # Default max price
             "current_sort": sort,
+            "sort_by": sort_params["sort_by"],
+            "sort_order": sort_params["sort_order"],
             "current_user": current_user
         }
     )

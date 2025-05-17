@@ -88,6 +88,15 @@ async def get_products(
         # Always filter by status for client-side (usually "published")
         query_filter["status"] = status
 
+        # Filter out template products and ensure valid products
+        query_filter["$and"] = [
+            {"name": {"$ne": "template"}},
+            {"id": {"$not": {"$regex": "template", "$options": "i"}}},
+            {"name": {"$ne": ""}},  # Ensure name is not empty
+            {"image_urls": {"$ne": []}},  # Ensure image_urls is not empty
+            {"image_urls.0": {"$exists": True}}  # Ensure at least one image exists
+        ]
+
         # Add category filter if provided
         if category_id:
             query_filter["category_ids"] = category_id
@@ -229,6 +238,15 @@ async def get_products(
                     # Just use the first category ID as primary for now
                     primary_category = product.category_ids[0]
 
+                # Get brand name if available
+                brand_name = None
+                if hasattr(product, "brand_id") and product.brand_id:
+                    from app.models.brand import Brand
+                    # Try to find brand using both id and _id fields
+                    brand = await Brand.find_one({"$or": [{"id": product.brand_id}, {"_id": product.brand_id}]})
+                    if brand:
+                        brand_name = brand.name
+
                 # Add formatted product to results
                 formatted_products.append({
                     "id": product.id,
@@ -247,11 +265,14 @@ async def get_products(
                     "featured": getattr(product, "featured", False),
                     "is_new": getattr(product, "is_new", False),
                     "is_bestseller": getattr(product, "is_bestseller", False),
+                    "is_trending": getattr(product, "is_trending", False),
+                    "is_top_rated": getattr(product, "is_top_rated", False),
                     "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
                     "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
                     "category": primary_category,
                     "category_ids": getattr(product, "category_ids", []),
                     "brand_id": getattr(product, "brand_id", None),
+                    "brand_name": brand_name,
                     "tags": getattr(product, "tags", []),
                     "variants": formatted_variants,
                     "has_variants": len(formatted_variants) > 0,
@@ -312,16 +333,26 @@ async def get_products(
             http_status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
 # Get new arrivals (most recently created products)
 @router.get("/products/new-arrivals")
 @timed_cache(seconds=60)  # Cache results for 60 seconds
 async def get_new_arrivals(
-    limit: int = Query(8, ge=1, le=20)
+    limit: int = Query(4, ge=1, le=20)
 ):
     """API endpoint to fetch new arrivals (most recently created products)"""
     try:
         # Get products sorted by creation date (newest first)
-        query_filter = {"status": "published"}
+        query_filter = {
+            "status": "published",
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}},
+                {"name": {"$ne": ""}},  # Ensure name is not empty
+                {"image_urls": {"$ne": []}},  # Ensure image_urls is not empty
+                {"image_urls.0": {"$exists": True}}  # Ensure at least one image exists
+            ]
+        }
         products = await Product.find(query_filter).sort([("created_at", -1)]).limit(limit).to_list()
 
         # Format products for client display
@@ -394,6 +425,8 @@ async def get_new_arrivals(
                     # Just use the first category ID as primary for now
                     primary_category = product.category_ids[0]
 
+
+
                 # Add formatted product to results
                 formatted_products.append({
                     "id": product.id,
@@ -411,9 +444,12 @@ async def get_new_arrivals(
                     "featured": getattr(product, "featured", False),
                     "is_new": getattr(product, "is_new", False),
                     "is_bestseller": getattr(product, "is_bestseller", False),
+                    "is_trending": getattr(product, "is_trending", False),
+                    "is_top_rated": getattr(product, "is_top_rated", False),
                     "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
                     "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
                     "category": primary_category,
+                    "brand_id": getattr(product, "brand_id", None),
                     "variants": formatted_variants,
                     "has_variants": len(formatted_variants) > 0,
                     "created_at": getattr(product, "created_at", None)
@@ -440,17 +476,71 @@ async def get_new_arrivals(
             http_status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+# Get product counts by special status
+@router.get("/product-counts")
+@timed_cache(seconds=300)  # Cache results for 5 minutes
+async def get_client_product_counts():
+    """API endpoint to get counts of products by special status (bestseller, trending, top rated, new arrivals)"""
+    try:
+        # Get product counts
+        counts = await Product.get_product_counts()
+
+        return create_json_response(
+            {
+                "success": True,
+                "counts": counts
+            },
+            http_status.HTTP_200_OK
+        )
+    except Exception as e:
+        logger.error(f"Error getting product counts: {str(e)}")
+        return create_json_response(
+            {
+                "success": False,
+                "message": "An error occurred while fetching product counts"
+            },
+            http_status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 # Get trending products (highest view count)
 @router.get("/products/trending")
 @timed_cache(seconds=60)  # Cache results for 60 seconds
 async def get_trending_products(
-    limit: int = Query(8, ge=1, le=20)
+    limit: int = Query(4, ge=1, le=20)
 ):
     """API endpoint to fetch trending products (highest view count)"""
     try:
-        # Get products sorted by view count (highest first)
-        query_filter = {"status": "published"}
-        products = await Product.find(query_filter).sort([("view_count", -1)]).limit(limit).to_list()
+        # Get products marked as trending or sorted by view count if not enough
+        query_filter = {
+            "status": "published",
+            "is_trending": True,
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}},
+                {"name": {"$ne": ""}},  # Ensure name is not empty
+                {"image_urls": {"$ne": []}},  # Ensure image_urls is not empty
+                {"image_urls.0": {"$exists": True}}  # Ensure at least one image exists
+            ]
+        }
+        products = await Product.find(query_filter).limit(limit).to_list()
+
+        # If we don't have enough trending products, fall back to sorting by view count
+        if len(products) < limit:
+            remaining = limit - len(products)
+            # Get products with highest view count that aren't already marked as trending
+            fallback_query = {
+                "status": "published",
+                "is_trending": {"$ne": True},
+                "$and": [
+                    {"name": {"$ne": "template"}},
+                    {"id": {"$not": {"$regex": "template", "$options": "i"}}},
+                    {"name": {"$ne": ""}},
+                    {"image_urls": {"$ne": []}},
+                    {"image_urls.0": {"$exists": True}}
+                ]
+            }
+            fallback_products = await Product.find(fallback_query).sort([("view_count", -1)]).limit(remaining).to_list()
+            products.extend(fallback_products)
 
         # Format products for client display
         formatted_products = []
@@ -522,6 +612,8 @@ async def get_trending_products(
                     # Just use the first category ID as primary for now
                     primary_category = product.category_ids[0]
 
+
+
                 # Add formatted product to results
                 formatted_products.append({
                     "id": product.id,
@@ -539,9 +631,12 @@ async def get_trending_products(
                     "featured": getattr(product, "featured", False),
                     "is_new": getattr(product, "is_new", False),
                     "is_bestseller": getattr(product, "is_bestseller", False),
+                    "is_trending": getattr(product, "is_trending", False),
+                    "is_top_rated": getattr(product, "is_top_rated", False),
                     "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
                     "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
                     "category": primary_category,
+                    "brand_id": getattr(product, "brand_id", None),
                     "variants": formatted_variants,
                     "has_variants": len(formatted_variants) > 0,
                     "created_at": getattr(product, "created_at", None)
@@ -572,12 +667,22 @@ async def get_trending_products(
 @router.get("/products/top-rated")
 @timed_cache(seconds=60)  # Cache results for 60 seconds
 async def get_top_rated_products(
-    limit: int = Query(8, ge=1, le=20)
+    limit: int = Query(4, ge=1, le=20)
 ):
     """API endpoint to fetch top rated products (highest rating)"""
     try:
         # Get products sorted by rating (highest first)
-        query_filter = {"status": "published", "rating_avg": {"$gt": 0}}
+        query_filter = {
+            "status": "published",
+            "rating_avg": {"$gt": 0},
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}},
+                {"name": {"$ne": ""}},  # Ensure name is not empty
+                {"image_urls": {"$ne": []}},  # Ensure image_urls is not empty
+                {"image_urls.0": {"$exists": True}}  # Ensure at least one image exists
+            ]
+        }
         products = await Product.find(query_filter).sort([("rating_avg", -1)]).limit(limit).to_list()
 
         # Format products for client display
@@ -650,6 +755,8 @@ async def get_top_rated_products(
                     # Just use the first category ID as primary for now
                     primary_category = product.category_ids[0]
 
+
+
                 # Add formatted product to results
                 formatted_products.append({
                     "id": product.id,
@@ -667,9 +774,12 @@ async def get_top_rated_products(
                     "featured": getattr(product, "featured", False),
                     "is_new": getattr(product, "is_new", False),
                     "is_bestseller": getattr(product, "is_bestseller", False),
+                    "is_trending": getattr(product, "is_trending", False),
+                    "is_top_rated": getattr(product, "is_top_rated", False),
                     "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
                     "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
                     "category": primary_category,
+                    "brand_id": getattr(product, "brand_id", None),
                     "variants": formatted_variants,
                     "has_variants": len(formatted_variants) > 0,
                     "created_at": getattr(product, "created_at", None)
@@ -809,6 +919,15 @@ async def get_product_by_id(
             # Just use the first category ID as primary for now
             primary_category = product.category_ids[0]
 
+        # Get brand name if available
+        brand_name = None
+        if hasattr(product, "brand_id") and product.brand_id:
+            from app.models.brand import Brand
+            # Try to find brand using both id and _id fields
+            brand = await Brand.find_one({"$or": [{"id": product.brand_id}, {"_id": product.brand_id}]})
+            if brand:
+                brand_name = brand.name
+
         # Format product for response
         formatted_product = {
             "id": product.id,
@@ -827,12 +946,15 @@ async def get_product_by_id(
             "featured": getattr(product, "featured", False),
             "is_new": getattr(product, "is_new", False),
             "is_bestseller": getattr(product, "is_bestseller", False),
+            "is_trending": getattr(product, "is_trending", False),
+            "is_top_rated": getattr(product, "is_top_rated", False),
             "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
             "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
             "category": primary_category,
             "variants": formatted_variants,
             "has_variants": len(formatted_variants) > 0,
             "brand_id": getattr(product, "brand_id", None),
+            "brand_name": brand_name,
             "category_ids": getattr(product, "category_ids", []),
             "tags": getattr(product, "tags", []),
             "created_at": getattr(product, "created_at", None),
@@ -1325,7 +1447,7 @@ async def get_category_by_id(
 @router.get("/bestseller-products")
 @timed_cache(seconds=300)  # Cache results for 5 minutes
 async def get_bestseller_products(
-    limit: int = Query(8, ge=1, le=20)
+    limit: int = Query(4, ge=1, le=20)
 ):
     """API endpoint to fetch bestseller products for homepage based on sale_count > 0"""
     try:
@@ -1418,6 +1540,8 @@ async def get_bestseller_products(
                 "featured": getattr(product, "featured", False),
                 "is_new": getattr(product, "is_new", False),
                 "is_bestseller": getattr(product, "is_bestseller", False),
+                "is_trending": getattr(product, "is_trending", False),
+                "is_top_rated": getattr(product, "is_top_rated", False),
                 "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
                 "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
                 "category": primary_category,
@@ -1450,7 +1574,14 @@ async def get_featured_products(
     """API endpoint to fetch featured products for homepage"""
     try:
         # Get featured products
-        featured_products = await Product.find({"status": "published", "featured": True}).limit(limit).to_list()
+        featured_products = await Product.find({
+            "status": "published",
+            "featured": True,
+            "$and": [
+                {"name": {"$ne": "template"}},
+                {"id": {"$not": {"$regex": "template", "$options": "i"}}}
+            ]
+        }).limit(limit).to_list()
 
         # Format products for response
         formatted_products = []
@@ -1534,6 +1665,8 @@ async def get_featured_products(
                 "featured": getattr(product, "featured", False),
                 "is_new": getattr(product, "is_new", False),
                 "is_bestseller": getattr(product, "is_bestseller", False),
+                "is_trending": getattr(product, "is_trending", False),
+                "is_top_rated": getattr(product, "is_top_rated", False),
                 "new": getattr(product, "is_new", False),  # Duplicate for template compatibility
                 "bestseller": getattr(product, "is_bestseller", False),  # Duplicate for template compatibility
                 "category": primary_category,

@@ -14,6 +14,12 @@ from app.models.category import Category
 from app.auth.jwt import get_current_active_admin
 from app.database import get_db
 from app.admin.products import router
+from app.tasks import (
+    update_bestseller_products, update_trending_products,
+    update_top_rated_products, update_new_arrivals,
+    get_task_status, get_all_tasks_status
+)
+import asyncio
 
 # Helper function to serialize datetime objects for JSON responses
 def serialize_datetime(obj: Any) -> Any:
@@ -797,4 +803,133 @@ async def manage_product_stock(
         return JSONResponse(
             status_code=500,
             content={"success": False, "detail": f"Failed to manage product stock: {str(e)}"}
+        )
+
+
+# Product status management endpoints
+@router.post("/api/update-bestsellers", response_class=JSONResponse)
+async def trigger_bestseller_update(
+    request: Request,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """API endpoint to manually trigger the bestseller update task"""
+    try:
+        # Create a task to run the bestseller update
+        task = asyncio.create_task(update_bestseller_products())
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "Bestseller update task started. This may take a few moments to complete."
+        })
+    except Exception as e:
+        logger.error(f"Error triggering bestseller update: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": f"Failed to trigger bestseller update: {str(e)}"}
+        )
+
+
+@router.post("/api/update-trending", response_class=JSONResponse)
+async def trigger_trending_update(
+    request: Request,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """API endpoint to manually trigger the trending products update task"""
+    try:
+        # Create a task to run the trending update
+        task = asyncio.create_task(update_trending_products())
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "Trending products update task started. This may take a few moments to complete."
+        })
+    except Exception as e:
+        logger.error(f"Error triggering trending products update: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": f"Failed to trigger trending products update: {str(e)}"}
+        )
+
+
+@router.post("/api/update-top-rated", response_class=JSONResponse)
+async def trigger_top_rated_update(
+    request: Request,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """API endpoint to manually trigger the top rated products update task"""
+    try:
+        # Create a task to run the top rated update
+        task = asyncio.create_task(update_top_rated_products())
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "Top rated products update task started. This may take a few moments to complete."
+        })
+    except Exception as e:
+        logger.error(f"Error triggering top rated products update: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": f"Failed to trigger top rated products update: {str(e)}"}
+        )
+
+
+@router.post("/api/update-new-arrivals", response_class=JSONResponse)
+async def trigger_new_arrivals_update(
+    request: Request,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """API endpoint to manually trigger the new arrivals update task"""
+    try:
+        # Create a task to run the new arrivals update
+        task = asyncio.create_task(update_new_arrivals())
+
+        return JSONResponse(content={
+            "success": True,
+            "message": "New arrivals update task started. This may take a few moments to complete."
+        })
+    except Exception as e:
+        logger.error(f"Error triggering new arrivals update: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": f"Failed to trigger new arrivals update: {str(e)}"}
+        )
+
+
+@router.get("/api/background-tasks/status", response_class=JSONResponse)
+async def get_background_tasks_status(
+    request: Request,
+    current_user: User = Depends(get_current_active_admin)
+):
+    """API endpoint to get the status of all background tasks"""
+    try:
+        tasks_status = get_all_tasks_status()
+
+        return JSONResponse(content={
+            "success": True,
+            "tasks": tasks_status
+        })
+    except Exception as e:
+        logger.error(f"Error getting background tasks status: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": f"Failed to get background tasks status: {str(e)}"}
+        )
+
+
+@router.get("/api/product-counts", response_class=JSONResponse)
+async def get_product_counts():
+    """API endpoint to get counts of products by special status (bestseller, trending, top rated, new arrivals)"""
+    try:
+        # Get product counts
+        counts = await Product.get_product_counts()
+
+        return JSONResponse(content={
+            "success": True,
+            "counts": counts
+        })
+    except Exception as e:
+        logger.error(f"Error getting product counts: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": f"Failed to get product counts: {str(e)}"}
         )

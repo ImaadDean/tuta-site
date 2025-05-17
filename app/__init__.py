@@ -15,7 +15,7 @@ from app.admin.brand import router as admin_brand_router
 from app.admin.scent import router as admin_scent_router
 from app.admin.contact_info import router as admin_contact_info_router
 from app.admin.message import router as admin_message_router
-from app.database import initialize_mongodb, close_mongodb_connection, lifespan_mongodb_connection
+from app.database import get_db
 from app.jinja_filters import setup_jinja_filters
 from fastapi.templating import Jinja2Templates
 import logging
@@ -24,7 +24,10 @@ from app.client.main.routes import router as client_main_router
 from app.client.products import router as client_products_router
 from app.client.checkout import router as client_checkout_router
 from app.client.orders import router as client_orders_router
+from app.client.category import router as client_category_router
+from app.client.category.api import router as client_category_api_router
 from app.client.main.api import router as client_api_router
+from app.lifecycle import lifespan
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -42,10 +45,10 @@ def patched_init(self, *args, **kwargs):
 Jinja2Templates.__init__ = patched_init
 
 def create_app():
-    # Use the lifespan context manager for database connections
+    # Use our custom lifespan context manager
     app = FastAPI(
         title="Perfumes & More",
-        lifespan=lifespan_mongodb_connection
+        lifespan=lifespan
     )
 
     # Configure CORS
@@ -83,6 +86,8 @@ def create_app():
     app.include_router(client_products_router)
     app.include_router(client_checkout_router)
     app.include_router(client_orders_router)
+    app.include_router(client_category_router)
+    app.include_router(client_category_api_router)
     app.include_router(client_api_router)
     # No need for these event handlers anymore, they're handled by the lifespan
     # context manager

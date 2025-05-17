@@ -4,38 +4,195 @@
 
 {% block content %}
 <div class="bg-white"
-  x-data='{
-    products: {{ perfumes|tojson }},
-    activeFilters: [],
-    priceRange: [0, {{ max_price|int }}],
-    originalPriceRange: [0, {{ max_price|int }}],
-    toggleFilter(filter) {
-      if (this.activeFilters.includes(filter)) {
-        this.activeFilters = this.activeFilters.filter(f => f !== filter);
-      } else {
-        this.activeFilters.push(filter);
-      }
-    },
-    toggleFavorite(productId) {
-      if ($store && $store.favorites) {
-        $store.favorites.toggleFavorite(productId);
-      } else {
-        console.error("Favorites store not accessible");
-      }
-    },
-    isFilterActive(filter) {
-      return this.activeFilters.includes(filter);
-    },
-    resetFilters() {
-      this.activeFilters = [];
-      this.priceRange = [...this.originalPriceRange];
-    },
-    applyPriceFilter(min, max) {
-      this.priceRange = [min, max];
-    }
-  }'
+  x-data="productsPage"
 >
-  <div class="container mx-auto px-4 py-8">
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('productsPage', () => ({
+      products: [],
+      categories: ["All"],
+      loading: true,
+      error: null,
+      activeFilters: [],
+      priceRange: [{{ min_price|default(0)|int }}, {{ max_price|int }}],
+      originalPriceRange: [{{ min_price|default(0)|int }}, {{ max_price|int }}],
+      currentCategory: "{{ current_category }}",
+      sortBy: "{{ sort_by }}",
+      sortOrder: "{{ sort_order }}",
+      currentPage: 1,
+      totalPages: 1,
+      limit: 12,
+
+      init() {
+        this.loadProducts();
+        this.loadCategories();
+      },
+
+      loadProducts() {
+        this.loading = true;
+        this.error = null;
+
+        // Build the API URL with filters
+        let url = "/api/products?limit=" + this.limit + "&skip=" + ((this.currentPage - 1) * this.limit);
+
+        // Add sort parameters
+        url += "&sort_by=" + this.sortBy + "&sort_order=" + this.sortOrder;
+
+        // Add category filter if not "All"
+        if (this.currentCategory && this.currentCategory !== "All") {
+          // Check if it's a category name or ID
+          if (typeof this.currentCategory === 'object' && this.currentCategory.id) {
+            url += "&category_id=" + encodeURIComponent(this.currentCategory.id);
+          } else {
+            // If it's just a string (name), use it as a tag filter
+            url += "&tags=" + encodeURIComponent(this.currentCategory);
+          }
+        }
+
+        // Add price range filters
+        if (this.priceRange[0] > 0) {
+          url += "&min_price=" + this.priceRange[0];
+        }
+        if (this.priceRange[1] < this.originalPriceRange[1]) {
+          url += "&max_price=" + this.priceRange[1];
+        }
+
+        // Fetch products from API
+        fetch(url)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error("Failed to load products");
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              // Filter out any invalid products (missing required fields or images)
+              const validProducts = (data.products || []).filter(product =>
+                product &&
+                product.id &&
+                product.name &&
+                product.price !== undefined &&
+                (product.image_urls && product.image_urls.length > 0) &&
+                product.name !== 'template' && // Exclude template products
+                !product.id.includes('template') && // Exclude products with template in ID
+                product.name.trim() !== '' // Ensure product name is not empty
+              );
+
+              console.log('Original products count:', data.products ? data.products.length : 0);
+              console.log('Valid products count:', validProducts.length);
+
+              // Additional check to ensure no empty products
+              this.products = validProducts.filter(p =>
+                p && Object.keys(p).length > 0 &&
+                p.image_urls && p.image_urls.filter(url => url && url.trim() !== '').length > 0
+              );
+
+              console.log('Final filtered products count:', this.products.length);
+              this.totalPages = Math.ceil((this.products.length || 0) / this.limit);
+            } else {
+              this.error = data.message || "Failed to load products";
+              this.products = [];
+            }
+          })
+          .catch(error => {
+            console.error("Error loading products:", error);
+            this.error = "Failed to load products. Please try again.";
+            this.products = [];
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+      },
+
+      loadCategories() {
+        // Fetch categories from API
+        fetch("/api/categories")
+          .then(response => {
+            if (!response.ok) {
+              throw new Error("Failed to load categories");
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (data.success) {
+              // Extract category names from the category objects
+              const categoryNames = data.categories.map(cat => cat.name);
+              // Add "All" at the beginning and sort the rest
+              this.categories = ["All"].concat(categoryNames.sort());
+            }
+          })
+          .catch(error => {
+            console.error("Error loading categories:", error);
+          });
+      },
+
+      setCategory(category) {
+        this.currentCategory = category;
+        this.currentPage = 1;
+        this.loadProducts();
+      },
+
+      setSorting(sortBy, sortOrder) {
+        this.sortBy = sortBy;
+        this.sortOrder = sortOrder;
+        this.currentPage = 1;
+        this.loadProducts();
+      },
+
+      applyPriceFilter() {
+        this.currentPage = 1;
+        this.loadProducts();
+      },
+
+      resetFilters() {
+        this.activeFilters = [];
+        this.priceRange = [...this.originalPriceRange];
+        this.currentCategory = "All";
+        this.sortBy = "created_at";
+        this.sortOrder = "desc";
+        this.currentPage = 1;
+        this.loadProducts();
+      },
+
+      nextPage() {
+        if (this.currentPage < this.totalPages) {
+          this.currentPage++;
+          this.loadProducts();
+        }
+      },
+
+      prevPage() {
+        if (this.currentPage > 1) {
+          this.currentPage--;
+          this.loadProducts();
+        }
+      },
+
+      toggleFavorite(productId) {
+        if ($store && $store.favorites) {
+          $store.favorites.toggleFavorite(productId);
+        } else {
+          console.error("Favorites store not accessible");
+        }
+      },
+
+      toggleFilter(filter) {
+        if (this.activeFilters.includes(filter)) {
+          this.activeFilters = this.activeFilters.filter(f => f !== filter);
+        } else {
+          this.activeFilters.push(filter);
+        }
+      },
+
+      isFilterActive(filter) {
+        return this.activeFilters.includes(filter);
+      }
+    }));
+  });
+</script>
+  <div class="container mx-auto px-4 ">
     <!-- Breadcrumb -->
     <nav class="flex text-sm text-gray-600 mb-6" aria-label="Breadcrumb">
       <ol class="inline-flex items-center space-x-1 md:space-x-3">
@@ -52,13 +209,13 @@
         </li>
       </ol>
     </nav>
-    
+
     <!-- Shop header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Our Products</h1>
       <p class="text-gray-600 max-w-3xl">Browse our selection of premium products and find something special.</p>
   </div>
-  
+
     <!-- Filters and Products Grid -->
     <div class="flex flex-col lg:flex-row gap-8">
       <!-- Sidebar Filters -->
@@ -66,243 +223,394 @@
         <div class="sticky top-24">
           <div class="border border-gray-200 rounded-lg p-4 mb-6">
             <h3 class="font-medium text-gray-900 mb-3">Categories</h3>
-            <div class="space-y-2">
-              {% for category in category_options %}
-              <div>
-                <a 
-                  href="/products?category={{ category }}" 
-                  class="block text-sm {% if category == current_category %}text-blue-600 font-medium{% else %}text-gray-600 hover:text-blue-600{% endif %}"
-                >{{ category }}</a>
+
+            <!-- Loading skeleton for categories -->
+            <template x-if="loading && categories.length <= 1">
+              <div class="space-y-2 animate-pulse">
+                <template x-for="i in 5" :key="i">
+                  <div class="h-5 bg-gray-200 rounded w-3/4"></div>
+                </template>
               </div>
-              {% endfor %}
+            </template>
+
+            <!-- Categories list -->
+            <div class="space-y-2" x-show="categories.length > 1">
+              <template x-for="category in categories" :key="category">
+                <div>
+                  <a
+                    href="#"
+                    @click.prevent="setCategory(category)"
+                    class="block text-sm"
+                    :class="currentCategory === category ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-blue-600'"
+                    x-text="category"
+                  ></a>
+                </div>
+              </template>
             </div>
           </div>
-          
+
           <div class="border border-gray-200 rounded-lg p-4 mb-6">
             <h3 class="font-medium text-gray-900 mb-3">Price Range</h3>
-            <form id="price-filter-form" action="/products" method="get">
-              <!-- Keep the current category in the form -->
-              {% if current_category != 'All' %}
-              <input type="hidden" name="category" value="{{ current_category }}">
-              {% endif %}
-              
-              <!-- Keep the current sort in the form -->
-              {% if current_sort %}
-              <input type="hidden" name="sort" value="{{ current_sort }}">
-              {% endif %}
-              
-              <div class="space-y-3">
-                <div>
-                  <label for="min_price" class="block text-sm text-gray-600 mb-1">Min Price (UGX)</label>
-                  <input 
-                    type="number" 
-                    id="min_price" 
-                    name="min_price" 
-                    value="{{ min_price or '' }}" 
-                    placeholder="Min price" 
-                    class="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                </div>
-                <div>
-                  <label for="max_price" class="block text-sm text-gray-600 mb-1">Max Price (UGX)</label>
-                  <input 
-                    type="number" 
-                    id="max_price" 
-                    name="max_price" 
-                    value="{{ max_price or '' }}" 
-                    placeholder="Max price" 
-                    class="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+            <div class="space-y-3">
+              <div>
+                <label for="min_price" class="block text-sm text-gray-600 mb-1">Min Price (UGX)</label>
+                <input
+                  type="number"
+                  id="min_price"
+                  x-model.number="priceRange[0]"
+                  placeholder="Min price"
+                  class="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
               </div>
-              <button 
-                type="submit" 
-                  class="mt-2 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              <div>
+                <label for="max_price" class="block text-sm text-gray-600 mb-1">Max Price (UGX)</label>
+                <input
+                  type="number"
+                  id="max_price"
+                  x-model.number="priceRange[1]"
+                  placeholder="Max price"
+                  class="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+              </div>
+              <button
+                @click.prevent="applyPriceFilter()"
+                class="mt-2 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                :disabled="loading"
               >
-                Apply Filter
+                <span x-show="!loading">Apply Filter</span>
+                <span x-show="loading" class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading...
+                </span>
               </button>
-              </div>
-            </form>
+              <button
+                @click.prevent="resetFilters()"
+                class="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm"
+                :disabled="loading"
+              >
+                Reset Filters
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      
+
       <!-- Products Grid -->
       <div class="flex-1">
         <!-- Sort options -->
         <div class="flex justify-between items-center mb-6">
-          <div class="text-sm text-gray-500">{{ perfumes|length }} products</div>
+          <div class="text-sm text-gray-500">
+            <span x-show="!loading" x-text="products.length + ' products'"></span>
+            <span x-show="loading" class="animate-pulse">Loading...</span>
+          </div>
           <div>
             <label for="sortOrder" class="text-sm text-gray-600 mr-2">Sort by:</label>
-            <select 
-              id="sortOrder" 
-              onchange="location = this.value;" 
+            <select
+              id="sortOrder"
+              @change="
+                const option = $event.target.options[$event.target.selectedIndex];
+                const [sortBy, sortOrder] = option.value.split(':');
+                setSorting(sortBy, sortOrder);
+              "
               class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              :disabled="loading"
             >
-              <option value="/products{% if current_category != 'All' %}?category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if not current_sort %}selected{% endif %}>
+              <option value="created_at:desc" :selected="sortBy === 'created_at' && sortOrder === 'desc'">
                 Newest
               </option>
-              <option value="/products?sort=price_low{% if current_category != 'All' %}&category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if current_sort == 'price_low' %}selected{% endif %}>
+              <option value="price:asc" :selected="sortBy === 'price' && sortOrder === 'asc'">
                 Price: Low to High
               </option>
-              <option value="/products?sort=price_high{% if current_category != 'All' %}&category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if current_sort == 'price_high' %}selected{% endif %}>
+              <option value="price:desc" :selected="sortBy === 'price' && sortOrder === 'desc'">
                 Price: High to Low
               </option>
-              <option value="/products?sort=rating{% if current_category != 'All' %}&category={{ current_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}" {% if current_sort == 'rating' %}selected{% endif %}>
+              <option value="rating_avg:desc" :selected="sortBy === 'rating_avg' && sortOrder === 'desc'">
                 Top Rated
+              </option>
+              <option value="view_count:desc" :selected="sortBy === 'view_count' && sortOrder === 'desc'">
+                Most Popular
               </option>
             </select>
           </div>
         </div>
-        
+
         <!-- Product grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {% for product in perfumes %}
-          <div 
-            class="group bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
-            x-data="{ 
-              currentImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
-              defaultImage: '{{ product.image_urls[0] if product.image_urls else '' }}',
-              alternateImage: '{{ product.image_urls[1] if product.image_urls|length > 1 else product.image_urls[0] if product.image_urls else '' }}'
-            }"
-            data-product-id="{{ product.id }}"
-            data-product-name="{{ product.name }}"
-          >
-            <!-- Product badges -->
-            <div class="relative">
-              {% if product.new %}
-              <span class="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-xs font-medium px-2 py-1 rounded">New</span>
-              {% endif %}
-              {% if product.bestseller %}
-              <span class="absolute top-2 {% if product.new %}right-2{% else %}left-2{% endif %} z-10 bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded">Bestseller</span>
-              {% endif %}
-            </div>
+          <!-- Loading skeletons -->
+          <template x-if="loading">
+            <template x-for="i in 6" :key="i">
+              <div class="bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm animate-pulse">
+                <!-- Image skeleton -->
+                <div class="h-64 bg-gray-200 relative">
+                  <!-- Badge skeletons -->
+                  <div class="absolute top-2 left-2 h-5 w-12 bg-gray-300 rounded"></div>
+                  <div class="absolute top-2 right-2 h-5 w-16 bg-gray-300 rounded"></div>
+                </div>
 
-            <!-- Image section -->
-            <a href="/products/{{ product.id }}" class="block relative overflow-hidden">
-              <div 
-                class="h-64 overflow-hidden bg-gray-50"
-                @mouseenter="currentImage = alternateImage"
-                @mouseleave="currentImage = defaultImage"
+                <!-- Content skeleton -->
+                <div class="p-4">
+                  <div class="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div class="flex items-center mt-1 mb-2">
+                    <div class="flex space-x-1">
+                      <div class="w-4 h-4 bg-gray-200 rounded"></div>
+                      <div class="w-4 h-4 bg-gray-200 rounded"></div>
+                      <div class="w-4 h-4 bg-gray-200 rounded"></div>
+                      <div class="w-4 h-4 bg-gray-200 rounded"></div>
+                      <div class="w-4 h-4 bg-gray-200 rounded"></div>
+                    </div>
+                    <div class="h-4 bg-gray-200 rounded w-8 ml-1"></div>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="h-6 bg-gray-200 rounded w-1/3"></div>
+                    <div class="flex gap-2">
+                      <div class="w-9 h-9 bg-gray-200 rounded-full"></div>
+                      <div class="w-9 h-9 bg-gray-200 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </template>
+
+          <!-- Error message -->
+          <template x-if="!loading && error">
+            <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-12 px-4 bg-gray-50 rounded-lg">
+              <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-900 mb-1">Error Loading Products</h3>
+              <p class="text-gray-500 mb-4" x-text="error"></p>
+              <button
+                @click="loadProducts()"
+                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {% if product.image_urls and product.image_urls|length > 0 %}
-                <img
-                  :src="currentImage || '/static/images/product-placeholder.jpg'"
-                  alt="{{ product.name }}"
-                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              {% else %}
-                <div class="w-full h-full bg-gray-100 flex items-center justify-center">
-                  <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
+                Try Again
+              </button>
+            </div>
+          </template>
+
+          <!-- Actual products -->
+          <template x-if="!loading && !error" x-for="product in products" :key="product.id">
+            <template x-if="product && product.id && product.name && product.price !== undefined && product.image_urls && product.image_urls.length > 0">
+              <div
+                class="group bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
+                x-data="{
+                  currentImage: product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : '/static/images/product-placeholder.jpg',
+                  defaultImage: product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : '/static/images/product-placeholder.jpg',
+                  alternateImage: product.image_urls && product.image_urls.length > 1 ? product.image_urls[1] : (product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : '/static/images/product-placeholder.jpg')
+                }"
+            >
+              <!-- Product badges -->
+              <div class="relative">
+                <template x-if="product.is_new || product.new">
+                  <span class="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-xs font-medium px-2 py-1 rounded">New</span>
+                </template>
+                <template x-if="product.is_bestseller || product.bestseller">
+                  <span class="absolute top-2 right-2 z-10 bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded">Bestseller</span>
+                </template>
               </div>
-              {% endif %}
-              </div>
-              
-              <!-- Out of stock overlay if needed -->
-              {% if product.stock <= 0 %}
-              <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div class="bg-white text-gray-800 font-medium px-4 py-2 rounded-full text-sm transform rotate-12">
-                  Out of Stock
+
+              <!-- Image section -->
+              <a :href="'/products/' + product.id" class="block relative overflow-hidden">
+                <div
+                  class="h-64 overflow-hidden bg-gray-50"
+                  @mouseenter="currentImage = alternateImage"
+                  @mouseleave="currentImage = defaultImage"
+                >
+                  <img
+                    :src="currentImage"
+                    :alt="product.name"
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
                 </div>
-              </div>
-              {% endif %}
-            </a>
-            
-            <!-- Content section -->
-            <div class="p-4">
-              <a href="/category/{{ product.category }}" class="text-xs text-blue-600 hover:underline">{{ product.category }}</a>
-              <a href="/products/{{ product.id }}" class="block mt-2">
-                <h3 class="text-base font-medium text-gray-900 hover:text-blue-600 line-clamp-1">{{ product.name }}</h3>
+
+                <!-- Out of stock overlay if needed -->
+                <template x-if="product.stock <= 0 || !product.in_stock">
+                  <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div class="bg-white text-gray-800 font-medium px-4 py-2 rounded-full text-sm transform rotate-12">
+                      Out of Stock
+                    </div>
+                  </div>
+                </template>
               </a>
-              
-              <div class="flex items-center mt-1 mb-2">
-                <div class="flex">
-                  {% for i in range(5) %}
-                  <svg class="w-4 h-4 {% if i < product.rating|int %}text-amber-400{% else %}text-gray-300{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+
+              <!-- Content section -->
+              <div class="p-4">
+                <a :href="'/categories/' + product.category" class="text-xs text-blue-600 hover:underline" x-text="product.category || 'Uncategorized'"></a>
+                <a :href="'/products/' + product.id" class="block mt-2">
+                  <h3 class="text-base font-medium text-gray-900 hover:text-blue-600 line-clamp-1" x-text="product.name"></h3>
+                </a>
+
+                <div class="flex items-center mt-1 mb-2">
+                  <div class="flex">
+                    <template x-for="i in 5" :key="i">
+                      <svg class="w-4 h-4" :class="i <= Math.round(product.rating_avg || 0) ? 'text-amber-400' : 'text-gray-300'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    </template>
+                  </div>
+                  <span class="text-xs text-gray-500 ml-1" x-text="'(' + (product.review_count || 0) + ')'"></span>
+                </div>
+
+                <div class="mt-3 flex items-center justify-between">
+                  <div class="flex flex-col">
+                    <span class="text-lg font-semibold text-gray-900" x-text="'UGX ' + (product.price ? product.price.toLocaleString() : '0')"></span>
+                  </div>
+
+                  <div class="flex gap-2">
+                    <template x-if="product.stock > 0 || product.in_stock">
+                      <button
+                        @click="
+                          if (product && product.id && product.name && product.price) {
+                            $store.cart.addToCart({
+                              id: product.id,
+                              name: product.name,
+                              price: product.price,
+                              image: product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : '/static/images/product-placeholder.jpg',
+                              stock: product.stock || 10,
+                              variants: product.variants && product.variants.length > 0 ? {
+                                [product.variants[0].type]: {
+                                  id: product.variants[0].id,
+                                  value: product.variants[0].value,
+                                  display_name: product.variants[0].display_name || product.variants[0].value,
+                                  price: product.variants[0].price || product.price
+                                }
+                              } : {},
+                              variantId: product.variants && product.variants.length > 0 ? product.variants[0].id : null,
+                              quantity: 1
+                            });
+                            $dispatch('show-notification', {
+                              message: product.name + ' added to cart',
+                              type: 'success'
+                            });
+                          }"
+                        class="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+                        title="Add to cart"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </button>
+                    </template>
+
+                    <template x-if="product.stock <= 0 && !product.in_stock">
+                      <button
+                        class="p-2 text-gray-400 bg-gray-100 rounded-full cursor-not-allowed"
+                        disabled
+                        title="Out of Stock"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </button>
+                    </template>
+
+                    <!-- Favorite button -->
+                    <button
+                      @click="
+                        if (product && product.id) {
+                          $store.favorites.toggleFavorite(product.id);
+                          $dispatch('show-notification', {
+                            message: $store.favorites.isFavorite(product.id) ?
+                              'Added to favorites' :
+                              'Removed from favorites',
+                            type: $store.favorites.isFavorite(product.id) ? 'success' : 'info'
+                          });
+                        }
+                      "
+                      class="p-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+                      :class="$store.favorites.isFavorite(product.id) ? 'text-red-500' : 'text-gray-400'"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="$store.favorites.isFavorite(product.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </template>
+          </template>
+        </div>
+
+        <!-- Empty state -->
+        <template x-if="!loading && !error && products.length === 0">
+          <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-12 px-4 bg-gray-50 rounded-lg">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-1">No products found</h3>
+            <p class="text-gray-500 mb-4">Try adjusting your filters or browse our categories for more options.</p>
+            <button
+              @click="resetFilters()"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Reset filters
+            </button>
+          </div>
+        </template>
+
+        <!-- Pagination -->
+        <div class="mt-8 flex items-center justify-between border-t border-gray-200 pt-6" x-show="!loading && !error && products.length > 0">
+          <div class="flex flex-1 justify-between sm:hidden">
+            <button
+              @click="prevPage()"
+              :disabled="currentPage <= 1"
+              :class="currentPage <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
+              class="relative inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium"
+            >
+              Previous
+            </button>
+            <button
+              @click="nextPage()"
+              :disabled="currentPage >= totalPages"
+              :class="currentPage >= totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
+              class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium"
+            >
+              Next
+            </button>
+          </div>
+          <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm text-gray-700">
+                Showing page <span class="font-medium" x-text="currentPage"></span> of <span class="font-medium" x-text="totalPages"></span>
+              </p>
+            </div>
+            <div>
+              <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  @click="prevPage()"
+                  :disabled="currentPage <= 1"
+                  :class="currentPage <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-500 hover:bg-gray-50'"
+                  class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0"
+                >
+                  <span class="sr-only">Previous</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
                   </svg>
-                  {% endfor %}
-                </div>
-                <span class="text-xs text-gray-500 ml-1">({{ product.review_count }})</span>
-              </div>
-              
-              <div class="mt-3 flex items-center justify-between">
-                <div class="flex flex-col">
-                  <span class="text-lg font-semibold text-gray-900">UGX {{ '{:,}'.format(product.price) }}</span>
-                </div>
-                
-                <div class="flex gap-2">
-                  {% if product.stock > 0 %}
-                  <button
-                    @click="$store.cart.addToCart({ 
-                      id: '{{ product.id }}', 
-                      name: '{{ product.name }}', 
-                      price: {{ product.price }},
-                      image: '{{ product.image_urls[0] if product.image_urls else '' }}',
-                      stock: {{ product.stock }}
-                    });
-                    $dispatch('show-notification', {
-                      message: '{{ product.name }} added to cart',
-                      type: 'success'
-                    });"
-                    class="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
-                    title="Add to cart"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </button>
-                  {% else %}
-                  <button 
-                    class="p-2 text-gray-400 bg-gray-100 rounded-full cursor-not-allowed"
-                    disabled
-                    title="Out of Stock"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </button>
-                  {% endif %}
-                  
-                  <!-- Favorite button -->
-                <button 
-                    @click="
-                      $store.favorites.toggleFavorite('{{ product.id }}');
-                      $dispatch('show-notification', {
-                        message: $store.favorites.isFavorite('{{ product.id }}') ?
-                          'Added to favorites' :
-                          'Removed from favorites',
-                        type: $store.favorites.isFavorite('{{ product.id }}') ? 'success' : 'info'
-                      });
-                    "
-                    class="p-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
-                    :class="$store.favorites.isFavorite('{{ product.id }}') ? 'text-red-500' : 'text-gray-400'"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="$store.favorites.isFavorite('{{ product.id }}') ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
                 </button>
-                </div>
-              </div>
+                <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                  <span x-text="currentPage"></span>
+                </span>
+                <button
+                  @click="nextPage()"
+                  :disabled="currentPage >= totalPages"
+                  :class="currentPage >= totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-500 hover:bg-gray-50'"
+                  class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0"
+                >
+                  <span class="sr-only">Next</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </nav>
             </div>
           </div>
-          {% endfor %}
-  </div>
-  
-        <!-- Empty state -->
-        {% if perfumes|length == 0 %}
-        <div class="text-center py-12 px-4 bg-gray-50 rounded-lg">
-          <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
-          </svg>
-          <h3 class="text-lg font-medium text-gray-900 mb-1">No products found</h3>
-          <p class="text-gray-500 mb-4">Try adjusting your filters or browse our categories for more options.</p>
-          <a href="/products" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            View all products
-          </a>
         </div>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -349,7 +657,7 @@
     >
       <div class="flex items-center">
         <!-- Success Icon -->
-        <div 
+        <div
           x-show="notification.type === 'success'"
           class="flex-shrink-0 w-7 h-7 bg-green-100 rounded-full flex items-center justify-center mr-3"
         >
@@ -357,9 +665,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
           </svg>
         </div>
-        
+
         <!-- Info Icon -->
-        <div 
+        <div
           x-show="notification.type === 'info'"
           class="flex-shrink-0 w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center mr-3"
         >
@@ -367,9 +675,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
-        
+
         <!-- Warning Icon -->
-        <div 
+        <div
           x-show="notification.type === 'warning'"
           class="flex-shrink-0 w-7 h-7 bg-yellow-100 rounded-full flex items-center justify-center mr-3"
         >
@@ -377,9 +685,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
           </svg>
         </div>
-        
+
         <!-- Error Icon -->
-        <div 
+        <div
           x-show="notification.type === 'error'"
           class="flex-shrink-0 w-7 h-7 bg-red-100 rounded-full flex items-center justify-center mr-3"
         >
@@ -387,8 +695,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </div>
-        
-        <span 
+
+        <span
           class="text-sm font-medium"
           :class="{
             'text-green-800': notification.type === 'success',
@@ -399,9 +707,9 @@
           x-text="notification.message"
         ></span>
       </div>
-      
-      <button 
-        @click="remove(notification.id)" 
+
+      <button
+        @click="remove(notification.id)"
         class="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-500 focus:outline-none"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -411,4 +719,4 @@
     </div>
   </template>
 </div>
-{% endblock %} 
+{% endblock %}
