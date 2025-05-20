@@ -138,8 +138,23 @@
         <!-- PRODUCT MINIMAL -->
         <div class="flex-1 lg:pl-6">
           <!-- Featured Sections (New Arrivals, Trending, Top Rated) -->
-          <div class="mb-8">
-            <div class="flex flex-nowrap overflow-x-auto scrollbar-thin gap-6 pb-2 md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible">
+          <div class="mb-8 relative">
+            <!-- Scroll indicators (only visible on small screens) -->
+            <div class="md:hidden flex justify-between absolute -top-4 right-0 text-gray-400 text-xs items-center">
+              <span>Scroll</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+
+            <div
+              x-data="featuredSectionsScroller"
+              @mouseenter="pauseScroll"
+              @mouseleave="resumeScroll"
+              @touchstart="pauseScroll"
+              @touchend="resumeScroll"
+              class="flex flex-nowrap overflow-x-auto scrollbar-thin gap-6 pb-2 md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible"
+              x-ref="scrollContainer">
               <!-- NEW ARRIVALS SECTION -->
               <div class="w-full min-w-[280px] flex-shrink-0 md:min-w-0 md:flex-shrink-1" x-data="newArrivalsSection">
                 <h2
@@ -777,6 +792,248 @@
             .finally(() => {
               this.loading = false;
             });
+        }
+      }));
+
+      // Featured Sections Auto-Scroller
+      Alpine.data('featuredSectionsScroller', () => ({
+        scrollInterval: null,
+        currentSectionIndex: 0,
+        sectionElements: [],
+        sectionWidths: [],
+        sectionPositions: [],
+        pauseTimeout: null,
+        scrollPaused: false,
+        isSmallScreen: false,
+        isScrolling: false,
+        userScrolling: false,
+        lastScrollPosition: 0,
+        scrollSnapTimeout: null,
+
+        init() {
+          // Check if we're on a small screen (below md breakpoint)
+          this.isSmallScreen = window.innerWidth < 768;
+
+          // Create bound methods
+          this.handleResize = this.handleResize.bind(this);
+          this.handleScroll = this.handleScroll.bind(this);
+
+          // Only initialize on small screens
+          if (this.isSmallScreen) {
+            this.$nextTick(() => {
+              this.initSections();
+              this.startScroll();
+            });
+          }
+
+          // Update on window resize
+          window.addEventListener('resize', this.handleResize);
+
+          // Listen for scroll events to detect user scrolling
+          const container = this.$refs.scrollContainer;
+          if (container) {
+            container.addEventListener('scroll', this.handleScroll);
+          }
+        },
+
+        handleResize() {
+          const wasSmallScreen = this.isSmallScreen;
+          this.isSmallScreen = window.innerWidth < 768;
+
+          // Start or stop scrolling based on screen size change
+          if (!wasSmallScreen && this.isSmallScreen) {
+            this.initSections();
+            this.startScroll();
+          } else if (wasSmallScreen && !this.isSmallScreen) {
+            this.stopScroll();
+          }
+        },
+
+        initSections() {
+          const container = this.$refs.scrollContainer;
+          if (!container) return;
+
+          // Get all direct children that are sections
+          this.sectionElements = Array.from(container.children).filter(
+            child => child.classList.contains('min-w-[280px]')
+          );
+
+          // Calculate section widths and positions
+          this.sectionWidths = this.sectionElements.map(section => section.offsetWidth);
+
+          // Calculate the position of each section
+          let position = 0;
+          this.sectionPositions = this.sectionWidths.map(width => {
+            const pos = position;
+            position += width + 24; // width + gap (6 * 4px = 24px)
+            return pos;
+          });
+
+          this.currentSectionIndex = 0;
+          this.lastScrollPosition = container.scrollLeft;
+        },
+
+        scrollToSection(index, immediate = false) {
+          const container = this.$refs.scrollContainer;
+          if (!container || index >= this.sectionPositions.length) return;
+
+          this.isScrolling = true;
+
+          container.scrollTo({
+            left: this.sectionPositions[index],
+            behavior: immediate ? 'auto' : 'smooth'
+          });
+
+          this.currentSectionIndex = index;
+
+          // Clear any existing pause timeout
+          if (this.pauseTimeout) {
+            clearTimeout(this.pauseTimeout);
+          }
+
+          // Set a timeout to mark scrolling as complete
+          setTimeout(() => {
+            this.isScrolling = false;
+          }, immediate ? 0 : 500);
+        },
+
+        startScroll() {
+          if (this.scrollInterval || !this.isSmallScreen) return;
+
+          const container = this.$refs.scrollContainer;
+          if (!container) return;
+
+          // Initialize sections if not already done
+          if (this.sectionElements.length === 0) {
+            this.initSections();
+          }
+
+          this.scrollInterval = setInterval(() => {
+            // Don't scroll if paused, user is scrolling, or we're already animating a scroll
+            if (this.scrollPaused || this.userScrolling || this.isScrolling) return;
+
+            // Move to the next section
+            const nextIndex = (this.currentSectionIndex + 1) % this.sectionElements.length;
+            this.scrollToSection(nextIndex);
+
+            // Pause at this section for a moment
+            this.scrollPaused = true;
+            this.pauseTimeout = setTimeout(() => {
+              this.scrollPaused = false;
+            }, 3000); // 3 second pause at each section
+
+          }, 500); // Check if we should scroll every 500ms
+        },
+
+        stopScroll() {
+          if (this.scrollInterval) {
+            clearInterval(this.scrollInterval);
+            this.scrollInterval = null;
+          }
+
+          if (this.pauseTimeout) {
+            clearTimeout(this.pauseTimeout);
+            this.pauseTimeout = null;
+          }
+
+          if (this.scrollSnapTimeout) {
+            clearTimeout(this.scrollSnapTimeout);
+            this.scrollSnapTimeout = null;
+          }
+        },
+
+        handleScroll() {
+          const container = this.$refs.scrollContainer;
+          if (!container || this.isScrolling) return;
+
+          // Detect if this is a user-initiated scroll
+          const currentPosition = container.scrollLeft;
+          const scrollDelta = Math.abs(currentPosition - this.lastScrollPosition);
+
+          if (scrollDelta > 5 && !this.isScrolling) {
+            this.userScrolling = true;
+            this.scrollPaused = true;
+
+            // Clear any existing snap timeout
+            if (this.scrollSnapTimeout) {
+              clearTimeout(this.scrollSnapTimeout);
+            }
+
+            // Set a timeout to snap to the nearest section after user stops scrolling
+            this.scrollSnapTimeout = setTimeout(() => {
+              this.snapToNearestSection();
+              this.userScrolling = false;
+
+              // Resume auto-scrolling after a delay
+              setTimeout(() => {
+                this.scrollPaused = false;
+              }, 3000);
+            }, 200);
+          }
+
+          this.lastScrollPosition = currentPosition;
+        },
+
+        snapToNearestSection() {
+          const container = this.$refs.scrollContainer;
+          if (!container || this.sectionPositions.length === 0) return;
+
+          const currentPosition = container.scrollLeft;
+          const containerWidth = container.clientWidth;
+
+          // Find the section that's most visible
+          let nearestIndex = 0;
+          let smallestDistance = Infinity;
+
+          // Check if we're more than halfway through the current section
+          const currentSectionEndPos = this.sectionPositions[this.currentSectionIndex] +
+                                      this.sectionWidths[this.currentSectionIndex];
+
+          if (currentPosition > this.sectionPositions[this.currentSectionIndex] +
+              (this.sectionWidths[this.currentSectionIndex] / 2)) {
+            // We're more than halfway through, go to next section
+            nearestIndex = (this.currentSectionIndex + 1) % this.sectionElements.length;
+          } else {
+            // Find the nearest section based on scroll position
+            this.sectionPositions.forEach((position, index) => {
+              const distance = Math.abs(position - currentPosition);
+              if (distance < smallestDistance) {
+                smallestDistance = distance;
+                nearestIndex = index;
+              }
+            });
+          }
+
+          this.scrollToSection(nearestIndex);
+        },
+
+        pauseScroll() {
+          this.scrollPaused = true;
+          this.userScrolling = true;
+        },
+
+        resumeScroll() {
+          // Add a delay before resuming to prevent immediate scrolling after user interaction
+          setTimeout(() => {
+            this.userScrolling = false;
+            this.snapToNearestSection();
+
+            // Resume auto-scrolling after a delay
+            setTimeout(() => {
+              this.scrollPaused = false;
+            }, 2000);
+          }, 200);
+        },
+
+        // Clean up when component is destroyed
+        destroy() {
+          this.stopScroll();
+          window.removeEventListener('resize', this.handleResize);
+
+          const container = this.$refs.scrollContainer;
+          if (container) {
+            container.removeEventListener('scroll', this.handleScroll);
+          }
         }
       }));
     });
