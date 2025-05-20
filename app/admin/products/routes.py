@@ -173,11 +173,31 @@ async def create_product(
                 try:
                     category = await Category.find_one({"id": cat_id})
                     if category:
-                        category.product_count += 1
-                        await category.save()
+                        await category.increment_product_count()
                 except Exception as e:
                     print(f"Error updating category count: {str(e)}")
                     continue
+
+        # Update product count for brand
+        if product.brand_id:
+            try:
+                brand = await Brand.find_one({"id": product.brand_id})
+                if brand:
+                    await brand.increment_product_count()
+
+                    # Update product count for collections associated with this brand
+                    if brand.collection_ids:
+                        for coll_id in brand.collection_ids:
+                            try:
+                                collection = await Collection.find_one({"id": coll_id})
+                                if collection:
+                                    await collection.increment_product_count()
+                            except Exception as e:
+                                print(f"Error updating collection count: {str(e)}")
+                                continue
+            except Exception as e:
+                print(f"Error updating brand count: {str(e)}")
+                pass
 
         # Redirect to product list
         return RedirectResponse(
@@ -400,6 +420,10 @@ async def edit_product(
         if tags:
             tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
 
+        # Store original values for comparison
+        original_brand_id = product.brand_id
+        original_category_ids = product.category_ids.copy() if product.category_ids else []
+
         # Update product fields
         product.name = name
         product.short_description = short_description
@@ -418,6 +442,74 @@ async def edit_product(
         product.scent_ids = [scent_id for scent_id in scent_ids if scent_id and scent_id.strip()]
         product.variants = variants
         product.updated_at = datetime.now()
+
+        # Handle changes in brand
+        if original_brand_id != product.brand_id:
+            # Decrement count for old brand
+            if original_brand_id:
+                try:
+                    old_brand = await Brand.find_one({"id": original_brand_id})
+                    if old_brand:
+                        await old_brand.decrement_product_count()
+
+                        # Update collections associated with old brand
+                        if old_brand.collection_ids:
+                            for coll_id in old_brand.collection_ids:
+                                try:
+                                    collection = await Collection.find_one({"id": coll_id})
+                                    if collection:
+                                        await collection.decrement_product_count()
+                                except Exception as e:
+                                    print(f"Error updating old collection count: {str(e)}")
+                                    continue
+                except Exception as e:
+                    print(f"Error updating old brand count: {str(e)}")
+                    pass
+
+            # Increment count for new brand
+            if product.brand_id:
+                try:
+                    new_brand = await Brand.find_one({"id": product.brand_id})
+                    if new_brand:
+                        await new_brand.increment_product_count()
+
+                        # Update collections associated with new brand
+                        if new_brand.collection_ids:
+                            for coll_id in new_brand.collection_ids:
+                                try:
+                                    collection = await Collection.find_one({"id": coll_id})
+                                    if collection:
+                                        await collection.increment_product_count()
+                                except Exception as e:
+                                    print(f"Error updating new collection count: {str(e)}")
+                                    continue
+                except Exception as e:
+                    print(f"Error updating new brand count: {str(e)}")
+                    pass
+
+        # Handle changes in categories
+        removed_categories = [cat_id for cat_id in original_category_ids if cat_id not in product.category_ids]
+        added_categories = [cat_id for cat_id in product.category_ids if cat_id not in original_category_ids]
+
+        # Decrement count for removed categories
+        for cat_id in removed_categories:
+            try:
+                category = await Category.find_one({"id": cat_id})
+                if category:
+                    await category.decrement_product_count()
+            except Exception as e:
+                print(f"Error updating removed category count: {str(e)}")
+                continue
+
+        # Increment count for added categories
+        for cat_id in added_categories:
+            try:
+                category = await Category.find_one({"id": cat_id})
+                if category:
+                    await category.increment_product_count()
+            except Exception as e:
+                print(f"Error updating added category count: {str(e)}")
+                continue
 
         # Check if we have at least one image
         if not product.image_urls or len(product.image_urls) == 0:
@@ -510,12 +602,34 @@ async def delete_product_page(
             for cat_id in product.category_ids:
                 try:
                     category = await Category.find_one({"id": cat_id})
-                    if category and category.product_count > 0:
-                        category.product_count -= 1
-                        await category.save()
-                except Exception:
+                    if category:
+                        await category.decrement_product_count()
+                except Exception as e:
+                    print(f"Error updating category count: {str(e)}")
                     # Continue even if updating count fails
                     pass
+
+        # Update brand product count
+        if product.brand_id:
+            try:
+                brand = await Brand.find_one({"id": product.brand_id})
+                if brand:
+                    await brand.decrement_product_count()
+
+                    # Update product count for collections associated with this brand
+                    if brand.collection_ids:
+                        for coll_id in brand.collection_ids:
+                            try:
+                                collection = await Collection.find_one({"id": coll_id})
+                                if collection:
+                                    await collection.decrement_product_count()
+                            except Exception as e:
+                                print(f"Error updating collection count: {str(e)}")
+                                continue
+            except Exception as e:
+                print(f"Error updating brand count: {str(e)}")
+                # Continue even if updating count fails
+                pass
 
         # Redirect to product list
         return RedirectResponse(
@@ -558,12 +672,34 @@ async def delete_product_api(
             for cat_id in product.category_ids:
                 try:
                     category = await Category.find_one({"id": cat_id})
-                    if category and category.product_count > 0:
-                        category.product_count -= 1
-                        await category.save()
-                except Exception:
+                    if category:
+                        await category.decrement_product_count()
+                except Exception as e:
+                    print(f"Error updating category count: {str(e)}")
                     # Continue even if updating count fails
                     pass
+
+        # Update brand product count
+        if product.brand_id:
+            try:
+                brand = await Brand.find_one({"id": product.brand_id})
+                if brand:
+                    await brand.decrement_product_count()
+
+                    # Update product count for collections associated with this brand
+                    if brand.collection_ids:
+                        for coll_id in brand.collection_ids:
+                            try:
+                                collection = await Collection.find_one({"id": coll_id})
+                                if collection:
+                                    await collection.decrement_product_count()
+                            except Exception as e:
+                                print(f"Error updating collection count: {str(e)}")
+                                continue
+            except Exception as e:
+                print(f"Error updating brand count: {str(e)}")
+                # Continue even if updating count fails
+                pass
 
         # Return JSON response for API
         return JSONResponse({

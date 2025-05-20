@@ -115,10 +115,11 @@
                 variantId: product.variants && product.variants.length > 0 ? product.variants[0].id : null,
                 quantity: 1
               });
-              $dispatch('show-notification', {
-                message: product.name + ' added to cart',
-                type: 'success'
-              });
+              // Remove this line to prevent duplicate notifications
+              // $dispatch('show-notification', {
+              //   message: product.name + ' added to cart',
+              //   type: 'success'
+              // });
             "
             class="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors focus:outline-none"
             title="Add to cart"
@@ -154,3 +155,4 @@
     </div>
   </div>
 </div>
+

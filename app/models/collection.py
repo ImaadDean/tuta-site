@@ -16,9 +16,10 @@ class Collection(Document):
     is_active: bool = True
     is_featured: bool = False
     order: int = 0  # For sorting collections on the frontend
+    product_count: int = 0  # Track number of products in this collection
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = None
-    
+
     # Define the collection name in MongoDB
     class Settings:
         name = "collections"
@@ -27,7 +28,7 @@ class Collection(Document):
             "is_active",
             "is_featured"
         ]
-        
+
     # Define example data
     class Config:
         schema_extra = {
@@ -40,33 +41,34 @@ class Collection(Document):
                 "is_active": True,
                 "is_featured": True,
                 "order": 1,
+                "product_count": 5,
                 "created_at": "2023-01-01T00:00:00.000Z",
                 "updated_at": "2023-01-02T00:00:00.000Z"
             }
         }
-    
+
     # Helper methods for CRUD operations
     @classmethod
     async def get_active_collections(cls) -> List["Collection"]:
         """Get all active collections"""
         return await cls.find({"is_active": True}).sort("order").to_list()
-    
+
     @classmethod
     async def get_featured_collections(cls) -> List["Collection"]:
         """Get featured collections for homepage display"""
         return await cls.find({"is_active": True, "is_featured": True}).sort("order").to_list()
-    
+
     # Update timestamps on save
     async def save(self, *args, **kwargs):
         self.updated_at = datetime.now()
         return await super().save(*args, **kwargs)
-    
+
     # Method to get categories in this collection
     async def get_categories(self) -> List:
         """Get all categories in this collection"""
         from app.models.category import Category
         return await Category.find({"collection_id": self.id, "is_active": True}).to_list()
-        
+
     # Method to get brands associated with this collection
     async def get_brands(self) -> List:
         """Get all brands associated with this collection"""
@@ -74,32 +76,44 @@ class Collection(Document):
         if not self.brand_ids:
             return []
         return await Brand.find({"id": {"$in": self.brand_ids}}).to_list()
-    
+
     # Method to add a brand to this collection
     async def add_brand(self, brand_id: str):
         """Add a brand to this collection"""
         if brand_id not in self.brand_ids:
             self.brand_ids.append(brand_id)
             await self.save()
-            
+
             # Update the brand's collection_ids as well
             from app.models.brand import Brand
             brand = await Brand.find_one({"id": brand_id})
             if brand and self.id not in brand.collection_ids:
                 await brand.add_collection(self.id)
-    
+
     # Method to remove a brand from this collection
     async def remove_brand(self, brand_id: str):
         """Remove a brand from this collection"""
         if brand_id in self.brand_ids:
             self.brand_ids.remove(brand_id)
             await self.save()
-            
+
             # Update the brand's collection_ids as well
             from app.models.brand import Brand
             brand = await Brand.find_one({"id": brand_id})
             if brand and self.id in brand.collection_ids:
                 await brand.remove_collection(self.id)
+
+    # Method to increment product count
+    async def increment_product_count(self, amount: int = 1):
+        """Increment the product count by the specified amount"""
+        self.product_count += amount
+        await self.save()
+
+    # Method to decrement product count
+    async def decrement_product_count(self, amount: int = 1):
+        """Decrement the product count by the specified amount"""
+        self.product_count = max(0, self.product_count - amount)
+        await self.save()
 
 # Pydantic models for API
 class CollectionBase(BaseModel):
@@ -125,8 +139,9 @@ class CollectionUpdate(BaseModel):
 class CollectionResponse(CollectionBase):
     id: str
     brand_ids: List[str]
+    product_count: int
     created_at: datetime
     updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True 
+        orm_mode = True

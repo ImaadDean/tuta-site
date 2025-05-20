@@ -40,11 +40,11 @@ async def get_all_categories(
 ):
     """
     Render the categories page showing all available categories
-    
+
     Args:
         request: The FastAPI request object
         current_user: The authenticated user (optional)
-        
+
     Returns:
         HTMLResponse: The rendered categories page
     """
@@ -80,24 +80,31 @@ async def get_category_detail(
 ):
     """
     Render the category detail page showing products in the selected category
-    
+
     Args:
         request: The FastAPI request object
         category_id: The ID of the category to display
         current_user: The authenticated user (optional)
-        
+
     Returns:
         HTMLResponse: The rendered category detail page
         RedirectResponse: Redirect to categories page if category not found
     """
     with log_execution_time(f"Rendering category detail page for {category_id}"):
         try:
-            # Get the category
-            category = await Category.find_one({"_id": category_id})
+            # Get the category - try both id and _id fields
+            category = await Category.find_one({"id": category_id})
+            if not category:
+                # Try with _id as fallback
+                category = await Category.find_one({"_id": category_id})
+
             if not category:
                 logger.warning(f"Category not found: {category_id}")
                 # If category not found, redirect to all categories page
                 return RedirectResponse(url="/categories", status_code=status.HTTP_302_FOUND)
+
+            # Log for debugging
+            logger.info(f"Found category: {category.name} (id: {category.id})")
 
             # Products will be loaded client-side via API
             return templates.TemplateResponse(

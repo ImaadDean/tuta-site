@@ -8,7 +8,7 @@ import os
 class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "production"
-    
+
     # Session settings
     SECRET_KEY: str = secrets.token_hex(32)
 
@@ -21,18 +21,19 @@ class Settings(BaseSettings):
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
     USE_CREDENTIALS: bool = True
-    
+
     # MongoDB settings
-    MONGO_USERNAME: str = "tuta"
+    MONGO_USERNAME: str = "imaad"
     MONGO_PASSWORD: str = "Ertdfgxc"
-    MONGO_HOST: str = "cluster0.zvzoq.mongodb.net"
+    MONGO_HOST: str = "129.213.8.146"
+    MONGO_PORT: int = 27017
     MONGO_DATABASE: str = "perfumes_more"
     MONGO_POOL_SIZE: int = 20
-    
+
     # New MongoDB URI setting
     MONGODB_URI: str = ""
     MONGODB_DATABASE: str = "perfumes_more"
-    
+
     # Database connection pool settings
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 0
@@ -54,14 +55,14 @@ class Settings(BaseSettings):
 
 def get_settings():
     settings = Settings()
-    
+
     # Configure Cloudinary
     cloudinary.config(
         cloud_name=settings.CLOUDINARY_CLOUD_NAME,
         api_key=settings.CLOUDINARY_API_KEY,
         api_secret=settings.CLOUDINARY_API_SECRET
     )
-    
+
     # Configure FastMail
     settings.mail_config = ConnectionConfig(
         MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -75,15 +76,16 @@ def get_settings():
         USE_CREDENTIALS=settings.USE_CREDENTIALS,
         VALIDATE_CERTS=True,
     )
-    
+
     # Create MongoDB URI if not provided
     if not settings.MONGODB_URI:
-        settings.MONGODB_URI = f"mongodb+srv://{settings.MONGO_USERNAME}:{settings.MONGO_PASSWORD}@{settings.MONGO_HOST}/{settings.MONGO_DATABASE}?retryWrites=true&w=majority"
+        # Try with authSource parameter
+        settings.MONGODB_URI = f"mongodb://{settings.MONGO_USERNAME}:{settings.MONGO_PASSWORD}@{settings.MONGO_HOST}:{settings.MONGO_PORT}/?authSource=admin"
         settings.MONGODB_DATABASE = settings.MONGO_DATABASE
-    
+
     # Log the environment type
     print(f"Running in {settings.ENVIRONMENT} environment")
-    
+
     return settings
 
 # Create a global instance of settings
