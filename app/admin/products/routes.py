@@ -260,7 +260,11 @@ async def view_product(
     """
     try:
         # Attempt to find product by ID
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
+
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
 
         if not product:
             raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
@@ -306,6 +310,10 @@ async def edit_product_form(
     try:
         # Attempt to find product by ID
         product = await Product.find_one({"id": product_id})
+
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
 
         if not product:
             raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
@@ -356,7 +364,6 @@ async def edit_product(
     featured: bool = Form(False),
     is_trending: bool = Form(False),
     is_top_rated: bool = Form(False),
-    collection_id: Optional[str] = Form(None),
     is_perfume: bool = Form(False),
     scent_ids: List[str] = Form([]),
     variant_types: List[str] = Form([]),
@@ -371,6 +378,10 @@ async def edit_product(
     try:
         # Attempt to find product by ID
         product = await Product.find_one({"id": product_id})
+
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
 
         if not product:
             raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
@@ -431,7 +442,6 @@ async def edit_product(
         product.in_stock = in_stock or stock_quantity > 0
         product.stock = stock_quantity
         product.brand_id = brand_id if brand_id and brand_id.strip() else None
-        product.collection_id = collection_id if collection_id and collection_id.strip() else None
         product.category_ids = [cat_id for cat_id in category_ids if cat_id and cat_id.strip()]
         product.tags = tag_list
         product.status = status
@@ -585,6 +595,10 @@ async def delete_product_page(
         # Attempt to find product by ID
         product = await Product.find_one({"id": product_id})
 
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+
         if not product:
             raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
 
@@ -649,11 +663,11 @@ async def delete_product_api(
     """
     try:
         # Attempt to find product by ID
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
 
+        # If not found by id, try _id
         if not product:
-            # Try with the id field if _id doesn't work
-            product = await Product.find_one({"id": product_id})
+            product = await Product.find_one({"_id": product_id})
 
         if not product:
             raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
@@ -714,6 +728,115 @@ async def delete_product_api(
         # Return error response
         raise HTTPException(status_code=500, detail=f"Could not delete product: {str(e)}")
 
+    try:
+        # Attempt to find product by ID
+        product = await Product.find_one({"_id": product_id})
+
+        if not product:
+            # Try with the id field if _id doesn't work
+            product = await Product.find_one({"id": product_id})
+
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
+
+        # Delete images from Cloudinary if they exist
+        if product.image_urls:
+            # Use our delete_images function
+            result = delete_images(product.image_urls)
+            print(f"Deleted {result['success']} images, failed to delete {result['failed']} images")
+
+        # Delete the product
+        await product.delete()
+
+        # Update category product counts
+        if product.category_ids:
+            for cat_id in product.category_ids:
+                try:
+                    category = await Category.find_one({"id": cat_id})
+                    if category:
+                        await category.decrement_product_count()
+                except Exception as e:
+                    print(f"Error updating category count: {str(e)}")
+                    # Continue even if updating count fails
+                    pass
+
+        # Update brand product count
+        if product.brand_id:
+            try:
+                brand = await Brand.find_one({"id": product.brand_id})
+                if brand:
+                    await brand.decrement_product_count()
+
+                    # Update product count for collections associated with this brand
+                    if brand.collection_ids:
+                        for coll_id in brand.collection_ids:
+                            try:
+                                collection = await Collection.find_one({"id": coll_id})
+                                if collection:
+                                    await collection.decrement_product_count()
+                            except Exception as e:
+                                print(f"Error updating collection count: {str(e)}")
+                                continue
+            except Exception as e:
+                print(f"Error updating brand count: {str(e)}")
+                # Continue even if updating count fails
+                pass
+
+        # Redirect to product list
+        return RedirectResponse(
+            url="/admin/products/",
+            status_code=303  # Use the numeric status code directly
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not delete product: {str(e)}")
+
+        # Update category product counts
+        if product.category_ids:
+            for cat_id in product.category_ids:
+                try:
+                    category = await Category.find_one({"id": cat_id})
+                    if category:
+                        await category.decrement_product_count()
+                except Exception as e:
+                    print(f"Error updating category count: {str(e)}")
+                    # Continue even if updating count fails
+                    pass
+
+        # Update brand product count
+        if product.brand_id:
+            try:
+                brand = await Brand.find_one({"id": product.brand_id})
+                if brand:
+                    await brand.decrement_product_count()
+
+                    # Update product count for collections associated with this brand
+                    if brand.collection_ids:
+                        for coll_id in brand.collection_ids:
+                            try:
+                                collection = await Collection.find_one({"id": coll_id})
+                                if collection:
+                                    await collection.decrement_product_count()
+                            except Exception as e:
+                                print(f"Error updating collection count: {str(e)}")
+                                continue
+            except Exception as e:
+                print(f"Error updating brand count: {str(e)}")
+                # Continue even if updating count fails
+                pass
+
+        # Return JSON response for API
+        return JSONResponse({
+            "status": "success",
+            "message": "Product deleted successfully"
+        })
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error deleting product: {str(e)}")
+        print(traceback.format_exc())
+
+        # Return error response
+        raise HTTPException(status_code=500, detail=f"Could not delete product: {str(e)}")
+
 @router.post("/{product_id}/restock")
 async def restock_product(
     product_id: str,
@@ -725,7 +848,12 @@ async def restock_product(
     """
     try:
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
+        
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
@@ -772,7 +900,12 @@ async def update_stock(
     """
     try:
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
+        
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
@@ -816,7 +949,12 @@ async def get_stock_info(
     Get current stock information for a product
     """
     # Find the product
-    product = await Product.find_one({"_id": product_id})
+    product = await Product.find_one({"id": product_id})
+    
+    # If not found by id, try _id
+    if not product:
+        product = await Product.find_one({"_id": product_id})
+
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -839,7 +977,12 @@ async def update_transit(
     """
     try:
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
+        
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
@@ -874,7 +1017,12 @@ async def receive_transit(
     """
     try:
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
+        
+        # If not found by id, try _id
+        if not product:
+            product = await Product.find_one({"_id": product_id})
+
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
@@ -934,7 +1082,7 @@ async def update_discount(
 
         # Find the product
         print(f"Looking for product with id: {product_id}")
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
 
         # If not found by id, try _id (in case MongoDB is using _id instead)
         if not product:
@@ -1034,7 +1182,7 @@ async def get_product_variants(
     """
     try:
         # First try to find by exact ID match
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
 
         # If not found by id, try _id
         if product is None:
@@ -1169,7 +1317,7 @@ async def set_variant_discount(
         print(f"Form data: old_price={old_price}, discount_price={discount_price}, start_date={start_date}, end_date={end_date}, quantity_limit={quantity_limit}")
 
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
 
         # If not found by id, try _id (in case MongoDB is using _id instead)
         if not product:
@@ -1347,7 +1495,7 @@ async def remove_variant_discount(
         print(f"Removing discount for product ID: {product_id}, variant ID: {variant_id}")
 
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
 
         # If not found by id, try ObjectId (in case MongoDB is using ObjectId instead)
         if not product:
@@ -1658,7 +1806,7 @@ async def get_discount_history(
         print(f"Getting discount history for product ID: {product_id}")
 
         # Find the product
-        product = await Product.find_one({"_id": product_id})
+        product = await Product.find_one({"id": product_id})
 
         # If not found by id, try ObjectId (in case MongoDB is using ObjectId instead)
         if not product:
